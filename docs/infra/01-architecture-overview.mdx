@@ -1,0 +1,65 @@
+---
+sidebar_position: 1
+title: Repository Architecture Overview
+---
+
+# Repository Architecture Overview
+
+Two primary repository strategies exist for multi-service platforms. Neither is universally superior; the right choice depends on team size, release cadence, and organizational structure.
+
+### Monorepo vs Polyrepo
+
+| Dimension | Monorepo | Polyrepo |
+|-----------|----------|----------|
+| **Code Sharing** | Excellent. Native imports across apps. | Complex. Requires publishing to a registry or using Git submodules. |
+| **Atomic Changes** | Yes. A single PR can change API, backend, and frontend together. | No. Requires multiple PRs and coordination. |
+| **Onboarding** | Simple. `git clone` once. | Moderate. Multiple repos to clone. |
+| **CI/CD Complexity** | High. Needs path-filtering + build tools. | Low. Standard per-repo pipelines. |
+| **Access Control** | All-or-nothing. | Granular per-repo. |
+
+### Monorepo
+
+All services in a **single Git repository**.
+
+**Advantages:**
+- Atomic cross-service changes
+- Shared code via local references — no registry publishing
+- Unified CI/CD with path-based filtering
+- IDE surfaces errors across all consumers when a shared interface changes
+
+**Trade-offs:**
+- Repository grows large over time
+- Requires tooling (Nx, Turborepo, Bazel) as complexity grows
+
+### Polyrepo
+
+Each service has its own **independent repository**. A central platform repo manages shared infrastructure.
+
+**Advantages:**
+- Independent CI/CD, versioning, and release cadence per service
+- Clear team ownership boundaries
+- Natural boundary enforcement — no accidental cross-service coupling
+
+**Trade-offs:**
+- Cross-service changes require coordinating multiple PRs
+- Shared code must be published to a registry or vendored
+
+### Decision Guide
+
+| Factor | Monorepo | Polyrepo |
+|--------|----------|----------|
+| Team size | Small–Medium (< 30 devs) | Medium–Large |
+| Release cadence | Coordinated | Independent per service |
+| Shared code | Heavy cross-service sharing | Minimal sharing, API contracts preferred |
+| Ownership | Can be ambiguous | Clear per-repo ownership |
+
+### Choose Monorepo if:
+- Teams work collaboratively across the stack
+- You suffer from "version hell" maintaining internal packages
+- You want end-to-end type safety across frontend and backend
+
+### Choose Polyrepo if:
+- Teams are strictly specialized
+- One repo is massive (large models, heavy binaries)
+- You need granular access control per service
+- You want the simplest possible CI/CD pipelines

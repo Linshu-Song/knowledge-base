@@ -1,0 +1,82 @@
+---
+sidebar_position: 0
+title: Overview
+slug: /python-tutorial
+---
+
+# Python Tutorial
+
+This section covers Python engineering practices, tooling, and modern development workflows.
+
+## Topics
+
+| Document | Description |
+|----------|-------------|
+| [Python Engineering Guide](python-engineering-guide.mdx) | Project structure, dependency management, and best practices |
+| [pyproject.toml Guide](pyproject-guide.mdx) | Modern Python project configuration with pyproject.toml |
+| [uv Guide](uv-guide.mdx) | Fast Python package manager and project management |
+| [Python Tools Introduction](python-tools-introduction.mdx) | Code quality tools: linters, formatters, and type checkers |
+
+---
+
+## Code Quality Tools Overview
+
+Python has a mature ecosystem of code quality tools that help maintain consistency, catch bugs early, and enforce standards.
+
+### Tool Categories
+
+| Category | Purpose | Examples |
+|----------|---------|----------|
+| **Linters** | Find errors, bugs, and style issues | Pylint, Flake8, Ruff |
+| **Formatters** | Enforce consistent code style | Black, Ruff |
+| **Type Checkers** | Verify type annotations | MyPy, Pyright |
+| **Import Sorters** | Organize import statements | isort, Ruff |
+
+### Recommended: Ruff
+
+**Ruff** is a modern all-in-one Python linter and formatter written in Rust. It replaces Flake8, isort, Black, and more with a single, extremely fast tool.
+
+#### Why Ruff?
+
+| Aspect | Traditional Stack | Ruff |
+|--------|-------------------|------|
+| **Tools needed** | Flake8 + isort + Black + MyPy | Ruff alone |
+| **Speed** | 30-60 seconds | 1-3 seconds |
+| **Configuration** | Multiple config files | Single `pyproject.toml` section |
+| **Auto-fix** | Limited | Comprehensive |
+
+#### Quick Start
+
+```bash
+# Install
+pip install ruff
+
+# Lint and auto-fix
+ruff check --fix src/
+
+# Format
+ruff format src/
+```
+
+#### Basic Configuration
+
+```toml
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I", "N"]
+ignore = ["E501"]
+```
+
+### Traditional Tools (for reference)
+
+| Tool | Purpose | Speed | Status |
+|------|---------|-------|--------|
+| **Pylint** | Comprehensive linting (200+ rules) | Slow | Mature, still useful for deep analysis |
+| **Black** | Uncompromising formatter | Medium | Widely adopted standard |
+| **MyPy** | Static type checking | Slow | Essential for typed codebases |
+| **Flake8** | Linting wrapper (PyFlakes + pycodestyle) | Medium | Being replaced by Ruff |
+
+For a detailed comparison and migration guide, see [Python Tools Introduction](python-tools-introduction.mdx).

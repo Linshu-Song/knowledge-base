@@ -1,0 +1,17 @@
+{
+  "sidebar.tutorialSidebar.category.Deep Learning": {
+    "message": "深度學習"
+  },
+  "sidebar.tutorialSidebar.category.Python Tutorial": {
+    "message": "Python 教程"
+  },
+  "sidebar.tutorialSidebar.category.Git Tutorial": {
+    "message": "Git 教程"
+  },
+  "sidebar.tutorialSidebar.category.Infrastructure": {
+    "message": "基礎設施"
+  },
+  "sidebar.tutorialSidebar.category.Computer Vision": {
+    "message": "電腦視覺"
+  }
+}
