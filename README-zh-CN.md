@@ -62,9 +62,11 @@
 
 ### 🏗️ 基础设施
 
-基础设施搭建与安全实践指南。
+涵盖基础设施搭建、开发环境、部署和安全实践的指南。
 
 **可用资源：**
+- [基础设施与开发指南](infra/00-overview.zh-CN.md) - 6 部分指南，涵盖存储库架构、基础设施搭建、开发环境、部署、运维和 SSH
+- [SSH 与 SSH Key 指南](infra/ssh.zh-CN.md) - SSH 密钥生成、Agent、Agent 转发和 Docker 集成
 - [零信任教程](infra/zero-trust-tutorial.md) - 连接设备到 Cloudflare Zero Trust 的指南
 
 ---

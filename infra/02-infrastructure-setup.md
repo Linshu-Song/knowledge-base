@@ -1,0 +1,456 @@
+# Part 2: Infrastructure Setup
+
+## Language Selection
+
+- **English** (Current) - This document
+- [简体中文](02-infrastructure-setup.zh-CN.md) - Simplified Chinese
+- [繁體中文](02-infrastructure-setup.zh-HK.md) - Traditional Chinese
+
+## Table of Contents
+
+1. [Docker Compose Architecture](#1-docker-compose-architecture)
+2. [Base Infrastructure Services](#2-base-infrastructure-services)
+3. [Development Overrides](#3-development-overrides)
+4. [Environment Variable Strategy](#4-environment-variable-strategy)
+5. [Service Networking](#5-service-networking)
+6. [Multi-Stage Dockerfile Pattern](#6-multi-stage-dockerfile-pattern)
+
+---
+
+## 1. Docker Compose Architecture
+
+Use a **layered Compose file** approach: a base file defines infrastructure, and overlay files add environment-specific configuration.
+
+### File Hierarchy
+
+```
+infra/ (or platform-dev/)
+├── compose.yaml              # Base: infrastructure services (always loaded first)
+├── compose.dev.yaml          # Dev overlay: bind mounts, debug ports, hot reload
+├── compose.staging.yaml      # Staging overlay: prod targets, staging config
+├── compose.prod.yaml         # Production overlay: immutable images, resource limits
+└── env/
+    ├── compose.dev.env       # Compose interpolation variables (dev)
+    ├── compose.staging.env   # Compose interpolation variables (staging)
+    ├── compose.prod.env      # Compose interpolation variables (prod)
+    ├── shared.base.env       # Cross-service runtime vars (all environments)
+    ├── shared.dev.env        # Cross-service runtime vars (dev overrides)
+    ├── shared.prod.env       # Cross-service runtime vars (prod values)
+    ├── service-a.dev.env     # Service-specific vars (dev)
+    └── service-a.prod.env    # Service-specific vars (prod)
+```
+
+### Loading Order
+
+```bash
+# Later files override earlier ones
+docker compose \
+  --env-file ./env/compose.dev.env \
+  -f compose.yaml \
+  -f compose.dev.yaml \
+  --profile dev \
+  up -d
+```
+
+---
+
+## 2. Base Infrastructure Services
+
+The base Compose file defines shared infrastructure that all services depend on. The specific technology choices (Postgres vs MySQL, RabbitMQ vs Kafka, etc.) depend on your needs — the pattern is the same.
+
+### `compose.yaml` (Base Orchestration)
+
+```yaml
+services:
+  database:
+    image: postgres:16-alpine           # Or mysql, mongodb, etc.
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d platform_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  message-queue:
+    image: rabbitmq:3-management-alpine  # Or kafka, nats, etc.
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"                    # Management UI
+    volumes:
+      - mq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:7-alpine                # Or memcached, valkey, etc.
+    ports:
+      - "6379:6379"
+    volumes:
+      - cache_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  object-storage:
+    image: minio/minio:latest            # Or localstack, etc.
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"                      # Console
+    command: server /data --console-address ":9001"
+    volumes:
+      - storage_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  db_data:
+  mq_data:
+  cache_data:
+  storage_data:
+```
+
+### Key Design Decisions
+
+- **Health checks on all infrastructure**: Services should `depends_on` with `condition: service_healthy` to avoid startup race conditions
+- **Named volumes**: Data persists across container restarts
+- **Default network**: All services can reach each other by name (Docker DNS)
+- **Alpine-based images**: Smaller footprint, faster pulls
+
+---
+
+## 3. Development Overrides
+
+The dev overlay adds bind mounts, debug ports, and application services.
+
+### `compose.dev.yaml`
+
+```yaml
+services:
+  # Your application services
+  api:
+    build:
+      context: ../api-gateway             # Monorepo: use root as context
+      dockerfile: Dockerfile
+      target: dev                         # Multi-stage: use dev target
+    command: npm run dev                   # Or equivalent for your stack
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DEBUG: "app:*"
+    volumes:
+      - ../api-gateway:/workspace/api-gateway
+      - /workspace/api-gateway/node_modules   # Anonymous volume: protect from host
+    depends_on:
+      database:
+        condition: service_healthy
+      message-queue:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    env_file:
+      - ./env/shared.base.env
+      - ./env/shared.dev.env
+      - ./env/service-a.dev.env
+    user: vscode
+    profiles:
+      - dev
+
+  frontend:
+    build:
+      context: ../web-app
+      dockerfile: Dockerfile
+      target: dev
+    command: npm start
+    ports:
+      - "3001:3000"
+    environment:
+      API_URL: http://localhost:3000
+    volumes:
+      - ../web-app:/workspace/web-app
+      - /workspace/web-app/node_modules
+    env_file:
+      - ./env/shared.base.env
+      - ./env/shared.dev.env
+      - ./env/frontend.dev.env
+    user: vscode
+    profiles:
+      - dev
+
+  # Optional dev tools
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    profiles:
+      - dev-optional
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    profiles:
+      - dev-optional
+```
+
+### Monorepo vs Polyrepo: Build Context Difference
+
+```
+# Monorepo: build context is the repo root
+build:
+  context: ..                            # Monorepo root
+  dockerfile: apps/api-gateway/Dockerfile
+
+# Polyrepo: build context is the service directory
+build:
+  context: ../api-gateway                # Service repo root
+  dockerfile: Dockerfile
+```
+
+---
+
+## 4. Environment Variable Strategy
+
+Use a **layered override** pattern: base config → environment-specific → secrets.
+
+### Two Layers of Environment Variables
+
+| Layer | Purpose | Source | Example |
+|-------|---------|--------|---------|
+| **Compose interpolation** | Controls which images to pull, project names | `--env-file` flag | `GATEWAY_IMAGE_TAG`, `COMPOSE_PROJECT_NAME` |
+| **Container runtime** | What the application reads at startup | `env_file` in service config | `DATABASE_URL`, `JWT_SECRET` |
+
+### File Contents
+
+#### Compose Interpolation (`compose.dev.env`)
+
+```bash
+# Controls docker compose behavior, NOT read by application
+APP_ENV=development
+COMPOSE_PROJECT_NAME=platform-dev
+```
+
+#### Shared Runtime Vars (`shared.base.env`)
+
+```bash
+# Cross-service contracts: service discovery, queue names, etc.
+# Non-sensitive values only — checked into version control
+
+DATABASE_HOST=database
+DATABASE_PORT=5432
+DATABASE_NAME=platform_db
+MESSAGE_QUEUE_HOST=message-queue
+MESSAGE_QUEUE_PORT=5672
+CACHE_HOST=cache
+CACHE_PORT=6379
+
+# Internal service URLs (resolved via Docker DNS)
+API_URL=http://api:3000
+WORKER_QUEUE_NAME=task_queue
+EVENT_TOPIC=platform_events
+```
+
+#### Dev Overrides (`shared.dev.env`)
+
+```bash
+# Dev-specific overrides
+LOG_LEVEL=debug
+ENABLE_PROFILING=true
+CACHE_TTL=60
+```
+
+#### Service-Specific Vars (`service-a.dev.env`)
+
+```bash
+# Variables specific to one service
+PORT=3000
+DATABASE_URL=postgres://devuser:devpass@database:5432/platform_db
+MESSAGE_QUEUE_URL=amqp://guest:guest@message-queue:5672
+CACHE_URL=redis://cache:6379/0
+JWT_SECRET=dev-secret-change-in-prod
+SESSION_TIMEOUT=86400
+```
+
+### Secrets: Never in Version Control
+
+```bash
+# Production secrets come from an external secrets manager
+# (Vault, AWS Secrets Manager, Azure Key Vault, etc.)
+# Injected at deploy time, not stored in .env files
+
+# .env files contain ONLY non-sensitive, checked-in values
+# Secret values use placeholder names like:
+JWT_SECRET=<loaded-from-vault>
+DATABASE_PASSWORD=<loaded-from-vault>
+```
+
+---
+
+## 5. Service Networking
+
+### Within Docker Compose
+
+All services in the same Compose project share a network and can reach each other by service name:
+
+```
+# From api container:
+http://database:5432           # Database
+http://message-queue:5672      # Message queue
+http://cache:6379              # Cache
+http://frontend:3000           # Another service
+
+# From host machine (via port mapping):
+http://localhost:3000          # API
+http://localhost:5432          # Database
+http://localhost:15672         # Queue management UI
+```
+
+### Cross-Service Calls (Examples)
+
+```javascript
+// Node.js: use service name (Docker DNS resolves it)
+const response = await fetch('http://ai-service:8001/api/infer', {
+  method: 'POST',
+  body: JSON.stringify({ input: '...' })
+});
+```
+
+```python
+# Python: same pattern
+import requests
+response = requests.post('http://api:3000/api/data', json={'key': 'value'})
+```
+
+```go
+// Go: same pattern
+resp, err := http.Post("http://api:3000/api/data", "application/json", body)
+```
+
+---
+
+## 6. Multi-Stage Dockerfile Pattern
+
+Every service should use multi-stage builds with `dev` and `prod` targets.
+
+### General Pattern
+
+```dockerfile
+# Stage 1: base — system dependencies, common setup
+FROM <base-image> AS base
+WORKDIR /app
+RUN <install-system-dependencies>
+
+# Stage 2: dev — includes debug tools, dev dependencies, hot reload
+FROM base AS dev
+RUN <install-dev-tools>
+COPY package*.json ./               # Or requirements.txt, go.mod, etc.
+RUN <install-all-dependencies>
+COPY . .
+USER vscode
+CMD ["<hot-reload-command>"]
+
+# Stage 3: prod — minimal runtime, no debug tools
+FROM base AS prod
+COPY package*.json ./
+RUN <install-production-dependencies-only>
+COPY . .
+RUN <build-step-if-needed>
+RUN <cleanup-build-artifacts>
+EXPOSE <port>
+USER nobody
+CMD ["<production-entrypoint>"]
+```
+
+### Node.js Example
+
+```dockerfile
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache python3 make g++ git
+
+FROM base AS dev
+RUN npm install -g nodemon
+COPY package*.json ./
+RUN npm ci --include=dev
+COPY . .
+USER vscode
+CMD ["nodemon", "--exec", "node", "--inspect=0.0.0.0:9229", "dist/index.js"]
+
+FROM base AS prod
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+RUN npm run build
+RUN rm -rf src/ tests/ *.config.js
+EXPOSE 3000
+USER nobody
+CMD ["node", "dist/index.js"]
+```
+
+### Python Example
+
+```dockerfile
+FROM python:3.11-slim AS base
+WORKDIR /app
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+FROM base AS dev
+COPY requirements.txt requirements-dev.txt* ./
+RUN pip install -r requirements.txt
+RUN if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+COPY . .
+USER vscode
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+
+FROM base AS prod
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN python -m py_compile app/
+USER nobody
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+```
+
+### Why Multi-Stage?
+
+| Aspect | Dev Target | Prod Target |
+|--------|-----------|-------------|
+| Debug tools | Included (nodemon, debugger, etc.) | Excluded |
+| Dev dependencies | Installed | Omitted |
+| Source code | Present (for hot reload) | Removed after build |
+| User | `vscode` (non-root, UID-mapped) | `nobody` (minimal privileges) |
+| Image size | Larger (acceptable for dev) | Minimal |
+| Attack surface | Larger | Minimal |
+
+---
+
+*Previous: [Part 1: Architecture Overview](01-architecture-overview.md)*
+*Next: [Part 3: Development Environment](03-development-environment.md) — Dev Containers, Git/SSH setup, and daily workflow.*

@@ -60,12 +60,14 @@
 - [Git Hooks 指南](git-tutorial/git-hooks-guide-zh-HK.md) - Git 鉤子、Husky、Commitizen、pre-commit 使用與示例
 - [Git 子模組指南](git-tutorial/git-submodule-guide-zh-HK.md) - 管理外部倉庫的完整子模組指南
 
-### 🏗️ 基礎設施
+### 🏗️ 基礎架構
 
-基礎設施搭建與安全實踐指南。
+涵蓋基礎架構搭建、開發環境、部署和安全實踐嘅指南。
 
 **可用資源：**
-- [零信任教程](infra/zero-trust-tutorial.md) - 連接設備到 Cloudflare Zero Trust 的指南
+- [基礎架構與開發指南](infra/00-overview.zh-HK.md) - 6 部分指南，涵蓋儲存庫架構、基礎架構搭建、開發環境、部署、操作同 SSH
+- [SSH 與 SSH Key 指南](infra/ssh.zh-HK.md) - SSH 密鑰產生、Agent、Agent 轉發同 Docker 整合
+- [零信任教程](infra/zero-trust-tutorial.md) - 連接設備到 Cloudflare Zero Trust 嘅指南
 
 ---
 

@@ -62,9 +62,11 @@ Comprehensive Git engineering guides covering best practices, workflows, and adv
 
 ### 🏗️ Infrastructure
 
-Guides for infrastructure setup and security practices.
+Guides for infrastructure setup, development environments, deployment, and security practices.
 
 **Available Resources:**
+- [Infrastructure & Development Guide](infra/00-overview.md) - 6-part guide covering repository architecture, infrastructure setup, development environments, deployment, operations, and SSH
+- [SSH & SSH Key Guide](infra/ssh.md) - SSH key generation, agent, forwarding, and Docker integration
 - [Zero Trust Tutorial](infra/zero-trust-tutorial.md) - Guide to connecting devices to Cloudflare Zero Trust
 
 ---

@@ -1,0 +1,717 @@
+# 第三部分：開發環境
+
+## 語言選擇
+
+- [English](03-development-environment.md) - 英文
+- [简体中文](03-development-environment.zh-CN.md) - 簡體中文
+- **繁體中文** (當前) - 本文檔
+
+## Table of Contents
+
+1. [什麼是 Dev Container？](#1-什麼是-dev-container)
+2. [Dev Container 與本地開發](#2-dev-container-與本地開發)
+3. [Dev Container 與純 Docker Compose](#3-dev-container-與純-docker-compose)
+4. [何時使用 Dev Container](#4-何時使用-dev-container)
+5. [何時不使用 Dev Container](#5-何時不使用-dev-container)
+6. [決策矩陣](#6-決策矩陣)
+7. [Dev Container 配置](#7-dev-container-配置)
+8. [devcontainer.json 屬性參考](#8-devcontainerjson-屬性參考)
+9. [SSH Agent 轉發](#9-ssh-agent-轉發)
+10. [Git 配置](#10-git-配置)
+11. [首次設定](#11-首次設定)
+12. [日常工作流程](#12-日常工作流程)
+13. [常見問題](#13-常見問題)
+
+---
+
+## 1. 什麼是 Dev Container？
+
+**Dev Container**是一種標準化的方式，用於在 Docker 容器內定義完整的開發環境。它主要是 **VS Code 的功能**（不過其他整合開發環境如 JetBrains 也在追趕）。
+
+### 核心概念
+
+以前需要這樣做：
+- 在本機安裝 Node.js、Python、PostgreSQL 用戶端、Redis CLI 等
+- 處理版本衝突（macOS 有 Python 3.9，但你需要 3.11）
+- 團隊成員之間有不同的設定
+
+使用 Dev Container 後：
+- **一個 `devcontainer.json` 文件**指定：作業系統、執行階段版本、擴展功能、需轉發的連接埠、要掛載的磁碟區
+- **可重現的環境**——所有開發者和 CI/CD 都一致
+- **與主機隔離**——不受本機全域狀態影響
+
+### 底層原理
+
+當你在 VS Code 中開啟包含 `devcontainer.json` 的資料夾時：
+1. Dev Containers 擴展功能讀取 `devcontainer.json` 文件
+2. 它啟動一個 Docker 容器（或使用 Docker Compose）
+3. 它在容器內安裝 **VS Code Server**
+4. VS Code 的介面留在主機，但終端機、檔案總管和偵錯工具都**在容器內**運行
+5. 連接埠會被轉發，這樣主機上的 `localhost:3000` 就能連接到容器
+
+---
+
+## 2. Dev Container 與本地開發
+
+### 本地開發（傳統方式）
+
+```
+# 設定
+brew install node@20
+brew install python@3.11
+git clone <repo>
+cd repo
+npm install
+npm run dev
+```
+
+| 優點 | 缺點 |
+|------|------|
+| 即時回饋循環（無容器開銷） | 環境漂移：開發者 A 用 Node 18，B 用 Node 20 |
+| 直接存取整合開發環境、Git、SSH 密鑰 | 「在我的機器上能跑」——作業系統差異 |
+| 容易使用原生偵錯工具偵錯 | 全域狀態污染，跨專案累積 |
+| | 入職痛苦：20 步驟的安裝指南 |
+| | 機器膨脹：每個執行階段都會累積 |
+
+### Dev Container 方式
+
+```
+# 設定
+git clone <repo>
+# VS Code：Cmd+Shift+P → "Dev Containers: Reopen in Container"
+# 等 30 秒，完成。
+```
+
+| 優點 | 缺點 |
+|------|------|
+| 可重現性：相同的 Dockerfile = 處處相同的環境 | Docker 開銷：啟動需要 10-30 秒（每個工作階段一次） |
+| 隔離性：主機保持乾淨 | macOS 綁定掛載的檔案 I/O 延遲（現代 Docker 已緩解） |
+| 容易入職：clone → 選擇容器 → 完成 | 資源使用：Docker Desktop 使用 2-4 GB 記憶體 |
+| 每個專案無版本衝突 | 學習曲線：團隊必須理解 Docker 基礎 |
+
+---
+
+## 3. Dev Container 與純 Docker Compose
+
+### 純 Docker Compose
+
+你在 `compose.yaml` 中定義基礎架構，然後本地運行應用：
+
+```bash
+docker compose up -d        # 資料庫、快取、佇列在容器中運行
+npm run dev                  # 你本地的 Node.js 連接到容器化的 PostgreSQL
+```
+
+**優點**：簡單設定、快速本地回饋、熟悉的循環。
+
+**缺點**：執行階段一致性問題（本地 Node 版本可能與生產環境不同）、跨本地和容器化流程的偵錯複雜度、SSH/憑證必須手動傳遞。
+
+### Dev Container + Docker Compose
+
+基礎架構**和**你的應用都在容器中運行：
+
+```json
+{
+  "dockerComposeFile": ["compose.yaml", "compose.dev.yaml"],
+  "service": "gateway",
+  "workspaceFolder": "/workspace/api-gateway"
+}
+```
+
+- `postgres`、`rabbitmq`、`redis` 作為獨立容器運行
+- **你的應用程式也在容器內運行**，與你的 Dockerfile 一致
+- VS Code 連接到應用程式容器
+- 應用程式容器透過主機名稱連接到資料庫服務（Docker DNS）
+
+**優點**：真正的環境對等（本地開發 ≈ 生產環境）、自動服務發現、透過 SSH agent 轉發實現憑證安全。
+
+**缺點**：初始設定較複雜，開發者必須理解 Docker Compose + Dev Container 兩者。
+
+---
+
+## 4. 何時使用 Dev Container
+
+**團隊使用多種作業系統**
+部分開發者用 macOS，部分用 Linux，部分用 Windows（WSL2）。Dev Container 抽象掉作業系統差異——每個人都在相同的 Linux 容器中開發。
+
+**複雜的基礎架構依賴**
+你的應用需要 PostgreSQL、Redis、RabbitMQ 等。開發者不應該在本地全部安裝。新團隊成員應在 5 分鐘內進入高效工作狀態。
+
+**多儲存庫與共享平台基礎架構**
+多個服務共享通用基礎架構。每個有不同的執行階段需求（Node.js 對 Python）。開發者經常在服務之間切換。
+
+**單一儲存庫與共享函式庫**
+`libs/shared-types` 被 `apps/api-gateway` 和 `apps/web-app` 共用。當你更改函式庫時，兩個應用都會透過工作區符號連結立即看到變更。
+
+**混合語言技術堆疊**
+核心服務是 Node.js，AI 推論是 Python + CUDA。為每個技術堆疊使用獨立的 Dev Container，共享 Compose 基礎架構。
+
+---
+
+## 5. 何時不使用 Dev Container
+
+**效能關鍵的開發**
+即時圖形、遊戲開發或 100ms 延遲很重要的建置循環。Docker 增加 I/O 開銷，尤其是在 macOS 上。
+
+**獨立開發者、單一機器**
+沒有團隊一致性需要獲取。使用 Docker Compose 處理依賴，應用本地運行。
+
+**簡單的純前端專案**
+純 JavaScript 或簡單的 React 應用，無後端。Docker 開銷與其帶來的簡便性不成比例。
+
+**工具不相容**
+團隊使用的整合開發環境不支援 Dev Container（舊版 JetBrains、Sublime、Emacs）或公司政策禁止 Docker。
+
+**快速實驗/一次性代碼**
+探索一個將被刪除的新函式庫。只要 `npm install` 然後開始。
+
+---
+
+## 6. 決策矩陣
+
+| 因素 | 適合 Dev Container | 不適合 Dev Container |
+|--------|----------------------|---------------------|
+| 團隊規模 | 3 位以上開發者 | 1-2 位開發者 |
+| 作業系統 | 混合（macOS、Linux、Windows） | 單一作業系統 |
+| 基礎架構複雜度 | 3 個以上服務（資料庫、快取、佇列） | 本地-only，簡單 |
+| 語言多樣性 | Python + Node.js + C++ | 單一語言 |
+| 代碼共享 | 有 `libs/` 的單一儲存庫 | 隔離服務 |
+| 整合開發環境使用 | VS Code 為主 | 其他整合開發環境 |
+| 效能關鍵 | 否 | 是 |
+| 入職頻率 | 頻繁（成長中的團隊） | 很少 |
+| 生產環境對等 | 高（開發 ≈ 生產） | 低（開發 ≠ 生產） |
+
+**評分：**
+- **5 個以上「適合」** → 強烈建議使用 Dev Container
+- **3-4 個「適合」** → 考慮使用 Dev Container，權衡取捨
+- **1-2 個「適合」** → 跳過 Dev Container，僅使用 Docker Compose
+- **0 個「適合」** → 僅使用本地開發
+
+---
+
+## 7. Dev Container 配置
+
+### 單一儲存庫：`.devcontainer/gateway/devcontainer.json`
+
+```json
+{
+  "name": "API Gateway (Monorepo)",
+  "dockerComposeFile": [
+    "../../infra/compose.yaml",
+    "../../infra/compose.dev.yaml"
+  ],
+  "service": "gateway",
+  "workspaceFolder": "/workspace/apps/api-gateway",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "runServices": ["gateway", "database", "message-queue"],
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "API Gateway", "onAutoForward": "notify" }
+  },
+  "postCreateCommand": "cd /workspace && npm install"
+}
+```
+
+### 多儲存庫：`platform-dev/.devcontainer/gateway/devcontainer.json`
+
+```json
+{
+  "name": "API Gateway Dev",
+  "dockerComposeFile": [
+    "../../compose.yaml",
+    "../../compose.dev.yaml"
+  ],
+  "service": "gateway",
+  "workspaceFolder": "/workspace/api-gateway",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "runServices": ["gateway", "database", "message-queue", "cache"],
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "API Gateway", "onAutoForward": "notify" }
+  },
+  "postCreateCommand": "npm ci && npm run db:migrate"
+}
+```
+
+### GPU 啟用的服務（例如 AI 推論）
+
+```json
+{
+  "name": "AI Service Dev",
+  "dockerComposeFile": [
+    "../../compose.yaml",
+    "../../compose.dev.yaml"
+  ],
+  "service": "ai-service",
+  "workspaceFolder": "/workspace/ai-service",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  },
+  "runServices": ["ai-service", "message-queue", "cache"],
+  "forwardPorts": [8001],
+  "runArgs": [
+    "--gpus=all",
+    "--cap-add=SYS_PTRACE"
+  ],
+  "postCreateCommand": "pip install -r requirements.txt",
+  "remoteEnv": {
+    "CUDA_VISIBLE_DEVICES": "0"
+  }
+}
+```
+
+## 8. devcontainer.json 屬性參考
+
+| 屬性 | 用途 | 範例 |
+|----------|---------|---------|
+| `name` | VS Code 選擇器中的顯示名稱 | `"API Gateway Dev"` |
+| `image` | 獨立 Docker 映像（不要與 `dockerComposeFile` 一起使用） | `"node:20-alpine"` |
+| `dockerComposeFile` | Compose YAML 文件陣列 | `["compose.yaml", "compose.dev.yaml"]` |
+| `service` | compose.yaml 中要附加的服務 | `"gateway"` |
+| `workspaceFolder` | VS Code 終端機開啟位置 | `"/workspace/api-gateway"` |
+| `remoteUser` | 容器內的用戶名（非 root 建議） | `"vscode"` |
+| `updateRemoteUserUID` | 同步主機 UID 到容器用戶（防止權限問題） | `true` |
+| `runServices` | 要啟動的服務 | `["gateway", "database", "redis"]` |
+| `forwardPorts` | 將容器連接埠暴露到主機 | `[3000, 8001]` |
+| `runArgs` | 額外的 Docker run 參數 | `["--gpus=all"]` |
+| `customizations.vscode.extensions` | 要自動安裝的 VS Code 擴展功能 | `["ms-python.python"]` |
+| `customizations.vscode.settings` | VS Code 設定（每個容器） | `{"editor.formatOnSave": true}` |
+| `features` | 自動化設定輔助工具 | `"ghcr.io/devcontainers/features/git:1"` |
+| `postCreateCommand` | 容器初始化後運行 | `"npm install"` |
+| `remoteEnv` | 容器內的環境變數 | `{"NODE_ENV": "development"}` |
+| `mounts` | Docker 綁定掛載（SSH agent 等） | `"source=~/.ssh,target=/root/.ssh,type=bind,readonly"` |
+
+---
+
+## 9. SSH Agent 轉發
+
+容器內的 Git 認證使用主機的 SSH agent。**私鑰永遠不會進入容器。**
+
+### 運作原理
+
+```
+Host Machine                          Container
+┌─────────────────┐                  ┌─────────────────┐
+│ SSH Agent        │                  │ Git              │
+│ (~/.ssh/id_*)   │── socket ──────→ │ calls SSH        │
+│                  │   轉發        │ SSH connects to │
+│ Private keys    │   透過 Docker     │ forwarded socket│
+│ stay HERE        │   磁碟區掛載 │ signs operation │
+└─────────────────┘                  └─────────────────┘
+```
+
+1. 主機運行 SSH agent，在記憶體中持有私鑰
+2. `SSH_AUTH_SOCK` 環境變數指向 agent 的 socket
+3. Dev Containers 擴展功能將此 socket 轉發到容器
+4. 容器內的 Git 呼叫 SSH，連接到轉發的 socket
+5. 私鑰永不離開主機
+
+### 主機一次性設定
+
+#### macOS
+
+```bash
+# SSH agent 通常預設運行
+ssh-add -l
+
+# 如果沒有列出密鑰，添加你的密鑰：
+ssh-add ~/.ssh/id_ed25519
+```
+
+#### Linux
+
+```bash
+# 啟動 SSH agent
+eval "$(ssh-agent -s)"
+
+# 添加你的密鑰
+ssh-add ~/.ssh/id_ed25519
+
+# 設為持久化（添加到 ~/.bashrc）：
+echo 'eval "$(ssh-agent -s)" 2>/dev/null' >> ~/.bashrc
+```
+
+#### Windows (WSL2)
+
+```bash
+# 在 WSL2 終端機內
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+### 在容器內驗證
+
+連接到 Dev Container 後，驗證 SSH 轉發是否正常：
+
+```bash
+# 在容器終端機內
+echo $SSH_AUTH_SOCK
+# 應該輸出：/run/host-services/ssh-auth.sock
+
+ssh-add -l
+# 應該列出你的主機密鑰
+
+ssh -T git@github.com
+# 應該認證成功
+```
+
+---
+
+## 10. Git 配置
+
+Git 配置從主機繼承。在主機上配置一次即可。
+
+### 主機一次性設定
+
+```bash
+# 設定身份
+git config --global user.name "Your Full Name"
+git config --global user.email "your.email@company.com"
+
+# 行尾符號
+# macOS/Linux：
+git config --global core.autocrlf input
+git config --global core.fileMode true
+
+# Windows：
+git config --global core.autocrlf true
+git config --global core.fileMode false
+
+# 允許所有目錄（容器掛載的儲存庫需要）
+git config --global --add safe.directory '*'
+```
+
+### 處理多個 Git 帳戶
+
+```bash
+# 主機上的 ~/.ssh/config
+Host github.com-work
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_work
+    IdentitiesOnly yes
+
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_personal
+    IdentitiesOnly yes
+```
+
+然後使用別名 clone：
+
+```bash
+git clone git@github.com-work:work-org/repo.git
+git clone git@github.com-personal:personal-user/repo.git
+```
+
+### HTTPS 替代方案
+
+如果你偏好 HTTPS 而不是 SSH：
+
+```bash
+# 配置憑證輔助工具
+git config --global credential.helper osxkeychain   # macOS
+git config --global credential.helper pass          # Linux
+# Windows：通常 Git for Windows 內建
+```
+
+---
+
+## 11. 首次設定
+
+### 逐步說明（多儲存庫範例）
+
+```bash
+# 1. 在主機上配置 SSH agent
+ssh-add ~/.ssh/id_ed25519
+
+# 2. 在主機上配置 Git
+git config --global user.name "Your Name"
+git config --global user.email "you@company.com"
+git config --global --add safe.directory '*'
+
+# 3. 驗證 SSH 連接
+ssh -T git@github.com
+
+# 4. Clone 儲存庫
+mkdir -p ~/workspace && cd ~/workspace
+git clone git@github.com:company/platform-dev.git
+git clone git@github.com:company/api-gateway.git
+git clone git@github.com:company/web-app.git
+
+# 5. 啟動基礎架構
+cd platform-dev
+docker compose \
+  --env-file ./env/compose.dev.env \
+  -f compose.yaml \
+  -f compose.dev.yaml \
+  --profile dev \
+  up -d database message-queue cache
+
+# 6. 驗證服務健康狀態
+docker compose ps
+
+# 7. 在 VS Code 中開啟
+code .
+
+# 8. Cmd+Shift+P → "Dev Containers: Reopen in Container"
+# 9. 選擇服務（例如 "API Gateway Dev"）
+# 10. 等待容器建置（約 2-3 分鐘）
+
+# 11. 在容器內，驗證 Git 是否正常
+git config user.name
+ssh -T git@github.com
+
+# 12. 測試推送
+cd /workspace/api-gateway
+git checkout -b test-ssh-push
+git commit --allow-empty -m "Test push from container"
+git push -u origin test-ssh-push
+git checkout main
+git branch -D test-ssh-push
+git push origin :test-ssh-push
+```
+
+### 單一儲存庫的差異
+
+對於單一儲存庫，步驟 4-5 簡化為：
+
+```bash
+# 單一 clone
+git clone git@github.com:company/monorepo.git
+cd monorepo
+
+# 在根目錄執行 npm install 會連結所有工作區
+npm install
+
+# 啟動基礎架構
+docker compose -f infra/compose.yaml -f infra/compose.dev.yaml up -d
+```
+
+---
+
+## 12. 日常工作流程
+
+### 開始工作
+
+```bash
+# 在主機上
+cd ~/workspace/platform-dev    # 或單一儲存庫根目錄
+
+# 啟動所有服務
+docker compose \
+  --env-file ./env/compose.dev.env \
+  -f compose.yaml \
+  -f compose.dev.yaml \
+  --profile dev \
+  up -d
+
+# 驗證健康狀態
+docker compose ps
+```
+
+### 編寫代碼
+
+1. 在相關的 Dev Container 中開啟 VS Code
+2. 編輯代碼——透過綁定掛載，代碼變更會即時反映
+3. 熱重載會自動偵測變更（nodemon、webpack-dev-server、uvicorn --reload 等）
+
+### 提交變更
+
+Git 操作在容器內自然運行：
+
+```bash
+# 在 VS Code 終端機內（容器）
+git status
+git add src/handler.ts
+git commit -m "Add new request handler"
+git push origin feature-branch
+# 不需要密碼提示 —— SSH agent 處理認證
+```
+
+### 跨服務呼叫
+
+在任何容器內，透過 Docker DNS 名稱呼叫其他服務：
+
+```javascript
+// 從 api 容器，呼叫 ai-service
+const response = await fetch('http://ai-service:8001/api/infer', {
+  method: 'POST',
+  body: JSON.stringify({ input: '...' })
+});
+```
+
+```python
+# 從 ai-service 容器，呼叫 api
+import requests
+response = requests.get('http://api:3000/api/users')
+```
+
+從主機瀏覽器，使用 localhost 加上映射的連接埠：
+
+```
+http://localhost:3000    # API
+http://localhost:3001    # 前端
+http://localhost:8080    # Adminer（資料庫 UI）
+http://localhost:15672   # 佇列管理 UI
+```
+
+### 檢查日誌
+
+```bash
+# 在主機上
+docker compose logs -f api              # 追蹤 API 日誌
+docker compose logs --tail=100 ai-service  # 最近 100 行
+docker compose logs | grep -i error     # 搜尋錯誤
+```
+
+### 資料庫存取
+
+```bash
+# 選項 1：網頁 UI（Adminer）
+# 在瀏覽器中開啟 http://localhost:8080
+
+# 選項 2：容器內 CLI
+docker compose exec database psql -U devuser -d platform_db
+
+# 選項 3：從應用程式代碼
+# 大多數應用從環境自動讀取 DATABASE_URL
+```
+
+### 訊息佇列檢查
+
+```bash
+# 管理 UI：http://localhost:15672（guest/guest）
+
+# 或使用 CLI
+docker compose exec message-queue rabbitmqctl list_queues
+```
+
+### 環境變更後重啟
+
+```bash
+# 重新建立特定服務
+docker compose up -d --force-recreate api
+
+# 或完全重啟
+docker compose down && docker compose up -d
+```
+
+---
+
+## 13. 常見問題
+
+### 「SSH_AUTH_SOCK 未設定」或 SSH 密鑰不可用
+
+**原因**：主機上 SSH agent 未運行，或 socket 未轉發。
+
+**修復**：
+
+```bash
+# 在主機上
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# 重新啟動容器
+docker compose down && docker compose up -d
+```
+
+### 「fatal: detected dubious ownership in repository」
+
+**原因**：容器用戶 UID 與儲存庫檔案 UID 不同。
+
+**修復**：
+
+```bash
+# 選項 1：已全域設定，但可以明確指定
+git config --global --add safe.directory '/workspace/api-gateway'
+
+# 選項 2：確保 devcontainer.json 有：
+# "updateRemoteUserUID": true
+
+# 選項 3：重啟容器
+docker compose down && docker compose up -d
+```
+
+### 推送時「Permission denied (publickey)」
+
+**原因**：SSH agent 未轉發，或密鑰權限錯誤。
+
+**修復**：
+
+```bash
+# 在主機上 —— 檢查密鑰權限
+ls -la ~/.ssh/id_ed25519
+# 應該是：-rw------- (600)
+
+chmod 600 ~/.ssh/id_ed25519
+chmod 644 ~/.ssh/id_ed25519.pub
+
+# 驗證 agent 有密鑰
+ssh-add -l
+ssh-add ~/.ssh/id_ed25519  # 如果未列出
+
+# 在主機上測試
+ssh -T git@github.com
+```
+
+### 「Could not resolve host github.com」
+
+**原因**：容器內 DNS 未正常運作。
+
+**修復**：
+
+```bash
+# 重新啟動容器（通常能修復暫時性 DNS 問題）
+docker compose restart
+
+# 或在 compose.yaml 中添加 DNS：
+# services:
+#   api:
+#     dns: [8.8.8.8, 1.1.1.1]
+```
+
+---
+
+*上一篇：[第二部分：基礎架構設定](02-infrastructure-setup.zh-HK.md)*
+*下一篇：[第四部分：生產環境部署](04-production-deployment.zh-HK.md) — 映像檔建置、密鑰管理、資料遷移和 CI/CD。*

@@ -1,0 +1,456 @@
+# 第二部分：基础设施设置
+
+## 语言选择
+
+- [English](02-infrastructure-setup.md) - 英文
+- **简体中文** (当前) - 本文档
+- [繁體中文](02-infrastructure-setup.zh-HK.md) - 繁体中文
+
+## 目录
+
+1. [Docker Compose 架构](#1-docker-compose-架构)
+2. [基础基础设施服务](#2-基础基础设施服务)
+3. [开发环境覆盖](#3-开发环境覆盖)
+4. [环境变量策略](#4-环境变量策略)
+5. [服务网络](#5-服务网络)
+6. [多阶段 Dockerfile 模式](#6-多阶段-dockerfile-模式)
+
+---
+
+## 1. Docker Compose 架构
+
+采用**分层 Compose 文件**方案：基础文件定义基础设施，覆盖文件添加环境特定配置。
+
+### 文件层级
+
+```
+infra/ (或 platform-dev/)
+├── compose.yaml              # 基础：基础设施服务（始终首先加载）
+├── compose.dev.yaml          # 开发覆盖：绑定挂载、调试端口、热重载
+├── compose.staging.yaml      # 预发布覆盖：生产目标、预发布配置
+├── compose.prod.yaml         # 生产覆盖：不可变镜像、资源限制
+└── env/
+    ├── compose.dev.env       # Compose 插值变量（开发）
+    ├── compose.staging.env   # Compose 插值变量（预发布）
+    ├── compose.prod.env      # Compose 插值变量（生产）
+    ├── shared.base.env       # 跨服务运行时变量（所有环境）
+    ├── shared.dev.env        # 跨服务运行时变量（开发覆盖）
+    ├── shared.prod.env       # 跨服务运行时变量（生产值）
+    ├── service-a.dev.env     # 服务特定变量（开发）
+    └── service-a.prod.env    # 服务特定变量（生产）
+```
+
+### 加载顺序
+
+```bash
+# 后面的文件覆盖前面的
+docker compose \
+  --env-file ./env/compose.dev.env \
+  -f compose.yaml \
+  -f compose.dev.yaml \
+  --profile dev \
+  up -d
+```
+
+---
+
+## 2. 基础基础设施服务
+
+基础 Compose 文件定义所有服务依赖的共享基础设施。具体技术选型（Postgres vs MySQL、RabbitMQ vs Kafka 等）取决于需求 — 模式是一样的。
+
+### `compose.yaml`（基础编排）
+
+```yaml
+services:
+  database:
+    image: postgres:16-alpine           # 或 mysql、mongodb 等
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d platform_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  message-queue:
+    image: rabbitmq:3-management-alpine  # 或 kafka、nats 等
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"                    # 管理界面
+    volumes:
+      - mq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:7-alpine                # 或 memcached、valkey 等
+    ports:
+      - "6379:6379"
+    volumes:
+      - cache_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  object-storage:
+    image: minio/minio:latest            # 或 localstack 等
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"                      # 控制台
+    command: server /data --console-address ":9001"
+    volumes:
+      - storage_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  db_data:
+  mq_data:
+  cache_data:
+  storage_data:
+```
+
+### 关键设计决策
+
+- **所有基础设施都有健康检查**：服务应通过 `depends_on` 配合 `condition: service_healthy` 避免启动竞态条件
+- **命名卷**：数据在容器重启后持久化
+- **默认网络**：所有服务可通过名称互相访问（Docker DNS）
+- **Alpine 基础镜像**：体积更小，拉取更快
+
+---
+
+## 3. 开发环境覆盖
+
+开发覆盖层添加绑定挂载、调试端口和应用服务。
+
+### `compose.dev.yaml`
+
+```yaml
+services:
+  # 应用服务
+  api:
+    build:
+      context: ../api-gateway             # Monorepo：使用根目录作为上下文
+      dockerfile: Dockerfile
+      target: dev                         # 多阶段：使用 dev 目标
+    command: npm run dev                   # 或对应技术栈的等效命令
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DEBUG: "app:*"
+    volumes:
+      - ../api-gateway:/workspace/api-gateway
+      - /workspace/api-gateway/node_modules   # 匿名卷：保护免受宿主影响
+    depends_on:
+      database:
+        condition: service_healthy
+      message-queue:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    env_file:
+      - ./env/shared.base.env
+      - ./env/shared.dev.env
+      - ./env/service-a.dev.env
+    user: vscode
+    profiles:
+      - dev
+
+  frontend:
+    build:
+      context: ../web-app
+      dockerfile: Dockerfile
+      target: dev
+    command: npm start
+    ports:
+      - "3001:3000"
+    environment:
+      API_URL: http://localhost:3000
+    volumes:
+      - ../web-app:/workspace/web-app
+      - /workspace/web-app/node_modules
+    env_file:
+      - ./env/shared.base.env
+      - ./env/shared.dev.env
+      - ./env/frontend.dev.env
+    user: vscode
+    profiles:
+      - dev
+
+  # 可选的开发工具
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    profiles:
+      - dev-optional
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    profiles:
+      - dev-optional
+```
+
+### Monorepo vs Polyrepo：构建上下文差异
+
+```
+# Monorepo：构建上下文是仓库根目录
+build:
+  context: ..                            # Monorepo 根目录
+  dockerfile: apps/api-gateway/Dockerfile
+
+# Polyrepo：构建上下文是服务目录
+build:
+  context: ../api-gateway                # 服务仓库根目录
+  dockerfile: Dockerfile
+```
+
+---
+
+## 4. 环境变量策略
+
+采用**分层覆盖**模式：基础配置 → 环境特定 → 密钥。
+
+### 两层环境变量
+
+| 层级 | 用途 | 来源 | 示例 |
+|------|------|------|------|
+| **Compose 插值** | 控制拉取哪个镜像、项目名称 | `--env-file` 标志 | `GATEWAY_IMAGE_TAG`、`COMPOSE_PROJECT_NAME` |
+| **容器运行时** | 应用启动时读取的值 | 服务配置中的 `env_file` | `DATABASE_URL`、`JWT_SECRET` |
+
+### 文件内容
+
+#### Compose 插值（`compose.dev.env`）
+
+```bash
+# 控制 docker compose 行为，应用不读取这些值
+APP_ENV=development
+COMPOSE_PROJECT_NAME=platform-dev
+```
+
+#### 共享运行时变量（`shared.base.env`）
+
+```bash
+# 跨服务契约：服务发现、队列名称等
+# 仅非敏感值 — 提交到版本控制
+
+DATABASE_HOST=database
+DATABASE_PORT=5432
+DATABASE_NAME=platform_db
+MESSAGE_QUEUE_HOST=message-queue
+MESSAGE_QUEUE_PORT=5672
+CACHE_HOST=cache
+CACHE_PORT=6379
+
+# 内部服务 URL（通过 Docker DNS 解析）
+API_URL=http://api:3000
+WORKER_QUEUE_NAME=task_queue
+EVENT_TOPIC=platform_events
+```
+
+#### 开发覆盖（`shared.dev.env`）
+
+```bash
+# 开发环境特定覆盖
+LOG_LEVEL=debug
+ENABLE_PROFILING=true
+CACHE_TTL=60
+```
+
+#### 服务特定变量（`service-a.dev.env`）
+
+```bash
+# 仅一个服务使用的变量
+PORT=3000
+DATABASE_URL=postgres://devuser:devpass@database:5432/platform_db
+MESSAGE_QUEUE_URL=amqp://guest:guest@message-queue:5672
+CACHE_URL=redis://cache:6379/0
+JWT_SECRET=dev-secret-change-in-prod
+SESSION_TIMEOUT=86400
+```
+
+### 密钥：永远不要在版本控制中
+
+```bash
+# 生产密钥来自外部密钥管理器
+# （Vault、AWS Secrets Manager、Azure Key Vault 等）
+# 在部署时注入，不存储在 .env 文件中
+
+# .env 文件仅包含非敏感的、检入版本控制的值
+# 密钥值使用占位符名称：
+JWT_SECRET=<从 vault 加载>
+DATABASE_PASSWORD=<从 vault 加载>
+```
+
+---
+
+## 5. 服务网络
+
+### Docker Compose 内部
+
+同一 Compose 项目中的所有服务共享一个网络，可通过服务名互相访问：
+
+```
+# 从 api 容器：
+http://database:5432           # 数据库
+http://message-queue:5672      # 消息队列
+http://cache:6379              # 缓存
+http://frontend:3000           # 另一个服务
+
+# 从宿主机（通过端口映射）：
+http://localhost:3000          # API
+http://localhost:5432          # 数据库
+http://localhost:15672         # 队列管理界面
+```
+
+### 跨服务调用（示例）
+
+```javascript
+// Node.js：使用服务名（Docker DNS 解析）
+const response = await fetch('http://ai-service:8001/api/infer', {
+  method: 'POST',
+  body: JSON.stringify({ input: '...' })
+});
+```
+
+```python
+# Python：相同模式
+import requests
+response = requests.post('http://api:3000/api/data', json={'key': 'value'})
+```
+
+```go
+// Go：相同模式
+resp, err := http.Post("http://api:3000/api/data", "application/json", body)
+```
+
+---
+
+## 6. 多阶段 Dockerfile 模式
+
+每个服务都应使用多阶段构建，包含 `dev` 和 `prod` 目标。
+
+### 通用模式
+
+```dockerfile
+# 阶段 1：base — 系统依赖、通用设置
+FROM <base-image> AS base
+WORKDIR /app
+RUN <安装系统依赖>
+
+# 阶段 2：dev — 包含调试工具、开发依赖、热重载
+FROM base AS dev
+RUN <安装开发工具>
+COPY package*json ./               # 或 requirements.txt、go.mod 等
+RUN <安装所有依赖>
+COPY . .
+USER vscode
+CMD ["<热重载命令>"]
+
+# 阶段 3：prod — 最小运行时，无调试工具
+FROM base AS prod
+COPY package*.json ./
+RUN <仅安装生产依赖>
+COPY . .
+RUN <构建步骤（如果需要）>
+RUN <清理构建产物>
+EXPOSE <端口>
+USER nobody
+CMD ["<生产入口点>"]
+```
+
+### Node.js 示例
+
+```dockerfile
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache python3 make g++ git
+
+FROM base AS dev
+RUN npm install -g nodemon
+COPY package*.json ./
+RUN npm ci --include=dev
+COPY . .
+USER vscode
+CMD ["nodemon", "--exec", "node", "--inspect=0.0.0.0:9229", "dist/index.js"]
+
+FROM base AS prod
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+RUN npm run build
+RUN rm -rf src/ tests/ *.config.js
+EXPOSE 3000
+USER nobody
+CMD ["node", "dist/index.js"]
+```
+
+### Python 示例
+
+```dockerfile
+FROM python:3.11-slim AS base
+WORKDIR /app
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+FROM base AS dev
+COPY requirements.txt requirements-dev.txt* ./
+RUN pip install -r requirements.txt
+RUN if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+COPY . .
+USER vscode
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+
+FROM base AS prod
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN python -m py_compile app/
+USER nobody
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+```
+
+### 为什么要多阶段？
+
+| 方面 | Dev 目标 | Prod 目标 |
+|------|----------|-----------|
+| 调试工具 | 包含（nodemon、调试器等） | 排除 |
+| 开发依赖 | 已安装 | 省略 |
+| 源代码 | 存在（用于热重载） | 构建后移除 |
+| 用户 | `vscode`（非 root，UID 映射） | `nobody`（最小权限） |
+| 镜像大小 | 较大（开发可接受） | 最小化 |
+| 攻击面 | 较大 | 最小化 |
+
+---
+
+*上一篇：[第一部分：架构概述](01-architecture-overview.zh-CN.md)*
+*下一篇：[第三部分：开发环境](03-development-environment.zh-CN.md) — Dev Container、Git/SSH 设置和日常工作流。*

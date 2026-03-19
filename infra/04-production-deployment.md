@@ -1,0 +1,585 @@
+# Part 4: Production Deployment
+
+## Language Selection
+
+- **English** (Current) - This document
+- [简体中文](04-production-deployment.zh-CN.md) - Simplified Chinese
+- [繁體中文](04-production-deployment.zh-HK.md) - Traditional Chinese
+
+## Table of Contents
+
+1. [Environment Tiers](#1-environment-tiers)
+2. [Image Building & Tagging](#2-image-building--tagging)
+3. [Secrets Management](#3-secrets-management)
+4. [Database Migrations](#4-database-migrations)
+5. [Database Backup & Restore](#5-database-backup--restore)
+6. [Staging Deployment](#6-staging-deployment)
+7. [Production Deployment](#7-production-deployment)
+8. [CI/CD Integration](#8-cicd-integration)
+
+---
+
+## 1. Environment Tiers
+
+| Tier | Purpose | Build Target | Config Source | Scale |
+|------|---------|-------------|---------------|-------|
+| **Development** | Local dev with hot reload | `dev` | `.dev.env` files | 1–3 developers |
+| **Staging** | Pre-production validation | `prod` | `.staging.env` files | Mirrors production |
+| **Production** | Customer-facing | `prod` | `.prod.env` + secrets manager | Scaled, distributed |
+
+### Key Principles
+
+1. **Single Dockerfile, Multiple Targets**: `dev` and `prod` targets in one file
+2. **Environment Parity**: Same base images, same schemas — only config differs
+3. **Immutable Images**: Built images are never modified; config comes from env vars
+4. **Gradual Rollout**: Staging first → validate → promote same images to production
+5. **Zero-Trust Secrets**: Sensitive data never in version control
+
+---
+
+## 2. Image Building & Tagging
+
+### Deterministic Tags
+
+Use Git SHA for reproducible builds:
+
+```bash
+GIT_SHA=$(git rev-parse --short HEAD)
+
+# Development
+BUILD_TAG="dev-${GIT_SHA}"
+
+# Staging
+BUILD_TAG="staging-${GIT_SHA}"
+
+# Production
+BUILD_TAG="prod-${GIT_SHA}"
+```
+
+### Build Commands
+
+```bash
+# Build single service
+docker buildx build \
+  --file ../api-gateway/Dockerfile \
+  --target prod \
+  --tag registry.company.com/api:sha-a1b2c3d \
+  ../api-gateway
+
+# Push to registry
+docker push registry.company.com/api:sha-a1b2c3d
+```
+
+### Batch Build with docker buildx bake
+
+#### `docker/bake.hcl`
+
+```hcl
+variable "DOCKER_REGISTRY" {
+  default = "registry.company.com"
+}
+
+variable "BUILD_TAG" {
+  default = "dev"
+}
+
+group "default" {
+  targets = ["api", "frontend", "worker", "ai-service"]
+}
+
+target "api" {
+  dockerfile = "Dockerfile"
+  context    = "../api-gateway"
+  platforms  = ["linux/amd64"]
+  tags = [
+    "${DOCKER_REGISTRY}/api:${BUILD_TAG}",
+    "${DOCKER_REGISTRY}/api:latest"
+  ]
+  cache-from = ["type=registry,ref=${DOCKER_REGISTRY}/api:buildcache"]
+  cache-to   = ["type=registry,ref=${DOCKER_REGISTRY}/api:buildcache,mode=max"]
+}
+
+target "frontend" {
+  dockerfile = "Dockerfile"
+  context    = "../web-app"
+  platforms  = ["linux/amd64"]
+  tags = [
+    "${DOCKER_REGISTRY}/frontend:${BUILD_TAG}",
+    "${DOCKER_REGISTRY}/frontend:latest"
+  ]
+}
+
+target "worker" {
+  dockerfile = "Dockerfile"
+  context    = "../order-worker"
+  platforms  = ["linux/amd64"]
+  tags = [
+    "${DOCKER_REGISTRY}/worker:${BUILD_TAG}",
+    "${DOCKER_REGISTRY}/worker:latest"
+  ]
+}
+```
+
+#### Build Script
+
+```bash
+#!/bin/bash
+# scripts/build-images.sh
+set -euo pipefail
+
+GIT_SHA=$(git rev-parse --short HEAD)
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$GIT_BRANCH" == "main" ]; then
+  BUILD_TAG="prod-${GIT_SHA}"
+elif [ "$GIT_BRANCH" == "staging" ]; then
+  BUILD_TAG="staging-${GIT_SHA}"
+else
+  BUILD_TAG="feature-${GIT_BRANCH}-${GIT_SHA}"
+fi
+
+echo "Building images: tag=$BUILD_TAG"
+
+docker buildx bake \
+  --file docker/bake.hcl \
+  --set "BUILD_TAG=$BUILD_TAG" \
+  --load
+
+echo "Images built: $BUILD_TAG"
+```
+
+---
+
+## 3. Secrets Management
+
+### Principle
+
+**Never store production secrets in `.env` files or version control.**
+
+```
+Development:    secrets in .env files (acceptable for local dev only)
+Staging:        secrets from secrets manager or CI/CD variables
+Production:     secrets from secrets manager (Vault, AWS SM, Azure KV, etc.)
+```
+
+### Secret Types
+
+| Type | Examples | Storage |
+|------|----------|---------|
+| Database credentials | `DB_PASSWORD`, `DATABASE_URL` | Secrets manager |
+| API keys | `JWT_SECRET`, third-party keys | Secrets manager |
+| Certificates | TLS certs, client certs | Secrets manager / K8s Secrets |
+
+### Vault Integration Pattern
+
+```bash
+#!/bin/bash
+# scripts/load-secrets.sh
+set -euo pipefail
+
+ENVIRONMENT=${1:-staging}
+
+# Authenticate to Vault
+if [ -z "${VAULT_TOKEN:-}" ]; then
+  VAULT_TOKEN=$(cat ~/.vault-token)
+fi
+
+# Fetch secrets into env vars
+vault kv get -format=json secret/data/${ENVIRONMENT}/platform \
+  | jq -r '.data.data | to_entries | .[] | "\(.key)=\(.value)"' \
+  > /tmp/secrets.${ENVIRONMENT}.env
+
+# Source into environment
+set -a
+source /tmp/secrets.${ENVIRONMENT}.env
+set +a
+
+echo "Secrets loaded for $ENVIRONMENT"
+```
+
+### Docker Swarm Secrets
+
+```bash
+echo "your-jwt-secret" | docker secret create jwt_secret -
+echo "db-password" | docker secret create db_password -
+```
+
+```yaml
+# compose.prod.yaml
+services:
+  api:
+    secrets:
+      - jwt_secret
+      - db_password
+    environment:
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+
+secrets:
+  jwt_secret:
+    external: true
+  db_password:
+    external: true
+```
+
+### Kubernetes Secrets
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-secrets
+  namespace: production
+type: Opaque
+stringData:
+  JWT_SECRET: "your-jwt-secret"
+  DATABASE_PASSWORD: "db-password"
+```
+
+### Secret Rotation (Zero-Downtime)
+
+```bash
+# 1. Create new secret in Vault
+vault kv put secret/staging/platform JWT_SECRET_NEW="new-value"
+
+# 2. Update app to accept both old and new keys
+# 3. Deploy updated app
+# 4. Deprecate old secret
+vault kv delete secret/staging/platform/JWT_SECRET
+# 5. Simplify app to use only new key
+```
+
+---
+
+## 4. Database Migrations
+
+Separate migration from deployment. Run migrations **before** starting updated services.
+
+### Migration Service in Compose
+
+```yaml
+# compose.prod.yaml
+services:
+  db-migrate:
+    image: registry.company.com/api:sha-a1b2c3d
+    entrypoint: ["npm", "run", "db:migrate"]   # Or equivalent
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - ./env/shared.prod.env
+      - ./env/api.prod.env
+    environment:
+      DATABASE_MAX_CONNECTIONS: 1               # No parallel migrations
+    profiles:
+      - migrate
+
+  api:
+    image: registry.company.com/api:sha-a1b2c3d
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    # ... rest of config
+```
+
+### Deployment Flow
+
+```bash
+# Step 1: Run migrations
+docker compose \
+  --env-file ./env/compose.prod.env \
+  -f compose.yaml \
+  -f compose.prod.yaml \
+  --profile migrate \
+  run db-migrate
+
+# Step 2: If migrations succeed, deploy services
+docker compose \
+  --env-file ./env/compose.prod.env \
+  -f compose.yaml \
+  -f compose.prod.yaml \
+  up -d api worker frontend
+```
+
+---
+
+## 5. Database Backup & Restore
+
+### Backup Script
+
+```bash
+#!/bin/bash
+# scripts/backup-db.sh
+set -euo pipefail
+
+ENVIRONMENT=${1:-staging}
+BACKUP_DIR=./backups
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/db_${ENVIRONMENT}_${TIMESTAMP}.sql.gz"
+
+mkdir -p "$BACKUP_DIR"
+
+echo "Backing up $ENVIRONMENT database..."
+
+docker compose exec database pg_dump \
+  -U devuser \
+  platform_db \
+  | gzip > "$BACKUP_FILE"
+
+echo "Backup saved: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+```
+
+### Restore Script
+
+```bash
+#!/bin/bash
+# scripts/restore-db.sh
+set -euo pipefail
+
+BACKUP_FILE=${1:?Usage: restore-db.sh <backup-file>}
+
+if [ ! -f "$BACKUP_FILE" ]; then
+  echo "Error: File not found: $BACKUP_FILE"
+  exit 1
+fi
+
+echo "WARNING: This will restore from backup. Type 'yes' to proceed:"
+read -r CONFIRM
+if [ "$CONFIRM" != "yes" ]; then exit 1; fi
+
+echo "Restoring from $BACKUP_FILE..."
+
+docker compose exec -T database psql -U devuser -d postgres \
+  -c "DROP DATABASE IF EXISTS platform_db;"
+
+docker compose exec -T database psql -U devuser -d postgres \
+  -c "CREATE DATABASE platform_db;"
+
+gunzip -c "$BACKUP_FILE" | \
+  docker compose exec -T database psql -U devuser platform_db
+
+echo "Database restored"
+```
+
+---
+
+## 6. Staging Deployment
+
+Staging mirrors production for validation before production push.
+
+```bash
+#!/bin/bash
+# scripts/deploy-staging.sh
+set -euo pipefail
+
+GIT_SHA=$(git rev-parse --short HEAD)
+BUILD_TAG="staging-${GIT_SHA}"
+
+echo "====== STAGING DEPLOYMENT ======"
+echo "Git SHA: $GIT_SHA"
+
+# 1. Build images
+docker buildx build \
+  --file ../api-gateway/Dockerfile \
+  --target prod \
+  --tag registry.company.com/api:${BUILD_TAG} \
+  ../api-gateway
+
+# 2. Push to registry
+docker push registry.company.com/api:${BUILD_TAG}
+
+# 3. Run migrations
+docker compose \
+  --env-file ./env/compose.staging.env \
+  -f compose.yaml \
+  -f compose.staging.yaml \
+  --profile migrate \
+  run db-migrate
+
+# 4. Deploy services
+docker compose \
+  --env-file ./env/compose.staging.env \
+  -f compose.yaml \
+  -f compose.staging.yaml \
+  up -d api worker frontend
+
+# 5. Log deployment
+echo "Deployed: $BUILD_TAG at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+
+echo "Validate at: https://api-staging.company.com"
+```
+
+---
+
+## 7. Production Deployment
+
+Promote the **exact same images** validated in staging to production.
+
+```bash
+#!/bin/bash
+# scripts/promote-to-prod.sh
+set -euo pipefail
+
+STAGING_TAG=${1:?Usage: promote-to-prod.sh <staging-build-tag>}
+PROD_TAG=$(echo "$STAGING_TAG" | sed 's/^staging-/prod-/')
+
+echo "====== PRODUCTION PROMOTION ======"
+echo "From: $STAGING_TAG → To: $PROD_TAG"
+
+# 1. Verify staging health
+STATUS=$(curl -s https://api-staging.company.com/health || echo "FAILED")
+if [ "$STATUS" != "OK" ]; then
+  echo "Staging health check failed. Aborting."
+  exit 1
+fi
+
+# 2. Retag images
+docker pull registry.company.com/api:${STAGING_TAG}
+docker tag registry.company.com/api:${STAGING_TAG} registry.company.com/api:${PROD_TAG}
+docker push registry.company.com/api:${PROD_TAG}
+
+# 3. Run migrations
+docker compose \
+  --env-file ./env/compose.prod.env \
+  -f compose.yaml \
+  -f compose.prod.yaml \
+  --profile migrate \
+  run db-migrate
+
+# 4. Deploy
+docker compose \
+  --env-file ./env/compose.prod.env \
+  -f compose.yaml \
+  -f compose.prod.yaml \
+  up -d api worker frontend
+
+echo "Production deployment complete"
+echo "Verify at: https://api.company.com"
+```
+
+---
+
+## 8. CI/CD Integration
+
+### GitHub Actions (Monorepo with Path Filtering)
+
+```yaml
+name: Deploy API Gateway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api-gateway/**'
+      - 'libs/shared-types/**'     # Rebuild if shared deps change
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.company.com
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: apps/api-gateway/Dockerfile
+          target: prod
+          push: true
+          tags: |
+            registry.company.com/api:sha-${{ github.sha }}
+            registry.company.com/api:main-latest
+          cache-from: type=registry,ref=registry.company.com/api:buildcache
+          cache-to: type=registry,ref=registry.company.com/api:buildcache,mode=max
+
+      - name: Deploy to Production (Manual)
+        if: github.ref == 'refs/heads/main'
+        environment: production
+        run: |
+          ./infra/scripts/promote-to-prod.sh sha-${{ github.sha }}
+```
+
+### GitHub Actions (Polyrepo)
+
+```yaml
+name: Deploy Pipeline
+
+on:
+  push:
+    branches: [staging, main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and Push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          target: prod
+          push: true
+          tags: |
+            registry.company.com/api:sha-${{ github.sha }}
+
+      - name: Deploy to Staging
+        if: github.ref == 'refs/heads/staging'
+        run: ./scripts/deploy-staging.sh
+
+      - name: Deploy to Production
+        if: github.ref == 'refs/heads/main'
+        environment: production
+        run: ./scripts/promote-to-prod.sh sha-${{ github.sha }}
+```
+
+### GitLab CI
+
+```yaml
+stages:
+  - build
+  - test
+  - deploy-staging
+  - deploy-prod
+
+build-images:
+  stage: build
+  image: docker:latest
+  services: [docker:dind]
+  script:
+    - docker buildx build --target prod --tag $REGISTRY/api:sha-$CI_COMMIT_SHORT_SHA .
+    - docker push $REGISTRY/api:sha-$CI_COMMIT_SHORT_SHA
+  only: [staging, main]
+
+deploy-staging:
+  stage: deploy-staging
+  script: ./scripts/deploy-staging.sh
+  environment:
+    name: staging
+    url: https://api-staging.company.com
+  only: [staging]
+
+deploy-prod:
+  stage: deploy-prod
+  script: ./scripts/promote-to-prod.sh sha-$CI_COMMIT_SHORT_SHA
+  environment:
+    name: production
+    url: https://api.company.com
+  when: manual
+  only: [main]
+```
+
+---
+
+*Previous: [Part 3: Development Environment](03-development-environment.md)*
+*Next: [Part 5: Operations & Troubleshooting](05-operations-troubleshooting.md) — Monitoring, rollback, and common issues.*

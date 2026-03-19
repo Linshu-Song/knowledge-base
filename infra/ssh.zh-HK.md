@@ -1,0 +1,242 @@
+# SSH 與 SSH Key 指南
+
+## 語言選擇
+
+- [English](ssh.md) - 英文
+- [简体中文](ssh.zh-CN.md) - 簡體中文
+- **繁體中文** (當前) - 本文檔
+
+---
+
+## 1. 甚麼是 SSH？SSH Key 的原理是甚麼？
+
+**SSH（Secure Shell，安全殼協議）** 是一種加密網絡協議，用於在不安全的網絡上安全地操作遠端服務。最常見用途為遠端登入伺服器及安全執行指令。
+
+### SSH Key 原理（非對稱加密）
+
+SSH Key 認證使用**公鑰加密**密鑰對：
+
+| 密鑰 | 存放位置 | 可見性 |
+|---|---|---|
+| **私鑰（Private Key）** | 保存於本地機器（`~/.ssh/id_ed25519`） | **絕對不可外洩** |
+| **公鑰（Public Key）** | 放置於遠端伺服器或 GitHub 上（`~/.ssh/id_ed25519.pub`） | **可以公開** |
+
+**運作流程：**
+
+1. 伺服器保存您的公鑰。
+2. 連線時，伺服器送出一個隨機挑戰（challenge）。
+3. 本地機器使用私鑰對挑戰進行簽名。
+4. 伺服器使用保存的公鑰驗證簽名。
+5. 驗證通過即完成認證——無需輸入密碼。
+
+> 私鑰永遠不會離開您的機器，因此相較於密碼認證安全得多。
+
+---
+
+## 2. 產生及設定 SSH Key
+
+### 第一步：產生新的 SSH Key
+
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+- `-t ed25519` — 使用 Ed25519 演算法（推薦，較 RSA 更快更安全）。
+- `-C` — 標籤／備註，一般填寫您的電郵地址。
+
+提示輸入檔案路徑時，按 Enter 使用預設路徑（`~/.ssh/id_ed25519`），然後可選擇設定密碼短語（passphrase）。
+
+產生後會有兩個檔案：
+
+```
+~/.ssh/id_ed25519       # 私鑰 — 保密
+~/.ssh/id_ed25519.pub   # 公鑰 — 可分享給伺服器／GitHub
+```
+
+### 第二步：將 Key 加入 SSH Agent
+
+```bash
+# 啟動 ssh-agent（如未運行）
+eval "$(ssh-agent -s)"
+# 輸出示例：Agent pid 12345
+
+# 加入私鑰
+ssh-add ~/.ssh/id_ed25519
+```
+
+### 第三步：將公鑰加入 GitHub
+
+1. 複製公鑰內容：
+
+   ```bash
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+2. 前往 **GitHub → Settings → SSH and GPG keys → New SSH key**。
+3. 貼上公鑰，填寫描述性標題（例如「公司手提電腦」）。
+4. 按 **Add SSH key**。
+
+### 第四步：測試連線
+
+```bash
+ssh -T git@github.com
+```
+
+預期輸出：
+
+```
+Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+> 如提示主機真實性確認，輸入 `yes` 將 GitHub 加入 `~/.ssh/known_hosts`。
+
+---
+
+## 3. SSH Agent：定義、用途及使用方法
+
+### 甚麼是 SSH Agent？
+
+`ssh-agent` 是一個背景程式，用於將**解密後的私鑰保存於記憶體中**。載入後，每次使用密鑰時無需再次輸入密碼短語。
+
+### 為何要使用？
+
+- **便捷** — 每個工作階段只需輸入一次密碼短語，無需重複輸入。
+- **安全** — 私鑰保存於 agent 記憶體中，不會以未加密形式寫入磁碟。
+- **支援 agent 轉發**（詳見第 4 節）。
+
+### 如何啟用
+
+```bash
+# 啟動 agent
+eval "$(ssh-agent -s)"
+
+# 加入密鑰（如有密碼短語會提示輸入）
+ssh-add ~/.ssh/id_ed25519
+
+# 驗證已載入的密鑰
+ssh-add -l
+```
+
+### 常用指令
+
+| 指令 | 說明 |
+|---|---|
+| `ssh-add -l` | 列出所有已載入的密鑰 |
+| `ssh-add -D` | 從 agent 中移除所有密鑰 |
+| `ssh-add -d ~/.ssh/id_ed25519` | 移除指定密鑰 |
+
+> **提示：** 在 macOS 及多數 Linux 桌面環境中，`ssh-agent` 會自動啟動。於伺服器上，可將 `eval "$(ssh-agent -s)"` 加入 `~/.bashrc` 或 `~/.zshrc`。
+
+---
+
+## 4. SSH Agent 轉發（Agent Forwarding）
+
+### 甚麼是 Agent 轉發？
+
+SSH Agent 轉發允許您**在遠端伺服器或 Docker 容器中使用本地的 SSH 密鑰**——無需將私鑰複製到遠端機器。遠端機器會將認證請求轉發回本地 agent。
+
+### 為何要使用？
+
+- 在遠端伺服器上使用本地 GitHub Key clone 私有倉庫。
+- 從遠端伺服器跳轉至另一部伺服器時使用本地密鑰。
+- **永遠無需將私鑰複製到遠端機器上**。
+
+### 如何啟用
+
+#### 方式 A：命令列
+
+```bash
+ssh -A user@remote-server
+```
+
+`-A` 參數為此工作階段啟用 agent 轉發。
+
+#### 方式 B：SSH 設定檔（`~/.ssh/config`）
+
+```
+Host remote-server
+    HostName 192.168.1.100
+    User deploy
+    ForwardAgent yes
+```
+
+之後直接 `ssh remote-server`，轉發自動生效。
+
+### 在遠端伺服器上使用 Agent 轉發
+
+使用 `-A` 連線後，本地密鑰在遠端伺服器上可用：
+
+```bash
+# 在遠端伺服器上 — 使用的是您的本地密鑰
+ssh -T git@github.com
+# 輸出：Hi your-username! You've successfully authenticated...
+```
+
+現可在遠端伺服器上執行 `git clone`、`git push` 等操作，使用本地憑證。
+
+### 在 Docker 中使用 Agent 轉發
+
+#### 方法 1：掛載 SSH Agent Socket
+
+```bash
+docker run -it \
+  -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK \
+  -v $SSH_AUTH_SOCK:$SSH_AUTH_SOCK \
+  ubuntu bash
+```
+
+在容器中：
+
+```bash
+apt update && apt install -y openssh-client git
+ssh -T git@github.com
+# 成功！使用的是宿主機上已載入的密鑰。
+```
+
+#### 方法 2：Docker Compose
+
+```yaml
+services:
+  app:
+    build: .
+    environment:
+      - SSH_AUTH_SOCK=${SSH_AUTH_SOCK}
+    volumes:
+      - ${SSH_AUTH_SOCK}:${SSH_AUTH_SOCK}
+```
+
+#### 方法 3：Dockerfile + BuildKit（build 時 `git clone`）
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM ubuntu
+RUN apt-get update && apt-get install -y openssh-client git
+RUN --mount=type=ssh git clone git@github.com:your-org/private-repo.git
+```
+
+Build 指令：
+
+```bash
+DOCKER_BUILDKIT=1 docker build --ssh default .
+```
+
+### 安全警告
+
+> **Agent 轉發存在安全風險。** 若遠端伺服器被入侵且攻擊者擁有 root 權限，可能利用您轉發的 agent 以您的身份認證其他服務。請僅在信任的伺服器上使用。對於多跳 SSH，可考慮使用更安全的替代方案 `ProxyJump`。
+
+---
+
+## 速查表
+
+| 操作 | 指令 |
+|---|---|
+| 產生密鑰 | `ssh-keygen -t ed25519 -C "email"` |
+| 啟動 agent | `eval "$(ssh-agent -s)"` |
+| 加入密鑰到 agent | `ssh-add ~/.ssh/id_ed25519` |
+| 測試 GitHub 連線 | `ssh -T git@github.com` |
+| 帶轉發的 SSH | `ssh -A user@host` |
+| Docker 使用 agent | `docker run -v $SSH_AUTH_SOCK:$SSH_AUTH_SOCK ...` |
+
+---
+
+*最後更新：2026 年 3 月*
