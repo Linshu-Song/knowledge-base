@@ -1,536 +1,116 @@
 ---
 sidebar_position: 5
+title: Operations & Troubleshooting
+description: Best practices for monitoring, log management, rollback procedures, and common infrastructure troubleshooting.
 ---
 
 # Operations & Troubleshooting
 
+Maintaining platform reliability requires robust observability, standardized rollback procedures, and a systematic approach to technical troubleshooting. This guide outlines the engineering standards for production operations.
 
-## 1. Health Checks
+## 1. Health Checks & Liveness
 
-Every service must expose health endpoints.
+Every service must expose standardized health endpoints to facilitate orchestration (e.g., Docker Compose, Kubernetes) and external monitoring.
 
-### Application Health Endpoint
+### Standard Endpoints
 
-```typescript
-/ Example: Node.js / Express
-import { Router } from 'express';
+| Endpoint | Purpose | Logic |
+| :--- | :--- | :--- |
+| `/health` | **Liveness** | Verifies the process is running (Fast, no external dependencies). |
+| `/health/ready` | **Readiness** | Verifies the service can handle traffic (Checks DB, Cache, etc.). |
 
-const router = Router();
+### Docker Compose Implementation
 
-/ Liveness: is the process running?
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.APP_ENV,
-  });
-});
-
-/ Readiness: can the service handle requests?
-router.get('/health/ready', async (req, res) => {
-  try {
-    await database.query('SELECT 1');
-    await cache.ping();
-    res.json({ ready: true });
-  } catch (error) {
-    res.status(503).json({ ready: false, error: error.message });
-  }
-});
-```
-
-### Compose Health Check
+Implement health checks in `docker-compose.yml` to ensure dependencies are ready before dependent services start.
 
 ```yaml
 services:
   api:
     healthcheck:
-      test: ["CMD", "curl", "-f", "http:/localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 30s     # Grace period for startup
-```
-
-### Checking Health
-
-```bash
-# From host
-curl -s http:/localhost:3000/health | jq .
-
-# From another container
-docker compose exec frontend curl -s http:/api:3000/health
-
-# Compose status
-docker compose ps
+      start_period: 30s
 ```
 
 ---
 
-## 2. Logging
+## 2. Logging Strategy
 
-### Log Driver Configuration
+We standardize on **Structured Logging (JSON)** in production to enable efficient log aggregation, programmatic searching, and automated alerting.
 
-```yaml
-# compose.prod.yaml
-services:
-  api:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"        # Rotate at 10MB
-        max-file: "3"          # Keep 3 rotated files
-        labels: "service=api,environment=prod"
-```
+### Operations Commands
 
-### Viewing Logs
+| Objective | Command |
+| :--- | :--- |
+| **Follow Logs** | `docker compose logs -f <service>` |
+| **Search Errors** | `docker compose logs \| grep -i error` |
+| **Time-based View** | `docker compose logs --since 15m <service>` |
 
-```bash
-# Follow all logs
-docker compose logs -f
-
-# Follow specific service
-docker compose logs -f api
-
-# Last 100 lines
-docker compose logs --tail=100 worker
-
-# Search for errors
-docker compose logs | grep -i error
-
-# Since specific time
-docker compose logs --since "2026-03-19T10:00:00" api
-```
-
-### Application-Level Logging
-
-Use structured logging (JSON) in production for easy parsing:
-
-```javascript
-/ Example: structured logger
-logger.info({
-  event: 'request_completed',
-  method: 'GET',
-  path: '/api/users',
-  statusCode: 200,
-  duration_ms: 45,
-  requestId: 'abc-123'
-});
-```
+:::tip Log Retention
+In production environments, configure the `json-file` logging driver with `max-size` and `max-file` limits to prevent disk exhaustion.
+:::
 
 ---
 
-## 3. Metrics & Tracing
+## 3. Rollback Procedures
 
-### Prometheus Metrics (Example)
+When a deployment failure occurs, prioritize returning the system to a "Known Good" state immediately.
 
-```typescript
-import prom from 'prom-client';
-
-const httpDuration = new prom.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code'],
-});
-
-const databaseQueryDuration = new prom.Histogram({
-  name: 'database_query_duration_seconds',
-  help: 'Duration of database queries',
-  labelNames: ['query_type'],
-});
-
-const activeConnections = new prom.Gauge({
-  name: 'active_connections',
-  help: 'Number of active connections',
-});
-```
-
-### Distributed Tracing (Example with OpenTelemetry)
-
-```typescript
-import { trace } from '@opentelemetry/api';
-
-const tracer = trace.getTracer('app-tracer');
-
-async function handleRequest(req) {
-  const span = tracer.startSpan('handle_request');
-  try {
-    / ... business logic
-    span.setAttribute('http.method', req.method);
-    span.setAttribute('http.route', req.path);
-  } finally {
-    span.end();
-  }
-}
-```
-
----
-
-## 4. Rollback Procedures
-
-### Immediate Service Rollback
-
-If a production deployment is broken, quickly revert to the previous image:
+### 3.1 Service Rollback
+Redeploy the previous stable Docker image tag from the container registry.
 
 ```bash
-#!/bin/bash
-set -euo pipefail
+# Pull the specific known-good version
+docker compose pull registry.example.com/api:prod-a1b2c3d
 
-PREVIOUS_TAG="prod-xyz9876"     # From deployment log
-
-echo "Rolling back to $PREVIOUS_TAG"
-
-docker pull registry.company.com/api:${PREVIOUS_TAG}
-
-docker compose \
-  --env-file ./env/compose.prod.env \
-  -f compose.yaml \
-  -f compose.prod.yaml \
-  up -d --force-recreate api
-
-# Verify
-sleep 10
-curl -s https:/api.company.com/health
-
-echo "Rollback complete"
-```
-
-### Database Rollback
-
-```bash
-# If a migration broke something:
-
-# 1. Restore from pre-migration backup
-./scripts/restore-db.sh ./backups/db_prod_20260318_100000.sql.gz
-
-# 2. Restart services with previous code version
-docker compose restart api
-```
-
-### Point-in-Time Recovery
-
-```bash
-# Find the most recent backup before the incident
-BACKUP_FILE=$(find ./backups -name "db_prod_*.sql.gz" | sort -r | head -1)
-./scripts/restore-db.sh "$BACKUP_FILE"
-```
-
----
-
-## 5. Troubleshooting: Docker Compose
-
-### "Port already in use"
-
-**Cause**: Another process is using the port.
-
-```bash
-# Find what's using the port
-lsof -i :3000          # macOS/Linux
-netstat -ano | findstr :3000   # Windows
-
-# Stop containers
-docker compose down
-
-# Or kill specific container
-docker kill $(docker ps -q --filter "publish=3000")
-
-# Restart
-docker compose up -d
-```
-
-### "Service can't connect to database"
-
-**Cause**: Database not healthy yet, or not on same network.
-
-```bash
-# Check database status
-docker compose ps database
-
-# Check health
-docker compose exec database pg_isready -U devuser -d platform_db
-
-# Check logs
-docker compose logs database
-
-# Restart if unhealthy
-docker compose restart database
-```
-
-### "Could not resolve host"
-
-**Cause**: DNS resolution failing in container.
-
-```bash
-# Quick fix: restart
-docker compose restart
-
-# Persistent fix: add DNS to compose.yaml
-# services:
-#   api:
-#     dns: [8.8.8.8, 1.1.1.1]
-
+# Recreate the container with the stable image
 docker compose up -d --force-recreate api
 ```
 
----
-
-## 6. Troubleshooting: Dev Containers
-
-### Dev Container Takes Too Long to Start
-
-**Cause**: First-time Docker image build (downloading base image, installing deps), slow Docker Desktop, or slow network.
-
-**Fix**:
+### 3.2 Database Rollback
+If a database migration is destructive or causes application failures, restore from the **pre-migration backup**.
 
 ```bash
-# Pre-build the image before opening
-cd platform-dev
-docker compose build gateway
-
-# Or use a prebuilt image instead of building from Dockerfile
-# In devcontainer.json, use "image" instead of "dockerComposeFile":
-{
-  "image": "node:20-alpine",
-  "postCreateCommand": "npm install"
-}
-# This trades customization for startup speed
-```
-
-### "Dev Container could not be started"
-
-**Cause**: Compose syntax error, missing service, or resource limits.
-
-```bash
-# Validate Compose files
-docker compose \
-  --env-file ./env/compose.dev.env \
-  -f compose.yaml \
-  -f compose.dev.yaml \
-  config > /tmp/merged.yaml
-
-# Review merged config
-cat /tmp/merged.yaml
-
-# Check Docker Desktop resources
-# Allocate at least: 4 CPUs, 6GB RAM, 20GB disk
-
-# Check logs
-docker compose logs api
-
-# Rebuild container
-docker compose build --no-cache api
-docker compose up -d api
-```
-
-### "VS Code cannot connect to container"
-
-**Cause**: Container crashed or extension issue.
-
-```bash
-# Check if container is running
-docker compose ps api
-
-# If exited, check why
-docker compose logs api
-
-# Restart
-docker compose restart api
-
-# In VS Code: Command Palette → "Dev Containers: Reopen in Container"
-
-# If still failing, rebuild
-docker compose build --no-cache api
-docker compose up -d api
-```
-
-### SSH Agent Not Forwarded into Container
-
-**Cause**: SSH socket not mounted into the container.
-
-**Fix**: Add to `devcontainer.json`:
-
-```json
-{
-  "mounts": [
-    "source=${localEnv:SSH_AUTH_SOCK},target=/run/host-services/ssh-auth.sock,readonly"
-  ]
-}
-```
-
-And add to compose.yaml service:
-
-```yaml
-services:
-  gateway:
-    environment:
-      SSH_AUTH_SOCK: /run/host-services/ssh-auth.sock
-```
-
-### Bind Mount Performance on macOS is Slow
-
-**Cause**: macOS Docker Desktop uses a virtualization layer that syncs files slowly.
-
-**Fix** (in order of preference):
-
-1. **Use named volumes for node_modules:**
-```yaml
-services:
-  gateway:
-    volumes:
-      - ../api-gateway:/workspace/api-gateway
-      - node_modules:/workspace/api-gateway/node_modules  # Separate volume, faster
-volumes:
-  node_modules:
-```
-
-2. **Enable VirtioFS** (faster file sync on macOS):
-   - Docker Desktop → Settings → Resources → Check "Use VirtioFS"
-   - Requires Docker Desktop 4.22+
-
-3. **Accept the slowness** — 30-40% slower is typical, not fatal for most workflows.
-
-### Multiple Dev Containers Clash on Same Service
-
-**Problem**: Two VS Code windows competing for the same gateway service.
-
-**Fix**: Use separate VS Code windows for different services. If you need two windows on the same service, use different Docker Compose profiles or separate compose files.
-
-### Environment Variables Not Reloading After .env Change
-
-**Cause**: Docker Compose interprets `env_file` at startup time; changes require full restart.
-
-**Fix**:
-
-```bash
-# Stop and remove the container (forces rebuild of env)
-docker compose down gateway
-docker compose up -d gateway
-
-# Then reconnect in VS Code
+# Execute the restoration script using the timestamped backup
+./scripts/restore-db.sh ./backups/pre_migration_backup.sql.gz
 ```
 
 ---
 
-## 7. Troubleshooting: File Permissions
+## 4. Troubleshooting Guide
 
-### "Permission denied" on mounted volume
+### Docker Infrastructure
 
-**Cause**: Container user can't write to host directory.
+| Symptom | Potential Cause | Remediation |
+| :--- | :--- | :--- |
+| **Port Collision** | Host process occupying port | Run `lsof -i :<PORT>` and terminate the conflicting process. |
+| **Connection Refused** | Service initialization delay | Verify status with `docker compose ps` and check liveness logs. |
+| **DNS Resolution Failure** | Network driver glitch | Execute `docker compose restart` to reset the virtual bridge. |
 
-```bash
-# On host: fix permissions
-chmod -R a+rw ~/workspace/api-gateway
+### Development Environment (Dev Containers)
 
-# Or ensure these settings:
-# devcontainer.json: "updateRemoteUserUID": true
-# compose.yaml: user: vscode
-
-# Restart
-docker compose down api && docker compose up -d api
-```
-
-### "node_modules not accessible from host"
-
-**This is expected and intentional.** The anonymous volume prevents performance issues:
-
-```yaml
-volumes:
-  - ../api-gateway:/workspace/api-gateway
-  - /workspace/api-gateway/node_modules    # Anonymous volume (not on host)
-```
-
-To reinstall dependencies:
-
-```bash
-docker compose exec api npm ci
-```
+| Symptom | Remediation |
+| :--- | :--- |
+| **Slow Container Startup** | Use pre-built base images or minimize `postCreateCommand` logic. |
+| **Permission Denied** | Verify `updateRemoteUserUID: true` is set in `devcontainer.json`. |
+| **SSH Authentication Failure** | Execute `ssh-add -l` on the host to ensure keys are available to the agent. |
 
 ---
 
-## 8. Troubleshooting: Networking
+## 5. Production Release Checklist
 
-### "Services can't reach each other"
+Verify all items before executing a production deployment:
 
-```bash
-# Verify both services are running
-docker compose ps api ai-service
-
-# Test connectivity
-docker compose exec api ping ai-service
-
-# Verify same network
-docker network inspect <project>_default | grep -A 10 Containers
-```
-
-### "Cannot reach database from container"
-
-```bash
-# Check database is running
-docker compose ps database
-
-# Check logs
-docker compose logs database | tail -20
-
-# Try direct connection
-docker compose exec api psql -h database -U devuser -d platform_db -c "SELECT 1"
-
-# If connection refused, wait (DB may still be starting)
-sleep 10
-docker compose exec api psql -h database -U devuser -d platform_db -c "SELECT 1"
-```
+- [ ] **Data Integrity**: Verified and recent database backups are accessible.
+- [ ] **Observability**: CPU, Memory, and Error Rate alerts are active.
+- [ ] **Security**: No secrets or environment variables are tracked in version control.
+- [ ] **Validation**: The exact image hash has been validated in the Staging environment.
 
 ---
 
-## 9. Production Checklist
+:::info Support
+For critical production incidents, follow the internal on-call rotation protocol.
+:::
 
-### Infrastructure
-
-- [ ] Database has automated backups (hourly minimum)
-- [ ] All services have health checks configured
-- [ ] Resource limits set appropriately
-- [ ] Load balancer / ingress configured with SSL
-- [ ] DNS pointing to correct endpoint
-
-### Secrets
-
-- [ ] All sensitive values in secrets manager (not in .env files)
-- [ ] Database passwords rotated within 90 days
-- [ ] API keys have short expiration, auto-rotation where possible
-- [ ] TLS certificates valid and auto-renewal configured
-
-### Monitoring & Alerts
-
-- [ ] Application metrics exported (Prometheus format or equivalent)
-- [ ] Logs centralized and searchable
-- [ ] Alerts configured: high CPU, high memory, failed health checks, error rate spike
-- [ ] On-call rotation established
-
-### Testing
-
-- [ ] Staging deployment validated with load test
-- [ ] Rollback procedure tested manually
-- [ ] Database backup/restore tested
-- [ ] All services pass smoke tests
-
-### Documentation
-
-- [ ] Deployment runbook written and tested
-- [ ] Incident response procedures documented
-- [ ] Architecture diagram up to date
-- [ ] Team knows location of deployment scripts
-
----
-
-*Previous: [Part 4: Production Deployment](./production-deployment)*
-
----
-
-## Summary
-
-| Part | Topic | Key Takeaway |
-|------|-------|-------------|
-| [Part 1](./architecture-overview) | Architecture Overview | Choose monorepo vs polyrepo based on team size and release cadence |
-| [Part 2](./infrastructure-setup) | Infrastructure Setup | Layered Compose files + multi-stage Dockerfiles |
-| [Part 3](./development-environment) | Development Environment | Dev Containers + SSH agent forwarding |
-| [Part 4](./production-deployment) | Production Deployment | Staging-first promotion, secrets manager, path-filtered CI/CD |
-| [Part 5](./operations-troubleshooting) | Operations & Troubleshooting | Health checks, rollback procedures, common fixes |

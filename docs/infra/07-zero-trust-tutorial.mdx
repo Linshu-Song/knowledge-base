@@ -1,53 +1,67 @@
 ---
 sidebar_position: 7
+title: Zero Trust Tutorial
+description: Practical guide to connecting devices to the internal corporate network using Cloudflare Zero Trust (WARP).
 ---
 
-# Cloudflare Zero Trust Connection Guide
+# Cloudflare Zero Trust Guide
 
-This guide will help you connect your device desktop (Windows, Mac, Linux) or mobile (iOS, Android) to Cloudflare Zero Trust.
+We utilize **Cloudflare Zero Trust** to facilitate secure, authenticated access to our internal infrastructure and services. This approach replaces traditional VPN architectures with an identity-based security perimeter. This guide provides the operational steps for device onboarding.
 
-## 1. Prerequisites
+## 1. Zero Trust Security Model
 
-- **Access Policy Set Up:** Your admin should have set up access policies for your device or user group.
+Access is controlled based on verified identity and device posture rather than network location.
 
-## 2. Desktop Devices
+- **Identity-Based Authentication**: Granular access control tied to your corporate credentials.
+- **Granular Security Policies**: Access rules are defined per application or service.
+- **Device Posture Monitoring**: Ensures that only secure, team-authorized devices are connected.
+- **Optimized Performance**: Leverages global edge networking for high-speed, low-latency routing.
 
-### a. Download and install WARP Client
+---
 
-- **Windows/Mac:** [Cloudflare WARP Download](https:/cloudflarewarp.com/)
-- **Linux:** [Cloudflare WARP Linux Docs](https:/developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/)
+## 2. Desktop Infrastructure (Windows, macOS, Linux)
 
-### b. Configure Zero Trust
+### 2.1 Software Installation
+- **Windows / macOS**: Download the [Cloudflare WARP Client](https://cloudflarewarp.com/).
+- **Linux**: Follow the official [WARP Linux Repository Setup](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/).
 
-1. Open WARP client.
-2. Go to **Preference > Account**.
+### 2.2 Corporate Configuration
+1. Open the WARP client interface.
+2. Navigate to **Preferences → Account**.
 3. Select **Login with Cloudflare Zero Trust**.
-4. Enter team name: `your-team` or `your-team.cloudflareaccess.com`
-5. Authenticate as prompted.
-6. Click the **Connect** toggle
+4. Enter the Organization Team Name: `sailtech-team` (Consult your lead if required).
+5. Execute the browser-based authentication workflow.
+6. Enable the connection by toggling to **Connected**.
 
-## 3. Mobile Devices (iOS / Android)
+---
 
-### a. Download WARP App
+## 3. Mobile Infrastructure (iOS, Android)
 
-- **iOS:** [App Store - Cloudflare One Agent](https:/apps.apple.com/us/app/cloudflare-one-agent/id6443476492)
-- **Android:** [Google Play - Cloudflare One Agent](https:/play.google.com/store/apps/details?id=com.cloudflare.cloudflareoneagent)
+### 3.1 Software Installation
+- **iOS**: Install the [Cloudflare One Agent](https://apps.apple.com/us/app/cloudflare-one-agent/id6443476492).
+- **Android**: Install the [Cloudflare One Agent](https://play.google.com/store/apps/details?id=com.cloudflare.cloudflareoneagent).
 
-### b. Install and Cloudflare One Agent
+### 3.2 Connectivity Configuration
+1. Launch the application and grant necessary permissions.
+2. Navigate to **Menu → Account → Login to Cloudflare Zero Trust**.
+3. Enter the Team Name: `sailtech-team`.
+4. Authenticate and activate the connection toggle.
 
-1. Open the app.
-2. Accept terms and permissions.
+---
 
-### c. Connect to Zero Trust
+## 4. Operational Verification
 
-1. Tap the burger menu on the top right corner.
-2. Select **Account > Login to Cloudflare Zero Trust**.
-3. Enter team name: `your-team` or `your-team.cloudflareaccess.com`
-4. Authenticate as prompted.
-5. Tap **"Connect"** toggle.
+Validate your connection status using the following metrics:
 
-## 4. Additional Resources
+| Metric | Verification Method | Expected Result |
+| :--- | :--- | :--- |
+| **Warp Status** | [Cloudflare Trace](https://www.cloudflare.com/cdn-cgi/trace) | `warp=on` or `gateway=on` |
+| **Internal Access** | Navigate to internal URL | Success (e.g., `https://admin.internal.site`) |
+| **Identity Verification** | Check WARP Account tab | Active with corporate email |
 
-- [Cloudflare Zero Trust Docs](https:/developers.cloudflare.com/cloudflare-one/)
-- [Cloudflare WARP FAQ](https:/developers.cloudflare.com/cloudflare-one/faq/)
-- [Support](https:/support.cloudflare.com/)
+---
+
+:::info Support & Access Control
+Authentication failures or "Forbidden" errors typically indicate that your device hash is not yet registered in the dashboard or that your account lacks specific policy permissions. Submit a request to the operations team for access provisioning.
+:::
+

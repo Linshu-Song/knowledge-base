@@ -1,65 +1,75 @@
 ---
 sidebar_position: 1
 title: Repository Architecture Overview
+description: Comparative analysis of Monorepo vs. Polyrepo strategies for multi-service platform development.
 ---
 
 # Repository Architecture Overview
 
-Two primary repository strategies exist for multi-service platforms. Neither is universally superior; the right choice depends on team size, release cadence, and organizational structure.
+Selecting a repository strategy is a foundational engineering decision for multi-service platforms. The choice between a **Monorepo** and **Polyrepo** architecture depends on team scale, deployment cadence, and cross-service dependency requirements.
 
-### Monorepo vs Polyrepo
+## 1. Technical Comparison
 
-| Dimension | Monorepo | Polyrepo |
-|-----------|----------|----------|
-| **Code Sharing** | Excellent. Native imports across apps. | Complex. Requires publishing to a registry or using Git submodules. |
-| **Atomic Changes** | Yes. A single PR can change API, backend, and frontend together. | No. Requires multiple PRs and coordination. |
-| **Onboarding** | Simple. `git clone` once. | Moderate. Multiple repos to clone. |
-| **CI/CD Complexity** | High. Needs path-filtering + build tools. | Low. Standard per-repo pipelines. |
-| **Access Control** | All-or-nothing. | Granular per-repo. |
+| Dimension | Monorepo Strategy | Polyrepo Strategy |
+| :--- | :--- | :--- |
+| **Code Sharing** | Native imports across applications. | Requires registry publishing or Git submodules. |
+| **Atomic Changes** | Cross-app changes in a single PR. | Requires multiple PRs and cross-repo coordination. |
+| **Onboarding** | Single `git clone` command. | Multiple repositories to clone and configure. |
+| **CI/CD Complexity** | High (Requires advanced path-filtering). | Low (Standard per-repository pipelines). |
+| **Access Control** | Repository-wide by default. | Granular per-service isolation. |
 
-### Monorepo
+---
 
-All services in a **single Git repository**.
+## 2. Monorepo Strategy
 
-**Advantages:**
-- Atomic cross-service changes
-- Shared code via local references — no registry publishing
-- Unified CI/CD with path-based filtering
-- IDE surfaces errors across all consumers when a shared interface changes
+A monorepo stores all services and shared libraries within a **single Git repository**.
 
-**Trade-offs:**
-- Repository grows large over time
-- Requires tooling (Nx, Turborepo, Bazel) as complexity grows
+:::tip Strategic Advantages
+- **Atomic Refactoring**: Update an API and its consumers in a single commit, maintaining end-to-end type safety.
+- **Simplified Dependency Management**: Shared logic (e.g., utility functions, internal SDKs) is linked via local references rather than published versions.
+- **Integrated Tooling**: IDEs and static analysis tools can detect breaking changes across the entire codebase instantly.
+:::
 
-### Polyrepo
+:::caution Engineering Trade-offs
+- **Performance at Scale**: Large repositories can degrade Git performance and IDE responsiveness without specialized tooling.
+- **Tooling Overhead**: Requires robust build orchestration (e.g., Nx, Turborepo, or Bazel) to manage caching and incremental builds.
+:::
 
-Each service has its own **independent repository**. A central platform repo manages shared infrastructure.
+---
 
-**Advantages:**
-- Independent CI/CD, versioning, and release cadence per service
-- Clear team ownership boundaries
-- Natural boundary enforcement — no accidental cross-service coupling
+## 3. Polyrepo Strategy
 
-**Trade-offs:**
-- Cross-service changes require coordinating multiple PRs
-- Shared code must be published to a registry or vendored
+In a polyrepo architecture, each service or component resides in its own **autonomous Git repository**.
 
-### Decision Guide
+:::tip Strategic Advantages
+- **Independent Lifecycles**: Enables autonomous CI/CD pipelines, versioning strategies, and release schedules per team.
+- **Strict Boundaries**: Naturally prevents accidental coupling and circular dependencies between services.
+- **Granular Access Control**: Teams only access the specific codebases they are responsible for maintaining.
+:::
 
-| Factor | Monorepo | Polyrepo |
-|--------|----------|----------|
-| Team size | Small–Medium (< 30 devs) | Medium–Large |
-| Release cadence | Coordinated | Independent per service |
-| Shared code | Heavy cross-service sharing | Minimal sharing, API contracts preferred |
-| Ownership | Can be ambiguous | Clear per-repo ownership |
+:::caution Engineering Trade-offs
+- **Coordination Complexity**: Implementing features that span multiple services requires managing PRs across several repositories.
+- **Version Fragmentation**: Shared logic must be published as versioned packages, potentially leading to "dependency hell" during updates.
+:::
 
-### Choose Monorepo if:
-- Teams work collaboratively across the stack
-- You suffer from "version hell" maintaining internal packages
-- You want end-to-end type safety across frontend and backend
+---
 
-### Choose Polyrepo if:
-- Teams are strictly specialized
-- One repo is massive (large models, heavy binaries)
-- You need granular access control per service
-- You want the simplest possible CI/CD pipelines
+## 4. Engineering Decision Matrix
+
+| Requirement | Preferred Architecture |
+| :--- | :--- |
+| **Team Size** | Monorepo (< 50 developers) \| Polyrepo (> 50 developers) |
+| **Release Cadence** | Coordinated Platform Releases \| Independent Service Releases |
+| **Shared Logic** | Heavy cross-service logic sharing \| Minimal; API-first communication |
+| **Type Safety** | Integrated end-to-end type safety \| Contract-based (Protobuf/OpenAPI) |
+
+### Recommendation: Monorepo
+Choose a Monorepo if your teams work collaboratively across the full stack, you want to eliminate internal package versioning friction, and you require integrated verification of the entire platform.
+
+### Recommendation: Polyrepo
+Choose a Polyrepo if your teams are strictly specialized and autonomous, you have massive binary/model storage requirements, or you require strict legal/security isolation between codebases.
+
+---
+
+*Next: [Infrastructure Setup](./infrastructure-setup)*
+

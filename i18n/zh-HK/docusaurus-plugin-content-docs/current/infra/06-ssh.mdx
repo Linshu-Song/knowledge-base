@@ -1,246 +1,113 @@
 ---
-sidebar_position: 7
+sidebar_position: 6
+title: SSH 與訪問安全
+description: 通過 SSH 確保訪問安全的實用指南，包括密鑰生成、代理轉發和工作流優化。
 ---
 
-# SSH 與 SSH Key 指南
+# SSH 與訪問安全
 
-## 語言選擇
+對遠程服務器和 Git 倉庫的安全訪問從根本上建立在 **SSH (Secure Shell)** 協議之上。我們利用非對稱加密技術，確保身份驗證憑據永遠不會在網絡上傳輸，並僅存儲在您的本地計算機上。
 
-- [English](./ssh) - 英文
-- [简体中文](./ssh) - 簡體中文
-- **繁體中文** (當前) - 本文檔
+## 1. SSH 加密基礎
 
----
+SSH 身份驗證依賴於由兩個數學相關文件組成的 **公私鑰對**。
 
-## 1. 甚麼是 SSH？SSH Key 的原理是甚麼？
+| 組件 | 默認路徑 | 用途 |
+| :--- | :--- | :--- |
+| **私鑰** | `~/.ssh/id_ed25519` | **受限訪問。** 僅存儲在您的本地計算機上。 |
+| **公鑰** | `~/.ssh/id_ed25519.pub` | **公開分發。** 分發到服務器和 GitHub。 |
 
-**SSH（Secure Shell，安全殼協議）** 是一種加密網絡協議，用於在不安全的網絡上安全地操作遠端服務。最常見用途為遠端登入伺服器及安全執行指令。
-
-### SSH Key 原理（非對稱加密）
-
-SSH Key 認證使用**公鑰加密**密鑰對：
-
-| 密鑰 | 存放位置 | 可見性 |
-|---|---|---|
-| **私鑰（Private Key）** | 保存於本地機器（`~/.ssh/id_ed25519`） | **絕對不可外洩** |
-| **公鑰（Public Key）** | 放置於遠端伺服器或 GitHub 上（`~/.ssh/id_ed25519.pub`） | **可以公開** |
-
-**運作流程：**
-
-1. 伺服器保存您的公鑰。
-2. 連線時，伺服器送出一個隨機挑戰（challenge）。
-3. 本地機器使用私鑰對挑戰進行簽名。
-4. 伺服器使用保存的公鑰驗證簽名。
-5. 驗證通過即完成認證——無需輸入密碼。
-
-> 私鑰永遠不會離開您的機器，因此相較於密碼認證安全得多。
+:::tip 算法建議
+我們為所有新密鑰對統一採用 **Ed25519** 算法。與舊的 RSA 標準相比，它具有更優越的性能和更高的安全性。
+:::
 
 ---
 
-## 2. 產生及設定 SSH Key
+## 2. 基礎設施設置指南
 
-### 第一步：產生新的 SSH Key
-
+### 2.1 生成密鑰對
+執行以下命令生成新的密鑰對：
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
+:::note
+接受默認存儲路徑並為本地加密提供強密碼。
+:::
 
-- `-t ed25519` — 使用 Ed25519 演算法（推薦，較 RSA 更快更安全）。
-- `-C` — 標籤／備註，一般填寫您的電郵地址。
-
-提示輸入檔案路徑時，按 Enter 使用預設路徑（`~/.ssh/id_ed25519`），然後可選擇設定密碼短語（passphrase）。
-
-產生後會有兩個檔案：
-
-```
-~/.ssh/id_ed25519       # 私鑰 — 保密
-~/.ssh/id_ed25519.pub   # 公鑰 — 可分享給伺服器／GitHub
-```
-
-### 第二步：將 Key 加入 SSH Agent
-
+### 2.2 使用 SSH 代理進行管理
+使用 SSH 代理在內存中管理已解密的密鑰，從而無需為每次連接重新輸入密碼。
 ```bash
-# 啟動 ssh-agent（如未運行）
+# 初始化 SSH 代理
 eval "$(ssh-agent -s)"
-# 輸出示例：Agent pid 12345
 
-# 加入私鑰
+# 向代理註冊私鑰
 ssh-add ~/.ssh/id_ed25519
 ```
 
-### 第三步：將公鑰加入 GitHub
+### 2.3 與 GitHub 集成
+獲取您的公鑰並將其添加到您的 **GitHub 設置 → SSH and GPG keys** 中。
+```bash
+# 複製到剪貼板或顯示公鑰
+cat ~/.ssh/id_ed25519.pub
+```
 
-1. 複製公鑰內容：
-
-   ```bash
-   cat ~/.ssh/id_ed25519.pub
-   ```
-
-2. 前往 **GitHub → Settings → SSH and GPG keys → New SSH key**。
-3. 貼上公鑰，填寫描述性標題（例如「公司手提電腦」）。
-4. 按 **Add SSH key**。
-
-### 第四步：測試連線
-
+### 2.4 連通性驗證
 ```bash
 ssh -T git@github.com
+# 預期輸出: "Hi <username>! You've successfully authenticated..."
 ```
-
-預期輸出：
-
-```
-Hi username! You've successfully authenticated, but GitHub does not provide shell access.
-```
-
-> 如提示主機真實性確認，輸入 `yes` 將 GitHub 加入 `~/.ssh/known_hosts`。
 
 ---
 
-## 3. SSH Agent：定義、用途及使用方法
+## 3. 高級工作流：代理轉發 (Agent Forwarding)
 
-### 甚麼是 SSH Agent？
+**代理轉發** 允許在遠程會話（例如，在服務器或 Docker 容器內）中使用本地 SSH 密鑰，而無需將私鑰複製到這些環境中。
 
-`ssh-agent` 是一個背景程式，用於將**解密後的私鑰保存於記憶體中**。載入後，每次使用密鑰時無需再次輸入密碼短語。
+### 身份驗證工作流
 
-### 為何要使用？
-
-- **便捷** — 每個工作階段只需輸入一次密碼短語，無需重複輸入。
-- **安全** — 私鑰保存於 agent 記憶體中，不會以未加密形式寫入磁碟。
-- **支援 agent 轉發**（詳見第 4 節）。
-
-### 如何啟用
-
-```bash
-# 啟動 agent
-eval "$(ssh-agent -s)"
-
-# 加入密鑰（如有密碼短語會提示輸入）
-ssh-add ~/.ssh/id_ed25519
-
-# 驗證已載入的密鑰
-ssh-add -l
+```mermaid
+sequenceDiagram
+    participant Local as 本地機器 (代理)
+    participant Remote as 遠程服務器 / 容器
+    participant GH as GitHub
+    
+    Remote->>Local: 請求 GitHub 身份驗證簽名
+    Local->>Local: 使用私鑰生成簽名
+    Local-->>Remote: 返回簽名
+    Remote->>GH: 使用簽名驗證會話
 ```
 
-### 常用指令
-
-| 指令 | 說明 |
-|---|---|
-| `ssh-add -l` | 列出所有已載入的密鑰 |
-| `ssh-add -D` | 從 agent 中移除所有密鑰 |
-| `ssh-add -d ~/.ssh/id_ed25519` | 移除指定密鑰 |
-
-> **提示：** 在 macOS 及多數 Linux 桌面環境中，`ssh-agent` 會自動啟動。於伺服器上，可將 `eval "$(ssh-agent -s)"` 加入 `~/.bashrc` 或 `~/.zshrc`。
-
----
-
-## 4. SSH Agent 轉發（Agent Forwarding）
-
-### 甚麼是 Agent 轉發？
-
-SSH Agent 轉發允許您**在遠端伺服器或 Docker 容器中使用本地的 SSH 密鑰**——無需將私鑰複製到遠端機器。遠端機器會將認證請求轉發回本地 agent。
-
-### 為何要使用？
-
-- 在遠端伺服器上使用本地 GitHub Key clone 私有倉庫。
-- 從遠端伺服器跳轉至另一部伺服器時使用本地密鑰。
-- **永遠無需將私鑰複製到遠端機器上**。
-
-### 如何啟用
-
-#### 方式 A：命令列
-
-```bash
-ssh -A user@remote-server
-```
-
-`-A` 參數為此工作階段啟用 agent 轉發。
-
-#### 方式 B：SSH 設定檔（`~/.ssh/config`）
-
-```
-Host remote-server
-    HostName 192.168.1.100
-    User deploy
-    ForwardAgent yes
-```
-
-之後直接 `ssh remote-server`，轉發自動生效。
-
-### 在遠端伺服器上使用 Agent 轉發
-
-使用 `-A` 連線後，本地密鑰在遠端伺服器上可用：
-
-```bash
-# 在遠端伺服器上 — 使用的是您的本地密鑰
-ssh -T git@github.com
-# 輸出：Hi your-username! You've successfully authenticated...
-```
-
-現可在遠端伺服器上執行 `git clone`、`git push` 等操作，使用本地憑證。
-
-### 在 Docker 中使用 Agent 轉發
-
-#### 方法 1：掛載 SSH Agent Socket
-
+### Docker 實現
+掛載主機的 SSH 代理套接字以在容器內啟用轉發：
 ```bash
 docker run -it \
-  -e SSH_AUTH_SOCK=$SSH_AUTH_SOCK \
-  -v $SSH_AUTH_SOCK:$SSH_AUTH_SOCK \
-  ubuntu bash
+  -v $SSH_AUTH_SOCK:/run/host-services/ssh-auth.sock \
+  -e SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock \
+  my-engineering-image bash
 ```
 
-在容器中：
-
-```bash
-apt update && apt install -y openssh-client git
-ssh -T git@github.com
-# 成功！使用的是宿主機上已載入的密鑰。
-```
-
-#### 方法 2：Docker Compose
-
-```yaml
-services:
-  app:
-    build: .
-    environment:
-      - SSH_AUTH_SOCK=${SSH_AUTH_SOCK}
-    volumes:
-      - ${SSH_AUTH_SOCK}:${SSH_AUTH_SOCK}
-```
-
-#### 方法 3：Dockerfile + BuildKit（build 時 `git clone`）
-
-```dockerfile
-# syntax=docker/dockerfile:1
-FROM ubuntu
-RUN apt-get update && apt-get install -y openssh-client git
-RUN --mount=type=ssh git clone git@github.com:your-org/private-repo.git
-```
-
-Build 指令：
-
-```bash
-DOCKER_BUILDKIT=1 docker build --ssh default .
-```
-
-### 安全警告
-
-> **Agent 轉發存在安全風險。** 若遠端伺服器被入侵且攻擊者擁有 root 權限，可能利用您轉發的 agent 以您的身份認證其他服務。請僅在信任的伺服器上使用。對於多跳 SSH，可考慮使用更安全的替代方案 `ProxyJump`。
+:::caution 安全協議
+僅在連接到 **受信任的** 基礎設施時使用代理轉發。受損的遠程 root 用戶可能會利用您的轉發代理套接字以您的身份進行身份驗證。
+:::
 
 ---
 
-## 速查表
+## 4. SSH 配置策略
 
-| 操作 | 指令 |
-|---|---|
-| 產生密鑰 | `ssh-keygen -t ed25519 -C "email"` |
-| 啟動 agent | `eval "$(ssh-agent -s)"` |
-| 加入密鑰到 agent | `ssh-add ~/.ssh/id_ed25519` |
-| 測試 GitHub 連線 | `ssh -T git@github.com` |
-| 帶轉發的 SSH | `ssh -A user@host` |
-| Docker 使用 agent | `docker run -v $SSH_AUTH_SOCK:$SSH_AUTH_SOCK ...` |
+通過在 `~/.ssh/config` 中定義主機別名來優化連接工作流：
+
+```text title="~/.ssh/config"
+Host production-server
+    HostName 10.0.0.50
+    User deploy-user
+    ForwardAgent yes
+    IdentityFile ~/.ssh/id_ed25519
+```
+*工作流效率：* 執行 `ssh production-server` 即可連接，無需手動指定參數。
 
 ---
 
-*最後更新：2026 年 3 月*
+:::tip 最佳實踐
+定期審核遠程服務器上的 `~/.ssh/authorized_keys` 內容，確保只有當前授權的密鑰處於活動狀態。
+:::
+

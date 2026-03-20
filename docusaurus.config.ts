@@ -97,10 +97,10 @@ const config: Config = {
         {
           title: 'Sections',
           items: [
-            {label: 'Deep Learning', to: '/docs/deep-learning/fundamental/deep-learning-model-file'},
+            {label: 'Deep Learning', to: '/docs/deep-learning/fundamental'},
             {label: 'Python Tutorial', to: '/docs/python-tutorial/python-engineering-guide'},
             {label: 'Git Tutorial', to: '/docs/git-tutorial/git-engineering-guide'},
-            {label: 'Infrastructure', to: '/docs/infra'},
+            {label: 'Infrastructure', to: '/docs/infra/architecture-overview'},
           ],
         },
         {

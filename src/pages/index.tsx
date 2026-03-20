@@ -11,7 +11,7 @@ const SectionList = [
   {
     title: 'Deep Learning',
     description: 'Computer Vision (YOLO series, CNN), object tracking (TrackNet), and fundamental concepts.',
-    link: '/docs/deep-learning/fundamental/deep-learning-model-file',
+    link: '/docs/deep-learning/fundamental',
     emoji: '🤖',
   },
   {
@@ -29,7 +29,7 @@ const SectionList = [
   {
     title: 'Infrastructure',
     description: 'Architecture overview, Docker setup, dev environments, deployment, operations, and SSH.',
-    link: '/docs/infra',
+    link: '/docs/infra/architecture-overview',
     emoji: '🏗️',
   },
 ];

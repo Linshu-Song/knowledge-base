@@ -2,7 +2,7 @@
   "label": "Infrastructure",
   "position": 4,
   "link": {
-    "type": "doc",
-    "id": "infra/index"
+    "type": "generated-index",
+    "description": "Foundational infrastructure practices for multi-service platforms and deployment."
   }
 }

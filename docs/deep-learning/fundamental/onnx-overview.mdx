@@ -1,0 +1,79 @@
+---
+sidebar_position: 2
+title: ONNX Overview
+description: The Universal Language for Deep Learning Models.
+---
+
+# ONNX Overview
+
+**Open Neural Network Exchange** (ONNX) is an open standard specifically designed to promote interoperability of machine learning models across different frameworks.
+
+## Why Use ONNX?
+
+In the deep learning ecosystem, different frameworks (e.g., PyTorch, TensorFlow, MXNet) use distinct model representation methods. This fragmentation leads to:
+
+- **Framework Lock-in**: Hard to move models between different training tools.
+- **Deployment Complexity**: Production environments often require specific inference engines.
+- **Scattered Toolchains**: Different frameworks require separate optimization tools.
+
+ONNX resolves these issues by providing an open model representation standard.
+
+## Core Principles
+
+- **Computational Graph Representation**: Models are represented as a directed acyclic graph (DAG) of nodes (operators) and edges (data flow).
+- **Operator Standardization**: Standardized definitions for convolutions, activations, and more ensure consistent behavior across different frameworks.
+- **Single File Format**: Architecture, weights, and metadata are all stored in one `.onnx` file.
+
+## Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Interoperability** | Models can be exported from one framework and imported into another. |
+| **Optimization-Friendly** | Hardware accelerators (e.g., TensorRT, OpenVINO) natively support ONNX. |
+| **Versioning** | Explicit versioning ensures backward compatibility. |
+
+## Practical Usage
+
+### Exporting from PyTorch
+
+```python
+import torch
+
+# Create a model instance
+model = SimpleModel()
+
+# Create a dummy input
+dummy_input = torch.randn(1, 784)
+
+# Export to ONNX format
+torch.onnx.export(
+    model,               # Model to export
+    dummy_input,         # Example model input
+    "simple_model.onnx", # Output filename
+    opset_version=13,    # ONNX opset version
+    input_names=['input'],     # Input node names
+    output_names=['output'],   # Output node names
+    dynamic_axes={'input': {0: 'batch_size'},  # Dynamic dimensions
+                  'output': {0: 'batch_size'}}
+)
+```
+
+### Inference with ONNX Runtime
+
+```python
+import onnxruntime as ort
+import numpy as np
+
+# Load ONNX model
+ort_session = ort.InferenceSession("simple_model.onnx")
+
+# Prepare input data
+input_data = np.random.randn(1, 784).astype(np.float32)
+
+# Run inference
+outputs = ort_session.run(None, {'input': input_data})
+```
+
+:::note Recommendation
+For most deep learning workflows, ONNX is the primary bridge between training and high-performance inference.
+:::
