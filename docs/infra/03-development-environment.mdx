@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-title: Development Environment
+title: "VS Code Dev Containers: Development Environment"
 description: Comprehensive guide to using VS Code Dev Containers for consistent, isolated, and reproducible development workflows.
 ---
 
@@ -83,13 +83,66 @@ A standard service configuration integrates infrastructure layers and developer 
 }
 ```
 
-:::tip Implementation Detail
-Utilize **Dev Container Features** to modularly inject tools (e.g., AWS CLI, Terraform) without bloating the service's primary `Dockerfile`.
+### Monorepo vs Polyrepo: Compose File Paths
+
+The `dockerComposeFile` paths in `devcontainer.json` differ based on your repository strategy:
+
+| Strategy | `dockerComposeFile` Example | Explanation |
+| :--- | :--- | :--- |
+| **Polyrepo** | `"../../infra/compose.yaml"` | `infra/` is in a sibling repo or shared directory. |
+| **Monorepo** | `"../../compose.yaml"` | Compose files are at the monorepo root; `devcontainer.json` is per-service under `services/`. |
+
+```json title="Monorepo devcontainer.json"
+{
+  "name": "API Gateway",
+  "dockerComposeFile": [
+    "../../compose.yaml",
+    "../../compose.dev.yaml"
+  ],
+  "service": "api-gateway",
+  "workspaceFolder": "/workspace/services/api-gateway"
+}
+```
+
+:::info Key Difference
+In a **monorepo**, the `workspaceFolder` and `service` name must match the service's subdirectory path. In a **polyrepo**, `workspaceFolder` typically maps to the repo root.
 :::
 
 ---
 
-## 5. Security: SSH Agent Forwarding
+## 5. Dev Container Features
+
+**Features** are pre-packaged installable units that add tools, runtimes, or CLI utilities to a Dev Container without modifying the `Dockerfile`. They are the modular, declarative way to extend your development environment.
+
+### Usage
+
+Add Features in `devcontainer.json` under the `"features"` key:
+
+```json
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": { "version": "1.7" }
+  }
+}
+```
+
+### Features vs. Dockerfile vs. Compose
+
+| Approach | When to Use | Trade-offs |
+| :--- | :--- | :--- |
+| **Dev Container Features** | Standard tools shared across projects (AWS CLI, Git, Terraform). | Declarative, auto-updated, no Dockerfile changes. Limited to available catalog. |
+| **Dockerfile `RUN`** | Custom or project-specific tool installation. | Full control, but increases image build time and Dockerfile complexity. |
+| **Compose `command`** | Runtime configuration, env setup, service orchestration. | Affects container lifecycle, not tool availability. |
+
+:::tip Recommendation
+Use **Features** for anything available in the [Dev Container Feature catalog](https://containers.dev/features). Only fall back to `Dockerfile` installation for tools not in the catalog or requiring custom build steps.
+:::
+
+---
+
+## 6. Security: SSH Agent Forwarding
 
 To maintain security, private keys remain on your host machine. We utilize **SSH Agent Forwarding** to allow the container to request authentication signatures from the host.
 
@@ -108,7 +161,7 @@ ssh-add -l          # Lists keys available from host agent
 
 ---
 
-## 6. Operational Troubleshooting
+## 7. Operational Troubleshooting
 
 | Symptom | Primary Cause | Remediation |
 | :--- | :--- | :--- |

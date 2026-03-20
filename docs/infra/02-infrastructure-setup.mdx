@@ -1,6 +1,6 @@
 ---
 sidebar_position: 2
-title: Infrastructure Setup
+title: "Docker Compose: Infrastructure Setup"
 description: Guide to standardized local infrastructure orchestration using Docker Compose, focusing on layered and profile-driven configurations.
 ---
 
@@ -46,7 +46,73 @@ docker compose \
 
 ---
 
-## 2. Core Infrastructure Services
+## 2. Monorepo vs Polyrepo: Compose Layout
+
+The repository strategy directly affects how Compose files are organized and how `build.context` is configured.
+
+### Polyrepo Layout
+
+Each service has its own repository. The `infra/` directory is a sibling to service code:
+
+```text
+api-gateway/              # Service repo
+├── Dockerfile
+└── src/
+infra/                    # Infrastructure repo (shared)
+├── compose.yaml
+└── compose.dev.yaml
+```
+
+`build.context` points to the service directory:
+
+```yaml
+services:
+  api:
+    build:
+      context: ../api-gateway    # Relative to infra/
+      dockerfile: Dockerfile
+```
+
+### Monorepo Layout
+
+All services and shared libraries live in one repository. Compose files sit at the repo root or in a dedicated `infra/` directory:
+
+```text
+monorepo/
+├── infra/
+│   ├── compose.yaml
+│   └── compose.dev.yaml
+├── services/
+│   ├── api-gateway/
+│   │   └── Dockerfile
+│   └── auth-service/
+│       └── Dockerfile
+└── libs/
+    └── shared-utils/
+```
+
+`build.context` points to the repo root so the Dockerfile can `COPY` shared libraries:
+
+```yaml
+services:
+  api:
+    build:
+      context: ../..                         # Repo root
+      dockerfile: services/api-gateway/Dockerfile
+```
+
+### Comparison
+
+| Dimension | Polyrepo | Monorepo |
+| :--- | :--- | :--- |
+| **Compose Location** | Per-repo or shared infra repo | Repo root or `infra/` dir |
+| **build.context** | Service directory | Repo root (access to shared libs) |
+| **Shared Services** | Separate infra compose file | Single base compose file |
+| **Service Isolation** | Natural (separate repos) | Requires profiles or filters |
+
+---
+
+## 3. Core Infrastructure Services
 
 The base `compose.yaml` defines the shared persistence and messaging layers.
 
@@ -76,7 +142,7 @@ services:
 
 ---
 
-## 3. Local Development Overrides
+## 4. Local Development Overrides
 
 The development overlay (`compose.dev.yaml`) facilitates iterative coding via bind mounts and debugging features.
 
@@ -98,13 +164,9 @@ services:
       - dev
 ```
 
-:::caution Monorepo Context
-In a monorepo, set `build.context` to the repository root (`..`) to enable copying shared libraries, while pointing `dockerfile` to the specific service directory.
-:::
-
 ---
 
-## 4. Multi-Stage Dockerfile Pattern
+## 5. Multi-Stage Dockerfile Pattern
 
 Every service **must** implement multi-stage builds to optimize for both development speed and production security.
 

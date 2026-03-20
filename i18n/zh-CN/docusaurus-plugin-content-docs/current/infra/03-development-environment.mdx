@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-title: 开发环境
+title: "VS Code Dev Containers：开发环境"
 ---
 
 # 开发环境 (Dev Containers)
@@ -89,8 +89,61 @@ graph TD
 }
 ```
 
-:::tip 专业提示：Features
-使用 **Dev Container Features** 可以快速添加 AWS CLI、Terraform 或特定的 Git 辅助工具，而无需修改 Dockerfile。
+### Monorepo vs Polyrepo：Compose 文件路径
+
+`devcontainer.json` 中 `dockerComposeFile` 的路径因仓库策略而异：
+
+| 策略 | `dockerComposeFile` 示例 | 说明 |
+| :--- | :--- | :--- |
+| **Polyrepo** | `"../../infra/compose.yaml"` | `infra/` 在兄弟仓库或共享目录中。 |
+| **Monorepo** | `"../../compose.yaml"` | Compose 文件在仓库根目录；`devcontainer.json` 在各服务的 `services/` 下。 |
+
+```json title="Monorepo devcontainer.json"
+{
+  "name": "API Gateway",
+  "dockerComposeFile": [
+    "../../compose.yaml",
+    "../../compose.dev.yaml"
+  ],
+  "service": "api-gateway",
+  "workspaceFolder": "/workspace/services/api-gateway"
+}
+```
+
+:::info 关键区别
+在 **Monorepo** 中，`workspaceFolder` 和 `service` 名称必须匹配服务的子目录路径。在 **Polyrepo** 中，`workspaceFolder` 通常映射到仓库根目录。
+:::
+
+---
+
+## 🔧 Dev Container Features
+
+**Features** 是可安装的预打包单元，可以在不修改 `Dockerfile` 的情况下向 Dev Container 添加工具、运行时或 CLI 工具。这是扩展开发环境的模块化、声明式方式。
+
+### 使用方式
+
+在 `devcontainer.json` 的 `"features"` 字段中添加：
+
+```json
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": { "version": "1.7" }
+  }
+}
+```
+
+### Features vs. Dockerfile vs. Compose
+
+| 方式 | 适用场景 | 取舍 |
+| :--- | :--- | :--- |
+| **Dev Container Features** | 跨项目共享的标准工具（AWS CLI、Git、Terraform）。 | 声明式、自动更新、无需修改 Dockerfile。仅限目录中可用的工具。 |
+| **Dockerfile `RUN`** | 自定义或项目特定的工具安装。 | 完全控制，但增加镜像构建时间和 Dockerfile 复杂度。 |
+| **Compose `command`** | 运行时配置、环境设置、服务编排。 | 影响容器生命周期，不影响工具可用性。 |
+
+:::tip 推荐
+优先使用 **Features** 目录中已有的工具。只有当工具不在目录中或需要自定义构建步骤时，才回退到 `Dockerfile` 安装。
 :::
 
 ---

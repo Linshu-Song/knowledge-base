@@ -1,3 +1,4 @@
+import path from 'path';
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
@@ -47,6 +48,28 @@ const config: Config = {
     format: 'detect',
   },
 
+  themes: ['@docusaurus/theme-mermaid'],
+
+  plugins: [
+    function vscodeLanguageserverAliasPlugin() {
+      return {
+        name: 'vscode-languageserver-alias-plugin',
+        configureWebpack() {
+          return {
+            resolve: {
+              alias: {
+                'vscode-languageserver-types': path.resolve(
+                  __dirname,
+                  'node_modules/vscode-languageserver-types/lib/esm/main.js',
+                ),
+              },
+            },
+          };
+        },
+      };
+    },
+  ],
+
   stylesheets: [],
 
   presets: [
@@ -58,6 +81,7 @@ const config: Config = {
           editUrl: 'https://github.com/SAILTECHTEAM/knowledge-base/tree/main/',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
+          showLastUpdateTime: true,
         },
         blog: false,
         theme: {

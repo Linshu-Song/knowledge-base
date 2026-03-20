@@ -1,6 +1,6 @@
 ---
 sidebar_position: 2
-title: 基礎設施搭建
+title: "Docker Compose：基礎設施搭建"
 ---
 
 # 基礎設施搭建 (Docker Compose)
@@ -45,6 +45,72 @@ docker compose \
   --profile dev \
   up -d
 ```
+
+---
+
+## 🔀 Monorepo vs Polyrepo：Compose 佈局
+
+倉庫策略直接影響 Compose 文件的組織方式和 `build.context` 的配置。
+
+### Polyrepo 佈局
+
+每個服務有獨立倉庫。`infra/` 目錄與服務代碼平級：
+
+```text
+api-gateway/              # 服務倉庫
+├── Dockerfile
+└── src/
+infra/                    # 基礎設施倉庫（共享）
+├── compose.yaml
+└── compose.dev.yaml
+```
+
+`build.context` 指向服務目錄：
+
+```yaml
+services:
+  api:
+    build:
+      context: ../api-gateway    # 相對於 infra/
+      dockerfile: Dockerfile
+```
+
+### Monorepo 佈局
+
+所有服務和共享庫在同一倉庫。Compose 文件通常位於倉庫根目錄或專用 `infra/` 目錄：
+
+```text
+monorepo/
+├── infra/
+│   ├── compose.yaml
+│   └── compose.dev.yaml
+├── services/
+│   ├── api-gateway/
+│   │   └── Dockerfile
+│   └── auth-service/
+│       └── Dockerfile
+└── libs/
+    └── shared-utils/
+```
+
+`build.context` 指向倉庫根目錄，以便 Dockerfile 能 `COPY` 共享庫：
+
+```yaml
+services:
+  api:
+    build:
+      context: ../..                         # 倉庫根目錄
+      dockerfile: services/api-gateway/Dockerfile
+```
+
+### 對比
+
+| 維度 | Polyrepo | Monorepo |
+| :--- | :--- | :--- |
+| **Compose 位置** | 各倉庫獨立或共享 infra 倉庫 | 倉庫根目錄或 `infra/` 目錄 |
+| **build.context** | 服務目錄 | 倉庫根目錄（可訪問共享庫） |
+| **共享服務** | 獨立的 infra compose 文件 | 單一基礎 compose 文件 |
+| **服務隔離** | 天然（獨立倉庫） | 需要 profiles 或 filters |
 
 ---
 
@@ -124,10 +190,6 @@ services:
     profiles:
       - dev
 ```
-
-:::caution Monorepo 上下文
-在 Monorepo 中，`build.context` 通常應該是倉庫根目錄 (`..`) 以允許複製共享庫，而 `dockerfile` 指向具體的應用目錄。
-:::
 
 ---
 
