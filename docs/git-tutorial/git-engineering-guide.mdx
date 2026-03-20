@@ -1,0 +1,148 @@
+---
+sidebar_position: 1
+---
+
+# Complete Guide to Git Engineering Practices
+
+This guide covers professional Git workflows, branching strategies, and best practices for modern software engineering.
+
+## Basic Workflow
+
+A standard Git workflow involves moving changes through three main areas: the **Working Directory**, the **Staging Area** (Index), and the **Repository** (HEAD).
+
+```mermaid
+flowchart LR
+    A[Working Directory] -- "git add" --> B[Staging Area]
+    B -- "git commit" --> C[Local Repository]
+    C -- "git push" --> D[Remote Repository]
+    D -- "git fetch/pull" --> C
+    C -- "git checkout/switch" --> A
+```
+
+---
+
+## Branching Strategies
+
+Choosing the right branching strategy depends on your team size and release frequency.
+
+### 1. Git Flow
+**Best for:** Scheduled releases and versioned products.
+
+```mermaid
+gitGraph
+    commit id: "Initial"
+    branch develop
+    checkout develop
+    commit id: "Start Dev"
+    branch feature/login
+    checkout feature/login
+    commit id: "Add UI"
+    commit id: "Add Logic"
+    checkout develop
+    merge feature/login
+    branch release/1.0.0
+    checkout release/1.0.0
+    commit id: "Fix bug"
+    checkout main
+    merge release/1.0.0 tag: "v1.0.0"
+    checkout develop
+    merge release/1.0.0
+```
+
+*   **main**: Production-ready code only.
+*   **develop**: Integration branch for features.
+*   **feature/**: Temporary branches for new features.
+*   **release/**: Preparation for a new production release.
+*   **hotfix/**: Quick fixes for production bugs.
+
+### 2. GitHub Flow
+**Best for:** Continuous Deployment (CD) and web applications.
+
+```mermaid
+gitGraph
+    commit id: "Initial"
+    branch feature/api
+    checkout feature/api
+    commit id: "Draft API"
+    commit id: "Test API"
+    checkout main
+    merge feature/api
+    commit id: "Deploy"
+```
+
+*   The `main` branch is always deployable.
+*   Create short-lived feature branches from `main`.
+*   Merge back to `main` via Pull Request after CI/CD passes.
+
+---
+
+## Conventional Commits
+
+Standardizing commit messages makes history readable and enables automated changelog generation.
+
+**Format:** `<type>(<scope>): <subject>`
+
+| Type | Purpose | Example |
+| :--- | :--- | :--- |
+| `feat` | New feature | `feat(auth): add JWT support` |
+| `fix` | Bug fix | `fix(api): handle null response` |
+| `docs` | Documentation only | `docs: update readme` |
+| `refactor` | Code change that neither fixes a bug nor adds a feature | `refactor: simplify loop` |
+| `chore` | Maintenance (build, deps, tools) | `chore: update docusaurus` |
+
+:::tip Atomicity
+Keep commits **atomic**. One commit should represent one logical change. This makes `git revert` and `git cherry-pick` much safer.
+:::
+
+---
+
+## Essential Commands
+
+### History & Inspection
+
+| Command | Purpose |
+| :--- | :--- |
+| `git status -s` | Short status summary |
+| `git diff --staged` | View changes already added to staging |
+| `git log --oneline --graph --all` | Visual representation of all branches |
+| `git blame <file>` | Identify who changed each line |
+
+### Undo & Recovery
+
+| Command | Effect | Scenario |
+| :--- | :--- | :--- |
+| `git commit --amend` | Modify the very last commit | Forgot a file or typo in message |
+| `git reset --soft HEAD~1` | Undo commit, keep changes staged | Redo a commit properly |
+| `git reset --hard HEAD~1` | **Destructive**: Revert to previous state | Discard unwanted work |
+| `git revert <hash>` | Create a new commit that undoes a previous one | Safe undo for pushed commits |
+
+:::warning Force Push
+Never use `git push --force` on shared branches like `main` or `develop`. Use `git push --force-with-lease` if you must update a remote branch after a rebase.
+:::
+
+---
+
+## Advanced Tools
+
+### Git Stash
+Temporarily save uncommitted changes to switch branches.
+*   `git stash`: Save work
+*   `git stash pop`: Restore work
+
+### Git Worktree
+Work on multiple branches of the same repository simultaneously in different directories.
+*   `git worktree add ../fix-branch branch-name`
+
+### Git Bisect
+Binary search to find the commit that introduced a bug.
+*   `git bisect start`
+*   `git bisect bad`
+*   `git bisect good <stable-hash>`
+
+---
+
+## Engineering Resources
+
+*   [📄 Git Hooks Guide](./git-hooks-guide.mdx) — Automate linting and testing.
+*   [📄 Submodules Guide](./git-submodule-guide.mdx) — Manage external dependencies.
+*   [📄 SSH Setup](../infra/06-ssh.mdx) — Secure remote access.

@@ -1,0 +1,118 @@
+---
+sidebar_position: 2
+title: pyproject.toml Guide
+description: A comprehensive guide to pyproject.toml, the standardized configuration file for modern Python projects.
+---
+
+# Guide to pyproject.toml: Modern Python Configuration
+
+`pyproject.toml` is the standardized configuration file for Python projects, defined by PEP 518 and PEP 621. It serves as a single source of truth for project metadata, dependencies, build systems, and tool settings.
+
+## 1. Why Use pyproject.toml?
+
+### Traditional vs. Modern
+Historically, Python projects used multiple files (`setup.py`, `setup.cfg`, `requirements.txt`, `.flake8`). Modern projects consolidate these into `pyproject.toml`.
+
+| Aspect | Traditional | Modern (`pyproject.toml`) |
+| :--- | :--- | :--- |
+| **Format** | Python code / INI | Declarative TOML |
+| **Location** | Multiple files | Single file |
+| **Security** | Executable (Risk) | Static (Safe) |
+| **Standard** | `setuptools` specific | Tool-agnostic (PEP) |
+
+---
+
+## 2. Core Sections
+
+### [build-system]
+Defines how the project should be built.
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+```
+
+### [project]
+Standardized metadata (PEP 621).
+
+```toml
+[project]
+name = "my-package"
+version = "0.1.0"
+description = "My awesome Python project"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "John Doe", email = "john@example.com"}]
+dependencies = [
+    "requests>=2.28.0",
+    "click>=8.0.0",
+]
+```
+
+### [project.optional-dependencies]
+Defines "extras" for development, testing, or optional features.
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest", "black", "ruff"]
+docs = ["sphinx", "mkdocs"]
+```
+
+---
+
+## 3. Tool Configuration
+Most modern Python tools allow configuration directly within `pyproject.toml`.
+
+### Ruff (Linter & Formatter)
+```toml
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+```
+
+### Pytest
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+```
+
+### Black
+```toml
+[tool.black]
+line-length = 88
+target-version = ['py311']
+```
+
+---
+
+## 4. Best Practices
+
+1. **Declarative First**: Avoid using `setup.py` unless you have complex C-extensions that require custom build logic.
+2. **Standard Metadata**: Use the `[project]` section instead of tool-specific sections (like `[tool.poetry]`) when possible to remain portable.
+3. **Pin Minimums**: Use `>=` for library dependencies to allow flexibility, but use exact versions or lockfiles for applications.
+4. **Tool Consolidation**: Move all tool configs (Ruff, Mypy, Pytest) into `pyproject.toml` to reduce root directory clutter.
+
+---
+
+## 5. Migration Example
+
+**Old `setup.py`:**
+```python
+from setuptools import setup
+setup(name="pkg", version="0.1", install_requires=["requests"])
+```
+
+**New `pyproject.toml`:**
+```toml
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pkg"
+version = "0.1"
+dependencies = ["requests"]
+```

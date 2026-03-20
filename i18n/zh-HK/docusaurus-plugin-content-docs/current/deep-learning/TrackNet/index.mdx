@@ -1,0 +1,72 @@
+---
+sidebar_position: 2
+---
+
+# TrackNet
+
+**用於高速微小目標追蹤的深度學習網絡**
+
+TrackNet 是一個專門設計的深度學習架構，用於在廣播體育視頻中追蹤高速且微小的目標。這些目標（如網球或羽毛球）通常很小、模糊，有時甚至由於快門速度和劇烈運動而變為不可見。
+
+## 問題定義
+
+| 特性 | TrackNet 策略 |
+| :--- | :--- |
+| **小目標** | 基於熱力圖（Heatmap）的像素級坐標檢測 |
+| **運動模糊** | 從連續幀中學習運動模式（時空信息） |
+| **可見性** | 即便球體被部分遮擋，也能回歸 (x, y) 坐標 |
+
+:::info 核心架構
+該網絡不僅被訓練從單幀中識別球體，還被訓練從連續幀中學習飛行模式，充分利用了時空特徵。
+:::
+
+## TrackNet vs. TSM (Temporal Shift Module)
+
+兩者的設計理念因任務目標的不同而有顯著差異：
+
+*   **TrackNet**: 目標是估計瞬時速度 $\max(\partial(x, y, t)/\partial t)$。這是一個**回歸任務**，需要精確的像素坐標。
+*   **TSM**: 目標是分類動作 $P(\text{Action\_} \mid f(t-k, t+k))$。這是一個**分類任務**，局部像素精度對分類結果影響較小。
+
+### 對比矩陣
+
+| 特性 | TrackNet | TSM |
+| :--- | :--- | :--- |
+| **任務目標** | $\max(\partial (x, y, t))/ \partial t$ | $P(\text{Action\_}\mid f(t-k, t+k))$ |
+| **損失函數** | $\| \text{Heatmap}_{\text{pred}} - \text{Heatmap}_{\text{gt}} \|$ | $\text{CE}(\text{Action\_}_{\text{pred}}, \text{Action\_}_{\text{gt}})$ |
+| **輸入側重** | 局部空間特徵 + 時序 | 全局時序上下文 |
+
+---
+
+## 版本演進
+
+### TrackNetV1 (AVSS 2019)
+📄 [論文: AVSS 2019](https://sci-hub.st/10.1109/avss.2019.8909871)
+
+![TrackNetV1](/files/TrackNet/figures/TrackNetV1.png)
+
+*   **輸入**: $W \times H \times (3 \text{ 幀} \times \text{RGB})$
+*   **輸出**: $W \times H \times 1$ 熱力圖。
+*   **方法**: 基於 VGG 的編碼器-解碼器。通過 Circle Hough 變換處理二進制熱力圖。
+
+### TrackNetV2 (ICPAI 2020)
+📄 [論文: ICPAI 2020](https://sci-hub.st/10.1109/icpai51961.2020.00023)
+
+![TracknetV2](/files/TrackNet/figures/TrackNetV2.png)
+
+相比 V1 的關鍵改進：
+*   **U-Net 跳躍連接 (Skip Connections)**：取代 VGG 結構，減少誤報（False Positives）和軌跡抖動。
+*   **多幀輸出**：輸出從 $W \times H \times 1$ 變為 $W \times H \times \text{InputFrames}$，使軌跡預測更平滑。
+*   **軟高斯熱力圖**：使用平滑的高斯熱力图（軟標籤）取代硬二進制標籤，以更好處理運動模糊。
+
+### TrackNetV3
+📄 [論文: TrackNetV3](https://people.cs.nycu.edu.tw/~yushuen/data/TrackNetV3.pdf)
+
+![TrackNetV3](/files/TrackNet/figures/TrackNetV3.png)
+
+*   **背景集成**：將背景圖像作為輸入，以增強辨識度。
+*   **Mixup 訓練**：應用 Mixup 數據增強。
+*   **校正模組 (Rectification Module)**：引入校正模組，用於修復遮擋或重疊時的軌跡偏差。
+
+:::warning 性能假設
+TrackNetV3 在重度遮擋場景下的表現顯著優于 V2，但需要背景幀進行最佳初始化。
+:::

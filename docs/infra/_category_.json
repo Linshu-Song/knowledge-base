@@ -1,0 +1,8 @@
+{
+  "label": "Infrastructure",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Foundational infrastructure practices for multi-service platforms and deployment."
+  }
+}

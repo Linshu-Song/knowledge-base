@@ -1,0 +1,116 @@
+---
+sidebar_position: 5
+title: 運維與故障排查
+description: 監控、日誌管理、回滾程序以及常見基礎設施故障排查的最佳實踐。
+---
+
+# 運維與故障排查
+
+維持平台的可靠性需要強大的可觀測性、標準化的回滾程序以及系統的技術故障排查方法。本指南概述了生產運維的工程標準。
+
+## 1. 健康檢查與存活狀態
+
+每個服務必須暴露標準化的健康檢查端點，以方便編排（如 Docker Compose、Kubernetes）和外部監控。
+
+### 標準端點
+
+| 端點 | 用途 | 邏輯 |
+| :--- | :--- | :--- |
+| `/health` | **存活檢查 (Liveness)** | 驗證進程是否正在運行（快速，無外部依賴）。 |
+| `/health/ready` | **就緒檢查 (Readiness)** | 驗證服務是否可以處理流量（檢查數據庫、緩存等）。 |
+
+### Docker Compose 實現
+
+在 `docker-compose.yml` 中實現健康檢查，以確保依賴服務在被依賴服務啟動前已就緒。
+
+```yaml
+services:
+  api:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+```
+
+---
+
+## 2. 日誌策略
+
+我們在生產環境中統一採用 **結構化日誌 (JSON)**，以實現高效的日誌聚合、程序化搜索和自動化告警。
+
+### 運維命令
+
+| 目標 | 命令 |
+| :--- | :--- |
+| **實時查看日誌** | `docker compose logs -f <service>` |
+| **搜索錯誤** | `docker compose logs | grep -i error` |
+| **按時間查看** | `docker compose logs --since 15m <service>` |
+
+:::tip 日誌保留
+在生產環境中，配置 `json-file` 日誌驅動的 `max-size` 和 `max-file` 限制，以防止磁盤空間耗盡。
+:::
+
+---
+
+## 3. 回滾程序
+
+當部署失敗時，優先考慮立即將系統恢復到“已知良好”狀態。
+
+### 3.1 服務回滾
+從容器倉庫重新部署上一個穩定的 Docker 鏡像標籤。
+
+```bash
+# 拉取特定的已知良好版本
+docker compose pull registry.example.com/api:prod-a1b2c3d
+
+# 使用穩定鏡像重新創建容器
+docker compose up -d --force-recreate api
+```
+
+### 3.2 數據庫回滾
+如果數據庫遷移具有破壞性或導致應用程序故障，請從 **遷移前備份** 中恢復。
+
+```bash
+# 使用帶有時間戳的備份執行恢復腳本
+./scripts/restore-db.sh ./backups/pre_migration_backup.sql.gz
+```
+
+---
+
+## 4. 故障排查指南
+
+### Docker 基礎設施
+
+| 現象 | 潛在原因 | 處理措施 |
+| :--- | :--- | :--- |
+| **端口衝突** | 主機進程佔用端口 | 運行 `lsof -i :<PORT>` 並終止衝突進程。 |
+| **拒絕連接** | 服務初始化延遲 | 使用 `docker compose ps` 驗證狀態並檢查存活日誌。 |
+| **DNS 解析失敗** | 網絡驅動故障 | 執行 `docker compose restart` 以重置虛擬網橋。 |
+
+### 開發環境 (Dev Containers)
+
+| 現象 | 處理措施 |
+| :--- | :--- |
+| **容器啟動緩慢** | 使用預構建的基礎鏡像或盡量減少 `postCreateCommand` 邏輯。 |
+| **權限被拒絕** | 驗證 `devcontainer.json` 中是否設置了 `updateRemoteUserUID: true`。 |
+| **SSH 身份驗證失敗** | 在主機上執行 `ssh-add -l` 以確保密鑰對代理可用。 |
+
+---
+
+## 5. 生產發布檢查清單
+
+在執行生產部署前驗證以下各項：
+
+- [ ] **數據完整性**: 已驗證且可訪問最近的數據庫備份。
+- [ ] **可觀測性**: CPU、內存和錯誤率告警已激活。
+- [ ] **安全性**: 版本控制中未追踪任何密鑰或環境變量。
+- [ ] **環境驗證**: 確切的鏡像哈希已在預發布 (Staging) 環境中通過驗證。
+
+---
+
+:::info 支持
+對於嚴重的生產事故，請遵循內部輪值協議。
+:::
+

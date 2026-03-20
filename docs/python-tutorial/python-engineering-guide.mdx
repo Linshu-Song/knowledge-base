@@ -1,0 +1,123 @@
+---
+sidebar_position: 1
+---
+
+# Python Engineering Guide
+
+Modern Python development is about more than just writing code; it's about building reproducible, maintainable, and high-performance systems. This guide focuses on the modern **Astral (uv/Ruff) stack**.
+
+## The Modern Stack (2024+)
+
+We recommend a unified toolchain to minimize "tool sprawl" and maximize performance.
+
+| Category | Tool | Why? |
+| :--- | :--- | :--- |
+| **Package Manager** | [**uv**](./uv-guide.mdx) | 10-100x faster than pip/poetry; unified venv/python manager. |
+| **Linter/Formatter** | **Ruff** | Replaces Flake8, Black, isort, and Bandit with a single Rust-based tool. |
+| **Type Checker** | **MyPy** | Industry standard for static type analysis. |
+| **Testing** | **pytest** | Feature-rich, modular testing framework. |
+| **Config** | `pyproject.toml` | The single source of truth for project metadata and tool config. |
+
+---
+
+## Project Structure
+
+A standardized layout ensures team members and tools can navigate the codebase easily.
+
+```text
+project-name/
+├── pyproject.toml      # Configuration (The heart of the project)
+├── uv.lock             # Deterministic lockfile (Commit this!)
+├── .python-version     # Pinned Python version (e.g., 3.12)
+├── src/                # Source code (using src-layout)
+│   └── my_package/
+│       ├── __init__.py
+│       └── main.py
+├── tests/              # Test suite
+│   ├── conftest.py
+│   └── test_main.py
+└── .github/            # CI/CD workflows
+    └── workflows/ci.yml
+```
+
+---
+
+## Dependency Management with `uv`
+
+`uv` is a drop-in replacement for `pip`, `pip-tools`, and `poetry`.
+
+### Core Workflow
+```bash
+# Initialize a new project
+uv init --lib
+
+# Add dependencies
+uv add requests fastapi
+uv add --dev pytest ruff mypy
+
+# Sync environment with lockfile
+uv sync
+```
+
+:::tip Lockfiles
+Always commit `uv.lock`. It ensures every developer and CI runner uses the exact same versions of every dependency, including transitive ones.
+:::
+
+---
+
+## Code Quality (Ruff & MyPy)
+
+### Ruff Configuration
+Consolidate your linting and formatting rules in `pyproject.toml`:
+
+```toml
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W", # Default flake8
+    "I",           # isort
+    "UP",          # pyupgrade
+    "S",           # bandit (security)
+    "B",           # bugbear
+]
+```
+
+### Type Checking
+Use MyPy to catch logic errors before they reach production:
+
+```bash
+uv run mypy src/
+```
+
+---
+
+## Continuous Integration (GitHub Actions)
+
+Automate your quality gates. A typical `ci.yml` using `setup-uv`:
+
+```yaml
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install & Check
+        run: |
+          uv sync
+          uv run ruff check .
+          uv run mypy src/
+          uv run pytest
+```
+
+---
+
+## Engineering Resources
+
+*   [📄 Complete Guide to `uv`](./uv-guide.mdx) — Deep dive into package management.
+*   [📄 `pyproject.toml` Guide](./pyproject-guide.mdx) — Comprehensive config reference.
+*   [📄 Tooling Introduction](./python-tools-introduction.mdx) — Comparing the ecosystem.
+*   [📄 Infrastructure Setup](../infra/02-infrastructure-setup.mdx) — Deploying Python apps.

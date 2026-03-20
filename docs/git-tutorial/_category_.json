@@ -1,0 +1,8 @@
+{
+  "label": "Git Tutorial",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Standardized Git workflows and engineering practices for teams."
+  }
+}

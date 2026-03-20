@@ -1,0 +1,161 @@
+---
+sidebar_position: 3
+title: 开发环境
+---
+
+# 开发环境 (Dev Containers)
+
+我们使用 **VS Code Dev Containers** 为每位工程师提供一致、隔离且可复用的开发环境。这种方法消除了“在我的机器上可以运行”的问题，并将入职配置时间从几天缩短到几分钟。
+
+## 🌟 什么是 Dev Container？
+
+**Dev Container** 是由 `devcontainer.json` 文件定义的标准化环境。它允许你将 Docker 容器用作功能齐全的开发环境。
+
+### 开发体验
+
+1.  **克隆** (Clone) 代码仓库。
+2.  在 VS Code 中**打开**。
+3.  根据提示选择 **在容器中重新打开** (Reopen in Container)。
+4.  **等待**环境构建完成。
+5.  **开始编码**，所有运行时、工具和扩展插件均已预先配置。
+
+:::info 底层原理
+VS Code 的 UI 运行在宿主机上，而 **VS Code Server**、终端、调试器以及所有运行时（Node, Python, Go）都运行在容器**内部**。
+:::
+
+---
+
+## ⚖️ Dev Container vs. 本地开发
+
+| 特性 | 本地开发 | Dev Container |
+| :--- | :--- | :--- |
+| **一致性** | 不同机器间存在差异 | **所有人完全一致** |
+| **入职配置** | 20 步安装指南 | **一键完成** |
+| **隔离性** | 污染宿主机环境 | **完全隔离** |
+| **版本管理** | 版本冲突 (如 Node 18 vs 20) | **项目特定** |
+| **启动速度** | 即时 | 10-30 秒额外开销 |
+
+---
+
+## 🛠 使用 Docker Compose 进行编排
+
+对于复杂的应用程序，我们将 **Dev Containers** 与 **Docker Compose** 结合使用，以同时管理应用程序及其依赖项（数据库、Redis 等）。
+
+```mermaid
+graph TD
+    Host[宿主机]
+    subgraph "Docker Compose 项目"
+        App[应用容器 + VS Code Server]
+        DB[数据库容器]
+        Redis[Redis 容器]
+    end
+    VSCode[VS Code UI] -- 连接到 --> App
+    App -- Docker DNS --> DB
+    App -- Docker DNS --> Redis
+```
+
+---
+
+## 📝 配置 (devcontainer.json)
+
+我们服务的典型配置如下：
+
+```json
+{
+  "name": "Platform Service",
+  "dockerComposeFile": [
+    "../../infra/compose.yaml",
+    "../../infra/compose.dev.yaml"
+  ],
+  "service": "api",
+  "workspaceFolder": "/workspace/api",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "npm install && npm run db:migrate"
+}
+```
+
+:::tip 专业提示：Features
+使用 **Dev Container Features** 可以快速添加 AWS CLI、Terraform 或特定的 Git 辅助工具，而无需修改 Dockerfile。
+:::
+
+---
+
+## 🔐 SSH Agent 转发
+
+为了确保私钥安全，我们使用 **SSH Agent 转发**。你的私钥永远不会进入容器；容器只需“请求”宿主机对 Git 或 SSH 操作进行签名。
+
+### 宿主机准备
+
+#### macOS/Linux
+```bash
+# 将私钥添加到 agent
+ssh-add ~/.ssh/id_ed25519
+```
+
+#### Windows (WSL2)
+确保 SSH agent 在 WSL2 环境中运行并已添加私钥。
+
+### 容器内验证
+```bash
+# 在容器终端内执行
+echo $SSH_AUTH_SOCK
+# 应输出: /run/host-services/ssh-auth.sock
+
+ssh-add -l
+# 应列出宿主机的私钥
+```
+
+---
+
+## 🚀 日常工作流
+
+### 1. 开始工作
+```bash
+# 在宿主机上：启动基础架构
+docker compose --profile dev up -d
+```
+
+### 2. 编写代码
+- 打开 VS Code。
+- 在容器中重新打开。
+- 编辑代码（通过挂载卷实现热重载）。
+
+### 3. 提交更改
+Git 操作可以在容器的集成终端中自然运行。
+```bash
+git add .
+git commit -m "feat: add new endpoint"
+git push origin main
+```
+
+---
+
+## ❓ 常见问题排查
+
+### "fatal: detected dubious ownership"
+**原因**：宿主机与容器之间的文件权限不匹配。
+**解决**：在容器内运行 `git config --global --add safe.directory '*'`，或确保 `devcontainer.json` 中 `updateRemoteUserUID` 设置为 `true`。
+
+### SSH 身份验证失败
+**原因**：宿主机上未运行 SSH agent 或未添加私钥。
+**解决**：在宿主机上运行 `ssh-add -l` 检查私钥是否已加载。
+
+---
+
+*上一篇: [基础架构设置](./infrastructure-setup)*
+*下一篇: [生产环境部署](./production-deployment)*

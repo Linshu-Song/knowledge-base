@@ -1,0 +1,116 @@
+---
+sidebar_position: 5
+title: Operations & Troubleshooting
+description: Best practices for monitoring, log management, rollback procedures, and common infrastructure troubleshooting.
+---
+
+# Operations & Troubleshooting
+
+Maintaining platform reliability requires robust observability, standardized rollback procedures, and a systematic approach to technical troubleshooting. This guide outlines the engineering standards for production operations.
+
+## 1. Health Checks & Liveness
+
+Every service must expose standardized health endpoints to facilitate orchestration (e.g., Docker Compose, Kubernetes) and external monitoring.
+
+### Standard Endpoints
+
+| Endpoint | Purpose | Logic |
+| :--- | :--- | :--- |
+| `/health` | **Liveness** | Verifies the process is running (Fast, no external dependencies). |
+| `/health/ready` | **Readiness** | Verifies the service can handle traffic (Checks DB, Cache, etc.). |
+
+### Docker Compose Implementation
+
+Implement health checks in `docker-compose.yml` to ensure dependencies are ready before dependent services start.
+
+```yaml
+services:
+  api:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+```
+
+---
+
+## 2. Logging Strategy
+
+We standardize on **Structured Logging (JSON)** in production to enable efficient log aggregation, programmatic searching, and automated alerting.
+
+### Operations Commands
+
+| Objective | Command |
+| :--- | :--- |
+| **Follow Logs** | `docker compose logs -f <service>` |
+| **Search Errors** | `docker compose logs \| grep -i error` |
+| **Time-based View** | `docker compose logs --since 15m <service>` |
+
+:::tip Log Retention
+In production environments, configure the `json-file` logging driver with `max-size` and `max-file` limits to prevent disk exhaustion.
+:::
+
+---
+
+## 3. Rollback Procedures
+
+When a deployment failure occurs, prioritize returning the system to a "Known Good" state immediately.
+
+### 3.1 Service Rollback
+Redeploy the previous stable Docker image tag from the container registry.
+
+```bash
+# Pull the specific known-good version
+docker compose pull registry.example.com/api:prod-a1b2c3d
+
+# Recreate the container with the stable image
+docker compose up -d --force-recreate api
+```
+
+### 3.2 Database Rollback
+If a database migration is destructive or causes application failures, restore from the **pre-migration backup**.
+
+```bash
+# Execute the restoration script using the timestamped backup
+./scripts/restore-db.sh ./backups/pre_migration_backup.sql.gz
+```
+
+---
+
+## 4. Troubleshooting Guide
+
+### Docker Infrastructure
+
+| Symptom | Potential Cause | Remediation |
+| :--- | :--- | :--- |
+| **Port Collision** | Host process occupying port | Run `lsof -i :<PORT>` and terminate the conflicting process. |
+| **Connection Refused** | Service initialization delay | Verify status with `docker compose ps` and check liveness logs. |
+| **DNS Resolution Failure** | Network driver glitch | Execute `docker compose restart` to reset the virtual bridge. |
+
+### Development Environment (Dev Containers)
+
+| Symptom | Remediation |
+| :--- | :--- |
+| **Slow Container Startup** | Use pre-built base images or minimize `postCreateCommand` logic. |
+| **Permission Denied** | Verify `updateRemoteUserUID: true` is set in `devcontainer.json`. |
+| **SSH Authentication Failure** | Execute `ssh-add -l` on the host to ensure keys are available to the agent. |
+
+---
+
+## 5. Production Release Checklist
+
+Verify all items before executing a production deployment:
+
+- [ ] **Data Integrity**: Verified and recent database backups are accessible.
+- [ ] **Observability**: CPU, Memory, and Error Rate alerts are active.
+- [ ] **Security**: No secrets or environment variables are tracked in version control.
+- [ ] **Validation**: The exact image hash has been validated in the Staging environment.
+
+---
+
+:::info Support
+For critical production incidents, follow the internal on-call rotation protocol.
+:::
+

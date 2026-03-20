@@ -1,0 +1,118 @@
+---
+sidebar_position: 2
+title: pyproject.toml 指南
+description: pyproject.toml 综合指南，现代 Python 项目的标准化配置文件。
+---
+
+# pyproject.toml 指南：现代 Python 项目配置
+
+`pyproject.toml` 是由 PEP 518 和 PEP 621 定义的 Python 项目标准化配置文件。它作为项目元数据、依赖项、构建系统和工具设置的单一事实来源。
+
+## 1. 为什么要使用 pyproject.toml？
+
+### 传统与现代
+历史上，Python 项目使用多个文件（`setup.py`、`setup.cfg`、`requirements.txt`、`.flake8`）。现代项目将这些整合到 `pyproject.toml` 中。
+
+| 方面 | 传统方式 | 现代方式 (`pyproject.toml`) |
+| :--- | :--- | :--- |
+| **格式** | Python 代码 / INI | 声明式 TOML |
+| **位置** | 多个文件 | 单个文件 |
+| **安全性** | 可执行（有风险） | 静态（安全） |
+| **标准** | 仅限 `setuptools` | 工具无关 (PEP) |
+
+---
+
+## 2. 核心章节
+
+### [build-system]
+定义项目的构建方式。
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+```
+
+### [project]
+标准化元数据 (PEP 621)。
+
+```toml
+[project]
+name = "my-package"
+version = "0.1.0"
+description = "我的优秀 Python 项目"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "John Doe", email = "john@example.com"}]
+dependencies = [
+    "requests>=2.28.0",
+    "click>=8.0.0",
+]
+```
+
+### [project.optional-dependencies]
+定义用于开发、测试或可选功能的 "extras"。
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest", "black", "ruff"]
+docs = ["sphinx", "mkdocs"]
+```
+
+---
+
+## 3. 工具配置
+大多数现代 Python 工具允许直接在 `pyproject.toml` 中进行配置。
+
+### Ruff (代码检查与格式化)
+```toml
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+```
+
+### Pytest
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+```
+
+### Black
+```toml
+[tool.black]
+line-length = 88
+target-version = ['py311']
+```
+
+---
+
+## 4. 最佳实践
+
+1. **声明优先**：除非有需要自定义构建逻辑的复杂 C 扩展，否则避免使用 `setup.py`。
+2. **标准元数据**：尽可能使用 `[project]` 章节，而不是工具特定的章节（如 `[tool.poetry]`），以保持可移植性。
+3. **最小版本限制**：对库依赖项使用 `>=` 以保持灵活性，但对应用程序使用精确版本或锁定文件。
+4. **工具整合**：将所有工具配置（Ruff、Mypy、Pytest）移动到 `pyproject.toml` 中，以减少根目录的杂乱。
+
+---
+
+## 5. 迁移示例
+
+**旧的 `setup.py`：**
+```python
+from setuptools import setup
+setup(name="pkg", version="0.1", install_requires=["requests"])
+```
+
+**新的 `pyproject.toml`：**
+```toml
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pkg"
+version = "0.1"
+dependencies = ["requests"]
+```

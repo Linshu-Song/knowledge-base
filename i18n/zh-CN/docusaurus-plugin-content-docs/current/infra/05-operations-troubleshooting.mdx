@@ -1,0 +1,116 @@
+---
+sidebar_position: 5
+title: 运维与故障排查
+description: 监控、日志管理、回滚程序以及常见基础设施故障排查的最佳实践。
+---
+
+# 运维与故障排查
+
+维持平台的可靠性需要强大的可观测性、标准化的回滚程序以及系统的技术故障排查方法。本指南概述了生产运维的工程标准。
+
+## 1. 健康检查与存活状态
+
+每个服务必须暴露标准化的健康检查端点，以方便编排（如 Docker Compose、Kubernetes）和外部监控。
+
+### 标准端点
+
+| 端点 | 用途 | 逻辑 |
+| :--- | :--- | :--- |
+| `/health` | **存活检查 (Liveness)** | 验证进程是否正在运行（快速，无外部依赖）。 |
+| `/health/ready` | **就绪检查 (Readiness)** | 验证服务是否可以处理流量（检查数据库、缓存等）。 |
+
+### Docker Compose 实现
+
+在 `docker-compose.yml` 中实现健康检查，以确保依赖服务在被依赖服务启动前已就绪。
+
+```yaml
+services:
+  api:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+```
+
+---
+
+## 2. 日志策略
+
+我们在生产环境中统一采用 **结构化日志 (JSON)**，以实现高效的日志聚合、程序化搜索和自动化告警。
+
+### 运维命令
+
+| 目标 | 命令 |
+| :--- | :--- |
+| **实时查看日志** | `docker compose logs -f <service>` |
+| **搜索错误** | `docker compose logs | grep -i error` |
+| **按时间查看** | `docker compose logs --since 15m <service>` |
+
+:::tip 日志保留
+在生产环境中，配置 `json-file` 日志驱动的 `max-size` 和 `max-file` 限制，以防止磁盘空间耗尽。
+:::
+
+---
+
+## 3. 回滚程序
+
+当部署失败时，优先考虑立即将系统恢复到“已知良好”状态。
+
+### 3.1 服务回滚
+从容器仓库重新部署上一个稳定的 Docker 镜像标签。
+
+```bash
+# 拉取特定的已知良好版本
+docker compose pull registry.example.com/api:prod-a1b2c3d
+
+# 使用稳定镜像重新创建容器
+docker compose up -d --force-recreate api
+```
+
+### 3.2 数据库回滚
+如果数据库迁移具有破坏性或导致应用程序故障，请从 **迁移前备份** 中恢复。
+
+```bash
+# 使用带有时间戳的备份执行恢复脚本
+./scripts/restore-db.sh ./backups/pre_migration_backup.sql.gz
+```
+
+---
+
+## 4. 故障排查指南
+
+### Docker 基础设施
+
+| 现象 | 潜在原因 | 处理措施 |
+| :--- | :--- | :--- |
+| **端口冲突** | 主机进程占用端口 | 运行 `lsof -i :<PORT>` 并终止冲突进程。 |
+| **拒绝连接** | 服务初始化延迟 | 使用 `docker compose ps` 验证状态并检查存活日志。 |
+| **DNS 解析失败** | 网络驱动故障 | 执行 `docker compose restart` 以重置虚拟网桥。 |
+
+### 开发环境 (Dev Containers)
+
+| 现象 | 处理措施 |
+| :--- | :--- |
+| **容器启动缓慢** | 使用预构建的基础镜像或尽量减少 `postCreateCommand` 逻辑。 |
+| **权限被拒绝** | 验证 `devcontainer.json` 中是否设置了 `updateRemoteUserUID: true`。 |
+| **SSH 身份验证失败** | 在主机上执行 `ssh-add -l` 以确保密钥对代理可用。 |
+
+---
+
+## 5. 生产发布检查清单
+
+在执行生产部署前验证以下各项：
+
+- [ ] **数据完整性**: 已验证且可访问最近的数据库备份。
+- [ ] **可观测性**: CPU、内存和错误率告警已激活。
+- [ ] **安全性**: 版本控制中未追踪任何密钥或环境变量。
+- [ ] **环境验证**: 确切的镜像哈希已在预发布 (Staging) 环境中通过验证。
+
+---
+
+:::info 支持
+对于严重的生产事故，请遵循内部轮值协议。
+:::
+

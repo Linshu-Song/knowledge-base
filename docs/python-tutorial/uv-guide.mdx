@@ -1,0 +1,174 @@
+---
+sidebar_position: 3
+title: uv Complete Guide
+description: A comprehensive guide to uv, the modern Python package and project manager.
+---
+
+# Complete Guide to uv: Modern Python Package Management
+
+`uv` is an extremely fast Python package and project manager, written in Rust. It provides a unified interface for managing Python dependencies, virtual environments, Python versions, and projects.
+
+## 1. What is uv?
+
+### Core Architecture
+
+| Component | Language | Purpose | Replaces |
+| :--- | :--- | :--- | :--- |
+| **Package Installer** | Rust | Fast dependency resolution and installation | `pip` |
+| **Project Manager** | Rust | Modern project management with lockfiles | `poetry`, `pip-tools` |
+| **Environment Manager** | Rust | Virtual environment creation and management | `virtualenv`, `venv` |
+| **Python Version Manager** | Rust | Install and switch Python versions | `pyenv` |
+| **Tool Runner** | Rust | Execute CLI tools from packages | `pipx` |
+| **Package Publisher** | Rust | Build and publish distributions | `twine` |
+
+### Key Features
+
+- **🚀 Unified Toolchain**: Single command replacing 8+ Python tools.
+- **⚡️ Performance**: 10-100x faster than pip (benchmarked).
+- **🗂️ Project Management**: Universal lockfile support across platforms.
+- **🐍 Python Management**: Install and manage multiple Python versions.
+- **💾 Global Cache**: Disk-space efficient dependency deduplication.
+
+---
+
+## 2. Why Use uv?
+
+### Performance Benchmarks
+
+| Operation | pip Time | uv Time | Speed Improvement |
+| :--- | :--- | :--- | :--- |
+| Install `requests` (cold cache) | 1.2s | 0.08s | **15x faster** |
+| Install `Flask` (warm cache) | 0.8s | 0.01s | **80x faster** |
+| Resolve 50 packages | 2.5s | 0.03s | **83x faster** |
+| Create virtual environment | 0.5s | 0.02s | **25x faster** |
+
+### Workflow Comparison
+
+#### Traditional Workflow (6+ tools)
+```bash
+# Install Python, create venv, install deps, lock, build...
+pyenv install 3.11.0
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip-compile requirements.in -o requirements.txt
+python -m build
+```
+
+#### Modern uv Workflow (1 tool)
+```bash
+# One tool for everything
+uv init myproject --python 3.11.0
+uv add requests flask
+uv lock
+uv build
+```
+
+---
+
+## 3. Getting Started
+
+### Installation
+
+| Platform | Command |
+| :--- | :--- |
+| **macOS / Linux** | `curl -LsSf https://astral.sh/uv/install.sh | sh` |
+| **Windows** | `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"` |
+| **Homebrew** | `brew install uv` |
+
+### pip Command Replacements
+
+| pip Command | uv Equivalent |
+| :--- | :--- |
+| `pip install package` | `uv pip install package` |
+| `pip install -r reqs.txt` | `uv pip install -r reqs.txt` |
+| `python -m venv .venv` | `uv venv` |
+| `pip list` | `uv pip list` |
+| `pip freeze` | `uv pip freeze` |
+
+---
+
+## 4. Modern Project Management
+
+### Project Structure
+
+```text
+myproject/
+├── pyproject.toml          # Project metadata and dependencies
+├── uv.lock                 # Universal lockfile (commit to Git)
+├── .python-version          # Python version specification
+├── src/                    # Source code
+└── tests/                   # Test files
+```
+
+### Dependency Management
+
+- **Add Dependency**: `uv add requests`
+- **Add Dev Dependency**: `uv add --dev pytest`
+- **Sync Environment**: `uv sync` (Ensures `.venv` matches `uv.lock`)
+- **Run Command**: `uv run python main.py` (Automatically handles venv)
+
+:::tip Best Practice
+Always commit `uv.lock` to your repository. It ensures every team member and CI environment uses the exact same dependency versions.
+:::
+
+---
+
+## 5. Advanced Features
+
+### Script Support
+Run standalone scripts with inline dependency metadata:
+
+```python
+# /// script
+# dependencies = ["requests", "rich"]
+# ///
+import requests
+from rich import print
+print(requests.get("https://api.github.com").status_code)
+```
+
+Run with: `uv run script.py`
+
+### Tool Management
+Install and run Python CLI tools globally without polluting system Python:
+
+```bash
+uv tool install ruff
+uvx ruff check .  # Run without permanent installation
+```
+
+### Python Management
+```bash
+uv python install 3.11 3.12  # Install specific versions
+uv python list               # List available versions
+```
+
+---
+
+## 6. CI/CD Integration
+
+### GitHub Actions
+```yaml
+- uses: astral-sh/setup-uv@v3
+- run: uv sync
+- run: uv run pytest
+```
+
+### Docker
+```dockerfile
+FROM python:3.11-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+```
+
+---
+
+## Summary Recommendations
+
+1. **Adopt `uv init`**: Use the project management features for new projects.
+2. **Use `uv run`**: Stop manually activating virtual environments.
+3. **Commit `uv.lock`**: Ensure reproducibility across all environments.
+4. **Use `uv tool`**: Replace `pipx` for global CLI tools.

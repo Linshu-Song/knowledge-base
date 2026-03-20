@@ -1,0 +1,67 @@
+---
+sidebar_position: 7
+title: Zero Trust 教程
+description: 将设备连接到内部企业网络（使用 Cloudflare Zero Trust/WARP）的实用指南。
+---
+
+# Cloudflare Zero Trust 指南
+
+我们利用 **Cloudflare Zero Trust** 确保对内部基础设施和服务的安全、身份验证访问。这种方法用基于身份的安全边界取代了传统的 VPN 架构。本指南提供了设备入网的操作步骤。
+
+## 1. Zero Trust 安全模型
+
+访问基于经过验证的身份和设备状况 (Device Posture) 进行控制，而非网络位置。
+
+- **基于身份的身份验证**：与您的企业凭据绑定的细粒度访问控制。
+- **细粒度安全策略**：按应用程序或服务定义访问规则。
+- **设备状况监控**：确保只有安全、经过团队授权的设备可以连接。
+- **优化的性能**：利用全球边缘网络实现高速、低延迟路由。
+
+---
+
+## 2. 桌面基础设施 (Windows, macOS, Linux)
+
+### 2.1 软件安装
+- **Windows / macOS**：下载 [Cloudflare WARP 客户端](https://cloudflarewarp.com/)。
+- **Linux**：遵循官方 [WARP Linux 仓库设置](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/)。
+
+### 2.2 企业配置
+1. 打开 WARP 客户端界面。
+2. 导航至 **Preferences (首选项) → Account (账户)**。
+3. 选择 **Login with Cloudflare Zero Trust (登录到 Cloudflare Zero Trust)**。
+4. 输入组织团队名称：`sailtech-team`（如有需要请咨询您的负责人）。
+5. 完成基于浏览器的身份验证工作流。
+6. 通过切换到 **Connected (已连接)** 启用连接。
+
+---
+
+## 3. 移动基础设施 (iOS, Android)
+
+### 3.1 软件安装
+- **iOS**：安装 [Cloudflare One Agent](https://apps.apple.com/us/app/cloudflare-one-agent/id6443476492)。
+- **Android**：安装 [Cloudflare One Agent](https://play.google.com/store/apps/details?id=com.cloudflare.cloudflareoneagent)。
+
+### 3.2 连通性配置
+1. 启动应用程序并授予必要权限。
+2. 导航至 **Menu (菜单) → Account (账户) → Login to Cloudflare Zero Trust**。
+3. 输入团队名称：`sailtech-team`。
+4. 进行身份验证并激活连接开关。
+
+---
+
+## 4. 操作验证
+
+使用以下指标验证您的连接状态：
+
+| 指标 | 验证方法 | 预期结果 |
+| :--- | :--- | :--- |
+| **Warp 状态** | [Cloudflare Trace](https://www.cloudflare.com/cdn-cgi/trace) | `warp=on` 或 `gateway=on` |
+| **内部访问** | 导航至内部 URL | 成功 (例如：`https://admin.internal.site`) |
+| **身份验证** | 查看 WARP 账户选项卡 | 使用企业邮箱处于激活状态 |
+
+---
+
+:::info 支持与访问控制
+身份验证失败或“Forbidden”错误通常表示您的设备哈希尚未在控制面板中注册，或者您的账户缺少特定的策略权限。请向运维团队提交访问配置请求。
+:::
+
