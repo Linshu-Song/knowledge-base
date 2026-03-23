@@ -69,6 +69,3 @@
 - [SSH 與 SSH Key 指南](infra/ssh.zh-HK.md) - SSH 密鑰產生、Agent、Agent 轉發同 Docker 整合
 - [零信任教程](infra/zero-trust-tutorial.md) - 連接設備到 Cloudflare Zero Trust 嘅指南
 
----
-
-*最後更新：2026年2月*
