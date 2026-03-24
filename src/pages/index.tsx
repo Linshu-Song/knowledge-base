@@ -11,25 +11,25 @@ const SectionList = [
   {
     title: 'Deep Learning',
     description: 'Computer Vision (YOLO series, CNN), object tracking (TrackNet), and fundamental concepts.',
-    link: '/docs/deep-learning/fundamental',
+    link: '/docs/category/deep-learning',
     emoji: '🤖',
   },
   {
     title: 'Python Tutorial',
     description: 'Modern Python development practices, packaging with pyproject.toml, UV, and code quality tools.',
-    link: '/docs/python-tutorial/python-engineering-guide',
+    link: '/docs/category/python-tutorial',
     emoji: '🐍',
   },
   {
     title: 'Git Tutorial',
     description: 'Git engineering best practices, hooks with Husky/Commitizen, and submodules guide.',
-    link: '/docs/git-tutorial/git-engineering-guide',
+    link: '/docs/category/git-tutorial',
     emoji: '📚',
   },
   {
     title: 'Infrastructure',
     description: 'Architecture overview, Docker setup, dev environments, deployment, operations, and SSH.',
-    link: '/docs/infra/architecture-overview',
+    link: '/docs/category/devops--infrastructure',
     emoji: '🏗️',
   },
 ];
