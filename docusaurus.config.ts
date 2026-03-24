@@ -121,10 +121,10 @@ const config: Config = {
         {
           title: 'Sections',
           items: [
-            {label: 'Deep Learning', to: '/docs/deep-learning/fundamental'},
-            {label: 'Python Tutorial', to: '/docs/python-tutorial/python-engineering-guide'},
-            {label: 'Git Tutorial', to: '/docs/git-tutorial/git-engineering-guide'},
-            {label: 'Infrastructure', to: '/docs/infra/architecture-overview'},
+            {label: 'Deep Learning', to: '/docs/category/deep-learning'},
+            {label: 'Python Tutorial', to: '/docs/category/python-tutorial'},
+            {label: 'Git Tutorial', to: '/docs/category/git-tutorial'},
+            {label: 'Infrastructure', to: '/docs/category/devops--infrastructure'},
           ],
         },
         {
