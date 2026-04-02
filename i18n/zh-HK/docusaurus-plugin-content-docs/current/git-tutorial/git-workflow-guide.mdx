@@ -1,11 +1,11 @@
 ---
 sidebar_position: 1
-title: Git 工程實踐完整指南
+title: Git 工作流與分支策略
 ---
 
-# Git 工程實踐完整指南
+# Git 工作流與分支策略
 
-本指南涵蓋了專業的 Git 工作流、分支策略以及現代軟體工程的最佳實踐。
+本指南涵蓋了 Git 工作流、分支策略、Conventional Commits 規範以及日常開發中的常用命令。
 
 ## 基礎工作流
 
@@ -131,8 +131,56 @@ gitGraph
 *   `git stash pop`: 恢復工作
 
 ### Git Worktree
-在不同目錄中同時處理同一倉庫的多個分支。
-*   `git worktree add ../fix-branch branch-name`
+
+管理**多個工作目錄**，它們都指向同一個倉庫，讓你可以同時檢出不同分支而無需 stash 或切換。
+
+#### 為何使用 Worktree？
+
+| 沒有 Worktree 的痛點 | 使用 Worktree 的解決方案 |
+| :--- | :--- |
+| 切換分支前需要 `git stash` | 每個分支一個目錄，無需 stash |
+| 長時間構建阻塞分支切換 | 在一個工作樹中構建，在另一個中編輯程式碼 |
+| 對比分支需要 `git diff` | 在兩個目錄中開啟編輯器直接對比 |
+
+#### 核心指令
+
+| 指令 | 用途 |
+| :--- | :--- |
+| `git worktree add <路徑> <分支>` | 在 `<路徑>` 建立新的工作樹並檢出 `<分支>` |
+| `git worktree add -b <新分支> <路徑> <起點>` | 同時建立新分支和工作樹 |
+| `git worktree list` | 列出所有關聯的工作樹 |
+| `git worktree remove <路徑>` | 移除工作樹（不會刪除分支） |
+| `git worktree prune` | 清理過期的工作樹條目（如手動刪除目錄後） |
+
+#### 範例工作流程
+
+```bash
+# 你正在 main 上開發新功能
+# 突然需要對生產分支 v2.0 做 hotfix
+
+# 1. 為 hotfix 建立工作樹（無需 stash 任何東西）
+git worktree add ../hotfix-dir v2.0
+
+# 2. 在獨立目錄中修復 Bug
+cd ../hotfix-dir
+# ... 編輯、提交、推送 ...
+git push origin v2.0
+
+# 3. 回到原來的工作
+cd ../project
+# 功能分支仍在原來的位置，一切未變
+
+# 4. 清理 hotfix 工作樹
+git worktree remove ../hotfix-dir
+```
+
+:::tip 命名規範
+為工作目錄使用統一的前綴，如 `../project-hotfix`、`../project-review`、`../project-release`，保持工作區整潔。
+:::
+
+:::caution
+同一分支**同時只能在一個工作樹中**檢出。嘗試在兩個工作樹中檢出相同分支會失敗。
+:::
 
 ### Git Bisect
 通過二分查找確定引入 Bug 的提交。
@@ -142,8 +190,9 @@ gitGraph
 
 ---
 
-## 工程資源
+## 相關指南
 
+*   [📄 Merge、Rebase 與 Cherry-Pick](./git-merge-rebase-cherry-pick.mdx) — 分支集成與歷史改寫。
 *   [📄 Git Hooks 指南](./git-hooks-guide.mdx) — 自動化代碼檢查和測試。
 *   [📄 子模組 (Submodules) 指南](./git-submodule-guide.mdx) — 管理外部依賴。
 *   [📄 SSH 設置](../infra/06-ssh.mdx) — 安全遠端訪問。

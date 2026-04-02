@@ -56,7 +56,7 @@
 涵盖最佳实践、工作流程和高级 Git 操作的综合 Git 工程指南。
 
 **可用资源：**
-- [Git 工程指南](git-tutorial/git-engineering-guide.md) - 完整的 Git 指南
+- [Git 工作流与分支策略](git-tutorial/git-workflow-guide.md) - Git 工作流与分支策略指南
 - [Git Hooks 指南](git-tutorial/git-hooks-guide-zh-CN.md) - Git 钩子、Husky、Commitizen、pre-commit 使用与示例
 - [Git 子模块指南](git-tutorial/git-submodule-guide-zh-CN.md) - 管理外部仓库的完整子模块指南
 
