@@ -131,8 +131,56 @@ Temporarily save uncommitted changes to switch branches.
 *   `git stash pop`: Restore work
 
 ### Git Worktree
-Work on multiple branches of the same repository simultaneously in different directories.
-*   `git worktree add ../fix-branch branch-name`
+
+Manage **multiple working trees** attached to the same repository, so you can check out different branches side-by-side without stashing or switching.
+
+#### Why Use Worktree?
+
+| Problem without Worktree | Solution with Worktree |
+| :--- | :--- |
+| Need to `git stash` before switching branches | Each branch has its own directory — no stashing needed |
+| Long-running builds block switching | Keep build running in one tree, edit code in another |
+| Comparing branches requires `git diff` | Open two editors in two directories and compare directly |
+
+#### Core Commands
+
+| Command | Purpose |
+| :--- | :--- |
+| `git worktree add <path> <branch>` | Create a new working tree at `<path>` and check out `<branch>` |
+| `git worktree add -b <new-branch> <path> <start-point>` | Create a new branch and working tree simultaneously |
+| `git worktree list` | List all working trees attached to this repository |
+| `git worktree remove <path>` | Remove a working tree (does not delete the branch) |
+| `git worktree prune` | Clean up stale worktree entries (e.g., after manually deleting a directory) |
+
+#### Example Workflow
+
+```bash
+# You are on `main`, working on a new feature.
+# A hotfix is needed for production branch `v2.0`.
+
+# 1. Create a worktree for the hotfix (no need to stash anything)
+git worktree add ../hotfix-dir v2.0
+
+# 2. Fix the bug in the separate directory
+cd ../hotfix-dir
+# ... edit, commit, push ...
+git push origin v2.0
+
+# 3. Return to your original work
+cd ../project
+# Your feature branch is exactly where you left it.
+
+# 4. Clean up the hotfix worktree
+git worktree remove ../hotfix-dir
+```
+
+:::tip Naming Convention
+Use a consistent prefix for worktree directories, e.g., `../project-hotfix`, `../project-review`, `../project-release`. This keeps your workspace organized.
+:::
+
+:::caution
+Each branch can only be checked out in **one** worktree at a time. Attempting to check out the same branch in two trees will fail.
+:::
 
 ### Git Bisect
 Binary search to find the commit that introduced a bug.

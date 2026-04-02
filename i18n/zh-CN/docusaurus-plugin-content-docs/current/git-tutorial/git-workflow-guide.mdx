@@ -131,8 +131,56 @@ gitGraph
 *   `git stash pop`: 恢复工作
 
 ### Git Worktree
-在不同目录中同时处理同一仓库的多个分支。
-*   `git worktree add ../fix-branch branch-name`
+
+管理**多个工作目录**，它们都指向同一个仓库，让你可以同时检出不同分支而无需 stash 或切换。
+
+#### 为什么使用 Worktree？
+
+| 没有 Worktree 的痛点 | 使用 Worktree 的解决方案 |
+| :--- | :--- |
+| 切换分支前需要 `git stash` | 每个分支一个目录，无需 stash |
+| 长时间构建阻塞分支切换 | 在一个工作树中构建，在另一个中编辑代码 |
+| 对比分支需要 `git diff` | 在两个目录中打开编辑器直接对比 |
+
+#### 核心命令
+
+| 命令 | 用途 |
+| :--- | :--- |
+| `git worktree add <路径> <分支>` | 在 `<路径>` 创建新的工作树并检出 `<分支>` |
+| `git worktree add -b <新分支> <路径> <起点>` | 同时创建新分支和工作树 |
+| `git worktree list` | 列出所有关联的工作树 |
+| `git worktree remove <路径>` | 移除工作树（不会删除分支） |
+| `git worktree prune` | 清理过期的工作树条目（如手动删除目录后） |
+
+#### 示例工作流
+
+```bash
+# 你正在 main 上开发新功能
+# 突然需要对生产分支 v2.0 做 hotfix
+
+# 1. 为 hotfix 创建工作树（无需 stash 任何东西）
+git worktree add ../hotfix-dir v2.0
+
+# 2. 在独立目录中修复 Bug
+cd ../hotfix-dir
+# ... 编辑、提交、推送 ...
+git push origin v2.0
+
+# 3. 回到原来的工作
+cd ../project
+# 功能分支仍在原来的位置，一切未变
+
+# 4. 清理 hotfix 工作树
+git worktree remove ../hotfix-dir
+```
+
+:::tip 命名规范
+为工作目录使用统一的前缀，如 `../project-hotfix`、`../project-review`、`../project-release`，保持工作区整洁。
+:::
+
+:::caution
+同一分支**同时只能在一个工作树中**检出。尝试在两个工作树中检出相同分支会失败。
+:::
 
 ### Git Bisect
 通过二分查找确定引入 Bug 的提交。
