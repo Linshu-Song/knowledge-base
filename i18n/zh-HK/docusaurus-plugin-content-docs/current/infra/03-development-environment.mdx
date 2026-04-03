@@ -148,6 +148,52 @@ graph TD
 
 ---
 
+## 💻 Dev Container CLI
+
+**Dev Container CLI**（`@devcontainers/cli`）是 [Dev Containers 規範](https://containers.dev/) 的參考實現。它允許你透過命令行構建和管理開發容器，無需依賴 VS Code。
+
+### 安裝
+
+```bash
+# 全局安裝
+npm install -g @devcontainers/cli
+
+# 或直接透過 npx 使用
+npx @devcontainers/cli --help
+```
+
+### 常用命令
+
+| 命令 | 說明 |
+| :--- | :--- |
+| `devcontainer up` | 從 `devcontainer.json` 創建並啟動開發容器 |
+| `devcontainer exec <cmd>` | 在運行中的開發容器內執行命令 |
+| `devcontainer build` | 構建開發容器映像檔（用於發布） |
+| `devcontainer read-configuration` | 讀取並解析完整的 `devcontainer.json` 配置 |
+
+### 典型場景
+
+**無需 VS Code 即可在開發容器中運行命令：**
+
+```bash
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . npm test
+```
+
+**在 CI/CD 中預構建並發布開發容器映像檔：**
+
+```bash
+devcontainer build --workspace-folder . --push true --image-name ghcr.io/my-org/devcontainer:latest
+```
+
+在 CI 流水線中預構建映像檔並推送到容器註冊表，可以顯著加快容器啟動速度。
+
+:::tip 何時使用 CLI
+當你需要**在 VS Code 之外**與開發容器互動時使用 CLI —— 例如 CI/CD 流水線、無頭伺服器或非 VS Code 編輯器。日常開發中，VS Code Dev Containers 擴充提供最無縫的體驗。
+:::
+
+---
+
 ## 🔐 SSH Agent 轉發
 
 為了確保私鑰安全，我們使用 **SSH Agent 轉發**。你的私鑰永遠不會進入容器；容器只需「請求」宿主機對 Git 或 SSH 操作進行簽名。

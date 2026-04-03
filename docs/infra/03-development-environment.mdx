@@ -142,7 +142,53 @@ Use **Features** for anything available in the [Dev Container Feature catalog](h
 
 ---
 
-## 6. Security: SSH Agent Forwarding
+## 6. Dev Container CLI
+
+The **Dev Container CLI** (`@devcontainers/cli`) is the reference implementation of the [Development Containers Specification](https://containers.dev/). It allows you to build and manage dev containers from the command line, without requiring VS Code.
+
+### Installation
+
+```bash
+# Install globally
+npm install -g @devcontainers/cli
+
+# Or use directly via npx
+npx @devcontainers/cli --help
+```
+
+### Common Commands
+
+| Command | Description |
+| :--- | :--- |
+| `devcontainer up` | Create and start a dev container from `devcontainer.json` |
+| `devcontainer exec <cmd>` | Execute a command inside a running dev container |
+| `devcontainer build` | Build a dev container image (for publishing) |
+| `devcontainer read-configuration` | Read and resolve the full `devcontainer.json` config |
+
+### Typical Use Cases
+
+**Run commands in a dev container without VS Code:**
+
+```bash
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . npm test
+```
+
+**Pre-build and publish a dev container image in CI/CD:**
+
+```bash
+devcontainer build --workspace-folder . --push true --image-name ghcr.io/my-org/devcontainer:latest
+```
+
+This is useful for speeding up container startup by pre-building the image in a CI pipeline and pushing it to a container registry.
+
+:::tip When to Use the CLI
+Use the CLI when you need to interact with dev containers **outside of VS Code** — such as in CI/CD pipelines, headless servers, or non-VS Code editors. For daily development, the VS Code Dev Containers extension provides the most seamless experience.
+:::
+
+---
+
+## 7. Security: SSH Agent Forwarding
 
 To maintain security, private keys remain on your host machine. We utilize **SSH Agent Forwarding** to allow the container to request authentication signatures from the host.
 
@@ -161,7 +207,7 @@ ssh-add -l          # Lists keys available from host agent
 
 ---
 
-## 7. Operational Troubleshooting
+## 8. Operational Troubleshooting
 
 | Symptom | Primary Cause | Remediation |
 | :--- | :--- | :--- |
