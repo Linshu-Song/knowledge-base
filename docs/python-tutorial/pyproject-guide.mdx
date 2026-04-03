@@ -66,11 +66,35 @@ docs = ["sphinx", "mkdocs"]
 Most modern Python tools allow configuration directly within `pyproject.toml`.
 
 ### Ruff (Linter & Formatter)
+
+Ruff is a modern, fast (Rust-based) linter that replaces multiple traditional tools: Flake8, isort, Black, and more.
+
 ```toml
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # Default flake8
+    "I",             # isort (import sorting)
+    "UP",            # pyupgrade
+    "S",             # bandit (security)
+    "B",             # bugbear
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["my_package"]
+force-sort-within-sections = true
+combine-as-imports = true
+lines-after-imports = 2
 ```
+
+:::info Key Import Rules
+- **"I"**: Enables import sorting and grouping (replaces isort)
+- **F401**: Detects unused imports
+- **F403**: Detects `from module import *` (namespace pollution)
+:::
 
 ### Pytest
 ```toml

@@ -69,7 +69,8 @@ uv sync
 ## 代码质量 (Ruff & MyPy)
 
 ### Ruff 配置
-在 `pyproject.toml` 中整合你的 lint 和格式化规则：
+
+Ruff 用单一、极快的工具替代了 Flake8、isort、Black 和 Bandit。在 `pyproject.toml` 中整合所有规则：
 
 ```toml
 [tool.ruff]
@@ -78,13 +79,28 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E", "F", "W", # 默认 flake8
-    "I",           # isort
-    "UP",          # pyupgrade
-    "S",           # bandit (安全)
-    "B",           # bugbear
+    "E", "F", "W",   # 默认 flake8
+    "I",             # isort (导入排序)
+    "UP",            # pyupgrade
+    "S",             # bandit (安全)
+    "B",             # bugbear
 ]
+
+# 导入相关配置
+[tool.ruff.lint.isort]
+known-first-party = ["my_package"]
+force-sort-within-sections = true  # 在导入组内排序
+combine-as-imports = true           # 合并：from x import a; from x import b -> from x import a, b
+lines-after-imports = 2             # PEP 8 标准
 ```
+
+:::tip 导入规则
+**"I"** 规则启用自动导入排序（替代 isort）：
+- 分组：标准库 → 第三方 → 本地
+- 组内按字母顺序排序
+- 检测未使用的导入（**F401**）
+- 标记 `from module import *`（**F403**）
+:::
 
 ### 类型检查
 使用 MyPy 在进入生产环境前捕获逻辑错误：
@@ -116,8 +132,36 @@ jobs:
 
 ---
 
+## 代码组织
+
+### Python 导入系统
+
+理解 Python 的导入机制对于构建可扩展应用程序至关重要。核心概念包括：
+
+- **绝对导入 vs 相对导入**：清晰使用绝对导入，包内使用相对导入
+- **`__init__.py`**：控制包级 API 和初始化
+- **避免循环导入**：使用 `TYPE_CHECKING` 或重构依赖
+- **导入性能**：考虑对重型依赖使用延迟导入
+
+```python
+# ✅ 推荐：绝对导入
+from my_package.utils import load_config
+from my_package.core import Engine
+
+# ✅ 可接受：显式相对导入
+from .utils import load_config
+from ..core import Engine
+```
+
+:::tip
+配置 **Ruff** 自动执行 PEP 8 导入排序并检测循环依赖。
+:::
+
+---
+
 ## 工程资源
 
+*   [📄 Python 导入系统](./python-import-guide.mdx) — 导入、模块和最佳实践综合指南。
 *   [📄 `uv` 完整指南](./uv-guide.mdx) — 深入了解包管理。
 *   [📄 `pyproject.toml` 指南](./pyproject-guide.mdx) — 详尽的配置参考。
 *   [📄 工具介绍](./python-tools-introduction.mdx) — 生态系统对比。

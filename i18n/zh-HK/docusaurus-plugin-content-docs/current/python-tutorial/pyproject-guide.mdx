@@ -66,11 +66,35 @@ docs = ["sphinx", "mkdocs"]
 大多數現代 Python 工具允許直接在 `pyproject.toml` 中進行配置。
 
 ### Ruff (代碼檢查與格式化)
+
+Ruff 是一個現代、快速（基於 Rust）的檢查器，可替代多個傳統工具：Flake8、isort、Black 等。
+
 ```toml
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # 默認 flake8
+    "I",             # isort (匯入排序)
+    "UP",            # pyupgrade
+    "S",             # bandit (安全)
+    "B",             # bugbear
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["my_package"]
+force-sort-within-sections = true
+combine-as-imports = true
+lines-after-imports = 2
 ```
+
+:::info 核心匯入規則
+- **"I"**：啟用匯入排序和分組（替代 isort）
+- **F401**：檢測未使用的匯入
+- **F403**：檢測 `from module import *`（命名空間污染）
+:::
 
 ### Pytest
 ```toml
