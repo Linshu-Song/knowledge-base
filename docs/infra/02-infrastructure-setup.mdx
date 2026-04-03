@@ -8,7 +8,7 @@ description: Guide to standardized local infrastructure orchestration using Dock
 
 This guide defines the engineering standard for local infrastructure orchestration using **Docker Compose**. We prioritize a **layered, profile-driven configuration** that scales from standalone services to complex, multi-service platform architectures.
 
-## 1. Docker Compose Architecture
+## Docker Compose Architecture
 
 We utilize a **layered Compose file** strategy: a base configuration defines core infrastructure services, while overlay files inject environment-specific or profile-specific overrides.
 
@@ -46,7 +46,7 @@ docker compose \
 
 ---
 
-## 2. Monorepo vs Polyrepo: Compose Layout
+## Monorepo vs Polyrepo: Compose Layout
 
 The repository strategy directly affects how Compose files are organized and how `build.context` is configured.
 
@@ -112,7 +112,7 @@ services:
 
 ---
 
-## 3. Core Infrastructure Services
+## Core Infrastructure Services
 
 The base `compose.yaml` defines the shared persistence and messaging layers.
 
@@ -142,7 +142,7 @@ services:
 
 ---
 
-## 4. Local Development Overrides
+## Local Development Overrides
 
 The development overlay (`compose.dev.yaml`) facilitates iterative coding via bind mounts and debugging features.
 
@@ -166,7 +166,7 @@ services:
 
 ---
 
-## 5. Multi-Stage Dockerfile Pattern
+## Multi-Stage Dockerfile Pattern
 
 Every service **must** implement multi-stage builds to optimize for both development speed and production security.
 

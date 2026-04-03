@@ -17,6 +17,14 @@ Git hooks are scripts that Git automatically executes before or after key events
 | **Client-Side** | `pre-commit`, `commit-msg`, `pre-push` | Local developer workflow |
 | **Server-Side** | `pre-receive`, `post-receive`, `update` | Remote repository enforcement |
 
+### Client-Side vs Server-Side Hooks
+
+**Client-side hooks** run on a developer's local machine. They act as personal guardrails — fast checks like linting, formatting, and commit message validation. They can be bypassed with `--no-verify`, so they are advisory rather than mandatory.
+
+**Server-side hooks** run on the remote repository (e.g., GitHub, GitLab, self-hosted Git servers). They enforce policies that cannot be skipped, such as rejecting pushes that fail CI checks, enforcing branch naming conventions, or preventing force-pushes to protected branches.
+
+> **Rule of thumb**: Use client-side hooks for developer experience (fast feedback), and server-side hooks for policy enforcement (non-negotiable rules).
+
 ### Why Automate with Hooks?
 
 ```mermaid
@@ -38,11 +46,17 @@ flowchart LR
 
 ---
 
-## Standard Tooling: Husky & lint-staged
+## Hook Managers
 
-While native Git hooks (stored in `.git/hooks/`) are powerful, they are not easily version-controlled. For modern engineering teams, we standardize on **Husky**.
+Native Git hooks (stored in `.git/hooks/`) are not easily version-controlled. Hook managers solve this by making hooks shareable, configurable, and easy to maintain. Choose based on your project's ecosystem:
 
-### 1. Setup Husky (Node.js/General)
+| Manager | Language | Best For | Parallel Execution |
+| :--- | :--- | :--- | :--- |
+| **Husky** + lint-staged | Node.js | npm/Node.js projects | Via lint-staged |
+| **[Lefthook](https://github.com/evilmartians/lefthook)** | Go binary | Polyglot / any toolchain | Built-in |
+| **[pre-commit](https://pre-commit.com)** | Python | Python or multi-language repos | No |
+
+### Husky + lint-staged (Node.js Ecosystem)
 
 Husky makes Git hooks easy to manage and share across the team.
 
@@ -53,8 +67,6 @@ npm install husky --save-dev
 # Initialize Husky (creates .husky directory)
 npx husky init
 ```
-
-### 2. Optimize with lint-staged
 
 Running linters on the *entire* codebase for every commit is slow. `lint-staged` ensures you only check files that are currently being committed.
 
@@ -80,33 +92,50 @@ npm install lint-staged --save-dev
 npx lint-staged
 ```
 
----
+### Lefthook (Language-Agnostic)
 
-## Commit Message Standardization
+A fast, zero-dependency alternative written in Go. Unlike Husky (npm-only) or pre-commit (Python), Lefthook works with any toolchain and supports parallel execution out of the box.
 
-Standardized commit messages enable automated changelog generation and better project history.
-
-### Commitlint
-
-Enforce the Conventional Commit specification:
+**Installation:**
 
 ```bash
-npm install @commitlint/cli @commitlint/config-conventional --save-dev
+# Go
+go install github.com/evilmartians/lefthook@latest
 
-# Create config
-echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
+# npm
+npm install @evilmartians/lefthook --save-dev
 
-# Add hook
-echo "npx commitlint --edit \$1" > .husky/commit-msg
+# Homebrew (macOS/Linux)
+brew install lefthook
 ```
 
----
+**Configuration (`lefthook.yml`):**
 
-## Python Engineering: Pre-commit Framework
+```yaml
+pre-commit:
+  commands:
+    lint-js:
+      glob: "*.{js,ts,tsx}"
+      run: eslint --fix {staged_files}
 
-For pure Python or multi-language projects, the `pre-commit` framework is the industry standard.
+    format-py:
+      glob: "*.py"
+      run: ruff format {staged_files}
 
-### Installation & Config
+commit-msg:
+  commands:
+    conventional:
+      run: commitlint --edit {1}
+```
+
+```bash
+# Install hooks into .git/
+lefthook install
+```
+
+### pre-commit (Python Ecosystem)
+
+The industry standard for pure Python or multi-language projects, with a rich ecosystem of shared hook repositories.
 
 ```bash
 pip install pre-commit
@@ -132,8 +161,6 @@ repos:
       - id: ruff-format
 ```
 
-### Usage
-
 ```bash
 # Install the hooks into .git/
 pre-commit install
@@ -144,13 +171,61 @@ pre-commit run --all-files
 
 ---
 
+## Commit Message Tooling
+
+Standardized commit messages enable automated changelog generation and better project history. These tools plug into any hook manager via the `commit-msg` hook.
+
+### Commitlint (Validation)
+
+Enforce the Conventional Commit specification after the message is written:
+
+```bash
+npm install @commitlint/cli @commitlint/config-conventional --save-dev
+
+# Create config
+echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
+
+# Add hook
+echo "npx commitlint --edit \$1" > .husky/commit-msg
+```
+
+### Commitizen (Interactive)
+
+**[Commitizen](https://commitizen-tools.github.io/commitizen/)** guides developers through writing compliant messages interactively — eliminating the guesswork before validation is even needed.
+
+```bash
+npm install cz-conventional-changelog --save-dev
+```
+
+**`package.json`:**
+
+```json
+{
+  "scripts": {
+    "commit": "cz"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
+}
+```
+
+Use `npm run commit` (or `npx cz`) instead of `git commit` to be prompted for type, scope, and description.
+
+> Combine both for defense-in-depth: Commitizen helps write good messages, Commitlint catches any that slip through.
+
+---
+
 ## Best Practices
 
 :::tip Proactive Validation
-1. **Version Control Your Hooks**: Never rely on local `.git/hooks/`. Use Husky or `pre-commit`.
+1. **Version Control Your Hooks**: Never rely on local `.git/hooks/`. Use a hook manager.
 2. **Fail Fast**: Order hooks so the fastest checks (linting) run before slow ones (integration tests).
 3. **Informative Errors**: Ensure hook scripts provide clear instructions on how to fix a rejection.
 4. **Use `--no-verify` Sparingly**: Only bypass hooks for emergencies; never to ignore quality standards.
+5. **Virtual Environment Awareness**: Hooks execute in a bare shell — they won't inherit your active virtualenv. Use wrapper commands like `uv run`, `pipx run`, or absolute paths to ensure tools are found.
 :::
 
 ---
@@ -162,4 +237,4 @@ pre-commit run --all-files
 | **Hooks not firing** | Ensure the script is executable: `chmod +x .husky/pre-commit` |
 | **Husky init fails** | Ensure you are in the root of a Git repository. |
 | **Environment mismatch** | Use absolute paths or standard commands (e.g., `npm run`) in hook scripts. |
-
+| **"command not found" in hook** | The hook runs outside your virtual environment. Prefix with `uv run`, `pipx run`, or use the absolute path to the binary. |
