@@ -90,6 +90,45 @@ uv build
 
 ## 現代項目管理
 
+### 項目初始化
+
+使用 `uv init` 快速創建具有標準化結構的新 Python 項目：
+
+```bash
+# 基礎用法：在當前目錄初始化
+uv init
+
+# 創建新的項目目錄
+uv init myproject
+
+# 指定 Python 版本
+uv init --python 3.11
+
+# 創建應用程序（非庫）
+uv init --app myapp
+
+# 包含 README 文件
+uv init --readme myproject
+
+# 創建不帶虛擬環境的項目
+uv init --no-venv myproject
+```
+
+**生成的項目結構：**
+
+```text
+myproject/
+├── pyproject.toml          # 項目元數據和依賴項
+├── uv.lock                 # 通用鎖定文件 (提交至 Git)
+├── .python-version         # Python 版本規範
+├── README.md               # 項目說明（可選）
+└── src/
+    └── myproject/
+        └── __init__.py     # 包初始化
+```
+
+`uv init` 生成的 `pyproject.toml` 文件遵循 PEP 621 標準。如需了解各字段的詳細說明和配置最佳實踐，請參閱 [pyproject.toml 完整指南](./pyproject-guide.mdx)。
+
 ### 項目結構
 
 ```text

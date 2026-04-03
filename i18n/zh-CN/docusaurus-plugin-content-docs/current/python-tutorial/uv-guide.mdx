@@ -90,6 +90,45 @@ uv build
 
 ## 现代项目管理
 
+### 项目初始化
+
+使用 `uv init` 快速创建具有标准化结构的新 Python 项目：
+
+```bash
+# 基础用法：在当前目录初始化
+uv init
+
+# 创建新的项目目录
+uv init myproject
+
+# 指定 Python 版本
+uv init --python 3.11
+
+# 创建应用程序（非库）
+uv init --app myapp
+
+# 包含 README 文件
+uv init --readme myproject
+
+# 创建不带虚拟环境的项目
+uv init --no-venv myproject
+```
+
+**生成的项目结构：**
+
+```text
+myproject/
+├── pyproject.toml          # 项目元数据和依赖项
+├── uv.lock                 # 通用锁定文件 (提交至 Git)
+├── .python-version         # Python 版本规范
+├── README.md               # 项目说明（可选）
+└── src/
+    └── myproject/
+        └── __init__.py     # 包初始化
+```
+
+`uv init` 生成的 `pyproject.toml` 文件遵循 PEP 621 标准。如需了解各字段的详细说明和配置最佳实践，请参阅 [pyproject.toml 完整指南](./pyproject-guide.mdx)。
+
 ### 项目结构
 
 ```text
