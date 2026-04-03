@@ -8,7 +8,7 @@ description: Best practices for monitoring, log management, rollback procedures,
 
 Maintaining platform reliability requires robust observability, standardized rollback procedures, and a systematic approach to technical troubleshooting. This guide outlines the engineering standards for production operations.
 
-## 1. Health Checks & Liveness
+## Health Checks & Liveness
 
 Every service must expose standardized health endpoints to facilitate orchestration (e.g., Docker Compose, Kubernetes) and external monitoring.
 
@@ -36,7 +36,7 @@ services:
 
 ---
 
-## 2. Logging Strategy
+## Logging Strategy
 
 We standardize on **Structured Logging (JSON)** in production to enable efficient log aggregation, programmatic searching, and automated alerting.
 
@@ -54,11 +54,11 @@ In production environments, configure the `json-file` logging driver with `max-s
 
 ---
 
-## 3. Rollback Procedures
+## Rollback Procedures
 
 When a deployment failure occurs, prioritize returning the system to a "Known Good" state immediately.
 
-### 3.1 Service Rollback
+### Service Rollback
 Redeploy the previous stable Docker image tag from the container registry.
 
 ```bash
@@ -69,7 +69,7 @@ docker compose pull registry.example.com/api:prod-a1b2c3d
 docker compose up -d --force-recreate api
 ```
 
-### 3.2 Database Rollback
+### Database Rollback
 If a database migration is destructive or causes application failures, restore from the **pre-migration backup**.
 
 ```bash
@@ -79,7 +79,7 @@ If a database migration is destructive or causes application failures, restore f
 
 ---
 
-## 4. Troubleshooting Guide
+## Troubleshooting Guide
 
 ### Docker Infrastructure
 
@@ -99,7 +99,7 @@ If a database migration is destructive or causes application failures, restore f
 
 ---
 
-## 5. Production Release Checklist
+## Production Release Checklist
 
 Verify all items before executing a production deployment:
 

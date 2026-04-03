@@ -8,7 +8,7 @@ description: Practical guide to securing access using SSH, including key generat
 
 Secure access to remote servers and Git repositories is fundamentally built on the **SSH (Secure Shell)** protocol. We utilize asymmetric cryptography to ensure that authentication credentials are never transmitted over the network and remain stored exclusively on your local machine.
 
-## 1. SSH Cryptography Fundamentals
+## SSH Cryptography Fundamentals
 
 SSH authentication relies on a **public-key pair** consisting of two mathematically linked files.
 
@@ -23,9 +23,9 @@ We standardize on the **Ed25519** algorithm for all new key pairs. It provides s
 
 ---
 
-## 2. Infrastructure Setup Guide
+## Infrastructure Setup Guide
 
-### 2.1 Generating a Key Pair
+### Generating a Key Pair
 Execute the following command to generate a new key pair:
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
@@ -34,7 +34,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 Accept the default storage path and provide a strong passphrase for local encryption.
 :::
 
-### 2.2 Managing with SSH Agent
+### Managing with SSH Agent
 Use the SSH agent to manage decrypted keys in memory, eliminating the need to re-enter passphrases for every connection.
 ```bash
 # Initialize the SSH agent
@@ -44,14 +44,14 @@ eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
 ```
 
-### 2.3 Integration with GitHub
+### Integration with GitHub
 Retrieve your public key and add it to your profile under **GitHub Settings → SSH and GPG keys**.
 ```bash
 # Copy to clipboard or display public key
 cat ~/.ssh/id_ed25519.pub
 ```
 
-### 2.4 Connectivity Verification
+### Connectivity Verification
 ```bash
 ssh -T git@github.com
 # Expected output: "Hi <username>! You've successfully authenticated..."
@@ -59,7 +59,7 @@ ssh -T git@github.com
 
 ---
 
-## 3. Advanced Workflow: Agent Forwarding
+## Advanced Workflow: Agent Forwarding
 
 **Agent Forwarding** enables the use of local SSH keys within remote sessions (e.g., inside a server or a Docker container) without copying private keys to those environments.
 
@@ -92,7 +92,7 @@ Only utilize agent forwarding when connecting to **trusted** infrastructure. A c
 
 ---
 
-## 4. SSH Configuration Strategy
+## SSH Configuration Strategy
 
 Optimize connection workflows by defining host aliases in `~/.ssh/config`:
 

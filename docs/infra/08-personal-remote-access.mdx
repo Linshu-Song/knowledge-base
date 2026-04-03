@@ -8,11 +8,11 @@ description: Simple guide for setting up personal remote access (SSH) to your wo
 
 While Cloudflare Zero Trust is used for official corporate resources, you may need a simpler way to access your personal work PC via SSH from home or while traveling. This guide covers **Twingate** and **Tailscale** for personal developer use.
 
-## 1. Tailscale (Mesh VPN)
+## Tailscale (Mesh VPN)
 
 Tailscale is based on WireGuard and creates a secure mesh network between your devices. It is extremely easy to set up and works through most NATs and firewalls.
 
-### 1.1 Setup on Host (Work PC)
+### Setup on Host (Work PC)
 1. Sign up at [tailscale.com](https://tailscale.com/).
 2. **Install Tailscale**:
    - **Linux**: `curl -fsSL https://tailscale.com/install.sh | sh`
@@ -20,7 +20,7 @@ Tailscale is based on WireGuard and creates a secure mesh network between your d
 3. **Login**: Run `sudo tailscale up` (Linux) or use the GUI.
 4. **Get your IP**: Run `tailscale ip -4` or check the Tailscale Dashboard.
 
-### 1.2 Setup on Client (Home PC/Laptop)
+### Setup on Client (Home PC/Laptop)
 1. Install Tailscale and login with the same account.
 2. **Connect**: Simply SSH using the Tailscale IP found in step 1.1.
    ```bash
@@ -29,11 +29,11 @@ Tailscale is based on WireGuard and creates a secure mesh network between your d
 
 ---
 
-## 2. Twingate (Zero Trust Access)
+## Twingate (Zero Trust Access)
 
 Twingate is a Zero Trust solution that doesn't require a virtual network interface on the host, making it very "invisible" to the system.
 
-### 2.1 Setup
+### Setup
 1. Create a free account at [twingate.com](https://twingate.com/).
 2. **Add a Remote Network**: Create a "Home" or "Office" network in the dashboard.
 3. **Deploy a Connector**:
@@ -43,14 +43,14 @@ Twingate is a Zero Trust solution that doesn't require a virtual network interfa
    - Add your Work PC's local IP (e.g., `192.168.1.50`) or hostname as a resource.
    - Enable the **SSH** protocol for this resource.
 
-### 2.2 Client Access
+### Client Access
 1. Install the Twingate Client on your laptop/home PC.
 2. Authenticate with your Twingate account.
 3. Once connected, you can SSH to your work PC using its **Local IP** as if you were in the same room.
 
 ---
 
-## 3. Which one should I choose?
+## Which one should I choose?
 
 | Feature | Tailscale | Twingate |
 | :--- | :--- | :--- |

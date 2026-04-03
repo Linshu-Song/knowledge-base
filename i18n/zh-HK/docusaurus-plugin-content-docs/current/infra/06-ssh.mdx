@@ -8,7 +8,7 @@ description: 通過 SSH 確保訪問安全的實用指南，包括密鑰生成�
 
 對遠程服務器和 Git 倉庫的安全訪問從根本上建立在 **SSH (Secure Shell)** 協議之上。我們利用非對稱加密技術，確保身份驗證憑據永遠不會在網絡上傳輸，並僅存儲在您的本地計算機上。
 
-## 1. SSH 加密基礎
+## SSH 加密基礎
 
 SSH 身份驗證依賴於由兩個數學相關文件組成的 **公私鑰對**。
 
@@ -23,9 +23,9 @@ SSH 身份驗證依賴於由兩個數學相關文件組成的 **公私鑰對**�
 
 ---
 
-## 2. 基礎設施設置指南
+## 基礎設施設置指南
 
-### 2.1 生成密鑰對
+### 生成密鑰對
 執行以下命令生成新的密鑰對：
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
@@ -34,7 +34,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 接受默認存儲路徑並為本地加密提供強密碼。
 :::
 
-### 2.2 使用 SSH 代理進行管理
+### 使用 SSH 代理進行管理
 使用 SSH 代理在內存中管理已解密的密鑰，從而無需為每次連接重新輸入密碼。
 ```bash
 # 初始化 SSH 代理
@@ -44,14 +44,14 @@ eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
 ```
 
-### 2.3 與 GitHub 集成
+### 與 GitHub 集成
 獲取您的公鑰並將其添加到您的 **GitHub 設置 → SSH and GPG keys** 中。
 ```bash
 # 複製到剪貼板或顯示公鑰
 cat ~/.ssh/id_ed25519.pub
 ```
 
-### 2.4 連通性驗證
+### 連通性驗證
 ```bash
 ssh -T git@github.com
 # 預期輸出: "Hi <username>! You've successfully authenticated..."
@@ -59,7 +59,7 @@ ssh -T git@github.com
 
 ---
 
-## 3. 高級工作流：代理轉發 (Agent Forwarding)
+## 高級工作流：代理轉發 (Agent Forwarding)
 
 **代理轉發** 允許在遠程會話（例如，在服務器或 Docker 容器內）中使用本地 SSH 密鑰，而無需將私鑰複製到這些環境中。
 
@@ -92,7 +92,7 @@ docker run -it \
 
 ---
 
-## 4. SSH 配置策略
+## SSH 配置策略
 
 通過在 `~/.ssh/config` 中定義主機別名來優化連接工作流：
 

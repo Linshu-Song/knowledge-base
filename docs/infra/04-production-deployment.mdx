@@ -8,7 +8,7 @@ description: Engineering standards for CI/CD pipelines, including environment ti
 
 Our deployment strategy focuses on **Environment Parity**, **Immutable Artifacts**, and **Automated Pipelines**. We prioritize high-confidence releases by validating exact binary images in pre-production before final deployment.
 
-## 1. Environment Infrastructure Tiers
+## Environment Infrastructure Tiers
 
 We maintain three primary environment tiers to isolate development, validation, and production traffic.
 
@@ -24,7 +24,7 @@ We maintain three primary environment tiers to isolate development, validation, 
 
 ---
 
-## 2. Image Build & Tagging Strategy
+## Image Build & Tagging Strategy
 
 We utilize **Git SHAs** for deterministic tagging, ensuring every production image is traceable to a specific repository commit.
 
@@ -50,7 +50,7 @@ target "api" {
 
 ---
 
-## 3. Production Secrets Management
+## Production Secrets Management
 
 **Strict Security Protocol**: Production credentials, API keys, and certificates **must** be stored in an external manager, never in version control or `.env` templates.
 
@@ -65,7 +65,7 @@ flowchart LR
 
 ---
 
-## 4. Database Migration Protocol
+## Database Migration Protocol
 
 To prevent race conditions and ensure zero-downtime releases, database migrations are decoupled from the primary application startup.
 
@@ -79,7 +79,7 @@ All migrations **must** be backward compatible to ensure the current (old) appli
 
 ---
 
-## 5. Automated Promotion Workflow
+## Automated Promotion Workflow
 
 We promote images from Staging to Production after automated verification passes.
 

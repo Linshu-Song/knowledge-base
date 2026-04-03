@@ -8,7 +8,7 @@ description: Comprehensive guide to using VS Code Dev Containers for consistent,
 
 We standardize on **VS Code Dev Containers** to ensure a consistent, isolated, and high-fidelity development environment for every engineer. This approach eliminates "works on my machine" inconsistencies and reduces project onboarding time to minutes.
 
-## 1. Dev Container Fundamentals
+## Dev Container Fundamentals
 
 A **Dev Container** is a standardized environment defined by a `devcontainer.json` configuration. It enables you to utilize a Docker container as a full-featured integrated development environment.
 
@@ -26,7 +26,7 @@ The VS Code UI executes on your host machine, while the **VS Code Server**, term
 
 ---
 
-## 2. Strategic Comparison: Local vs. Container
+## Strategic Comparison: Local vs. Container
 
 | Feature | Host Machine Development | Dev Container Strategy |
 | :--- | :--- | :--- |
@@ -37,7 +37,7 @@ The VS Code UI executes on your host machine, while the **VS Code Server**, term
 
 ---
 
-## 3. Orchestration with Docker Compose
+## Orchestration with Docker Compose
 
 For microservices, we integrate **Dev Containers** with **Docker Compose** to manage the application and its sidecar dependencies (e.g., Database, Cache) in unison.
 
@@ -56,7 +56,7 @@ graph TD
 
 ---
 
-## 4. Configuration Standard (`devcontainer.json`)
+## Configuration Standard (`devcontainer.json`)
 
 A standard service configuration integrates infrastructure layers and developer experience tools:
 
@@ -110,7 +110,7 @@ In a **monorepo**, the `workspaceFolder` and `service` name must match the servi
 
 ---
 
-## 5. Dev Container Features
+## Dev Container Features
 
 **Features** are pre-packaged installable units that add tools, runtimes, or CLI utilities to a Dev Container without modifying the `Dockerfile`. They are the modular, declarative way to extend your development environment.
 
@@ -142,7 +142,7 @@ Use **Features** for anything available in the [Dev Container Feature catalog](h
 
 ---
 
-## 6. Dev Container CLI
+## Dev Container CLI
 
 The **Dev Container CLI** (`@devcontainers/cli`) is the reference implementation of the [Development Containers Specification](https://containers.dev/). It allows you to build and manage dev containers from the command line, without requiring VS Code.
 
@@ -188,7 +188,7 @@ Use the CLI when you need to interact with dev containers **outside of VS Code**
 
 ---
 
-## 7. Security: SSH Agent Forwarding
+## Security: SSH Agent Forwarding
 
 To maintain security, private keys remain on your host machine. We utilize **SSH Agent Forwarding** to allow the container to request authentication signatures from the host.
 
@@ -207,7 +207,7 @@ ssh-add -l          # Lists keys available from host agent
 
 ---
 
-## 8. Operational Troubleshooting
+## Operational Troubleshooting
 
 | Symptom | Primary Cause | Remediation |
 | :--- | :--- | :--- |

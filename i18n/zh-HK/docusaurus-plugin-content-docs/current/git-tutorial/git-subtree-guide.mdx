@@ -49,7 +49,7 @@ flowchart LR
 
 ## 基礎操作
 
-### 1. 新增 Subtree
+### 新增 Subtree
 
 ```bash
 # 通用語法
@@ -65,7 +65,7 @@ git subtree add --prefix=vendor/tools https://github.com/example/tools.git main 
 | `--squash` | 將外部歷史壓縮為單個合併提交（建議，保持日誌整潔） |
 | `<分支>` | 要匯入的遠端分支（`main`、`master`、`develop` 等） |
 
-### 2. 拉取上游更新
+### 拉取上游更新
 
 ```bash
 # 將遠端最新變更拉取到指定前綴目錄
@@ -76,7 +76,7 @@ git subtree pull --prefix=vendor/tools https://github.com/example/tools.git main
 `git subtree pull` 內部執行的是 `git merge`。如有衝突，按照標準 Git 衝突解決流程處理即可。
 :::
 
-### 3. 推送變更到上游
+### 推送變更到上游
 
 ```bash
 # 將本地修改推送到遠端倉庫
@@ -87,7 +87,7 @@ git subtree push --prefix=vendor/tools https://github.com/example/tools.git main
 `git subtree push` 需要拆分整個倉庫的歷史，在大型倉庫上會 **很慢**。如果需要頻繁推送，建議直接在遠端倉庫中開發，再透過 `pull` 拉取。
 :::
 
-### 4. 拆分 Subtree 歷史
+### 拆分 Subtree 歷史
 
 ```bash
 # 建立一個只包含前綴目錄歷史的分支
@@ -96,7 +96,7 @@ git subtree split --prefix=vendor/tools --branch tools-split
 
 適用於需要單獨審查或 cherry-pick 屬於 subtree 的提交時。
 
-### 5. 無 merge 的 squash 拉取
+### 無 merge 的 squash 拉取
 
 如果之前新增時沒有使用 `--squash`，後續 pull 時加上 `--squash` 可以只 squash **本次新增** 的提交：
 

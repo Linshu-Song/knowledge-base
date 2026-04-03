@@ -8,11 +8,11 @@ description: 設置個人遠端存取（SSH）到工作電腦的簡易指南，�
 
 雖然 Cloudflare Zero Trust 用於官方企業資源，但您可能需要一種更簡單的方式，從家中或旅行時透過 SSH 存取您的個人工作電腦。本指南涵蓋了適合開發者個人使用的 **Twingate** 和 **Tailscale**。
 
-## 1. Tailscale (Mesh VPN)
+## Tailscale (Mesh VPN)
 
 Tailscale 基於 WireGuard，在您的設備之間建立安全的網狀網路。它非常容易設置，且能穿透大多數 NAT 和防火牆。
 
-### 1.1 在主機（工作電腦）上設置
+### 在主機（工作電腦）上設置
 1. 在 [tailscale.com](https://tailscale.com/) 註冊。
 2. **安裝 Tailscale**：
    - **Linux**: `curl -fsSL https://tailscale.com/install.sh | sh`
@@ -20,7 +20,7 @@ Tailscale 基於 WireGuard，在您的設備之間建立安全的網狀網路。
 3. **登錄**：執行 `sudo tailscale up` (Linux) 或使用圖形界面。
 4. **獲取您的 IP**：執行 `tailscale ip -4` 或查看 Tailscale 控制面板。
 
-### 1.2 在客戶端（家用電腦/筆電）上設置
+### 在客戶端（家用電腦/筆電）上設置
 1. 安裝 Tailscale 並使用相同的帳戶登錄。
 2. **連接**：直接使用步驟 1.1 中找到的 Tailscale IP 進行 SSH。
    ```bash
@@ -29,11 +29,11 @@ Tailscale 基於 WireGuard，在您的設備之間建立安全的網狀網路。
 
 ---
 
-## 2. Twingate (Zero Trust Access)
+## Twingate (Zero Trust Access)
 
 Twingate 是一種零信任解決方案，不需要在主機上安裝虛擬網路介面，使其對系統而言幾乎是「隱形」的。
 
-### 2.1 設置
+### 設置
 1. 在 [twingate.com](https://twingate.com/) 建立一個免費帳戶。
 2. **新增遠端網路**：在控制面板中建立一個「Home」或「Office」網路。
 3. **部署連接器 (Connector)**：
@@ -43,14 +43,14 @@ Twingate 是一種零信任解決方案，不需要在主機上安裝虛擬網�
    - 將工作電腦的本地 IP（例如 `192.168.1.50`）或主機名新增為資源。
    - 為該資源啟用 **SSH** 協定。
 
-### 2.2 客戶端存取
+### 客戶端存取
 1. 在您的筆電/家用電腦上安裝 Twingate 客戶端。
 2. 使用您的 Twingate 帳戶進行身份驗證。
 3. 連接後，您可以像在同一個房間一樣，使用工作電腦的 **本地 IP** 進行 SSH。
 
 ---
 
-## 3. 我該選擇哪一個？
+## 我該選擇哪一個？
 
 | 特性 | Tailscale | Twingate |
 | :--- | :--- | :--- |

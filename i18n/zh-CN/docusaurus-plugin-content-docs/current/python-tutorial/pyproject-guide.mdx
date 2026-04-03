@@ -8,7 +8,7 @@ description: pyproject.toml 综合指南，现代 Python 项目的标准化配�
 
 `pyproject.toml` 是由 PEP 518 和 PEP 621 定义的 Python 项目标准化配置文件。它作为项目元数据、依赖项、构建系统和工具设置的单一事实来源。
 
-## 1. 为什么要使用 pyproject.toml？
+## 为什么要使用 pyproject.toml？
 
 ### 传统与现代
 历史上，Python 项目使用多个文件（`setup.py`、`setup.cfg`、`requirements.txt`、`.flake8`）。现代项目将这些整合到 `pyproject.toml` 中。
@@ -22,7 +22,7 @@ description: pyproject.toml 综合指南，现代 Python 项目的标准化配�
 
 ---
 
-## 2. 核心章节
+## 核心章节
 
 ### [build-system]
 定义项目的构建方式。
@@ -62,7 +62,7 @@ docs = ["sphinx", "mkdocs"]
 
 ---
 
-## 3. 工具配置
+## 工具配置
 大多数现代 Python 工具允许直接在 `pyproject.toml` 中进行配置。
 
 ### Ruff (代码检查与格式化)
@@ -88,7 +88,7 @@ target-version = ['py311']
 
 ---
 
-## 4. 最佳实践
+## 最佳实践
 
 1. **声明优先**：除非有需要自定义构建逻辑的复杂 C 扩展，否则避免使用 `setup.py`。
 2. **标准元数据**：尽可能使用 `[project]` 章节，而不是工具特定的章节（如 `[tool.poetry]`），以保持可移植性。
@@ -97,7 +97,7 @@ target-version = ['py311']
 
 ---
 
-## 5. 迁移示例
+## 迁移示例
 
 **旧的 `setup.py`：**
 ```python

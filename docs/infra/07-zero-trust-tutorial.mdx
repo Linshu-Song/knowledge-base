@@ -8,7 +8,7 @@ description: Practical guide to connecting devices to the internal corporate net
 
 We utilize **Cloudflare Zero Trust** to facilitate secure, authenticated access to our internal infrastructure and services. This approach replaces traditional VPN architectures with an identity-based security perimeter. This guide provides the operational steps for device onboarding.
 
-## 1. Zero Trust Security Model
+## Zero Trust Security Model
 
 Access is controlled based on verified identity and device posture rather than network location.
 
@@ -19,13 +19,13 @@ Access is controlled based on verified identity and device posture rather than n
 
 ---
 
-## 2. Desktop Infrastructure (Windows, macOS, Linux)
+## Desktop Infrastructure (Windows, macOS, Linux)
 
-### 2.1 Software Installation
+### Software Installation
 - **Windows / macOS**: Download the [Cloudflare WARP Client](https://cloudflarewarp.com/).
 - **Linux**: Follow the official [WARP Linux Repository Setup](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/).
 
-### 2.2 Corporate Configuration
+### Corporate Configuration
 1. Open the WARP client interface.
 2. Navigate to **Preferences → Account**.
 3. Select **Login with Cloudflare Zero Trust**.
@@ -35,13 +35,13 @@ Access is controlled based on verified identity and device posture rather than n
 
 ---
 
-## 3. Mobile Infrastructure (iOS, Android)
+## Mobile Infrastructure (iOS, Android)
 
-### 3.1 Software Installation
+### Software Installation
 - **iOS**: Install the [Cloudflare One Agent](https://apps.apple.com/us/app/cloudflare-one-agent/id6443476492).
 - **Android**: Install the [Cloudflare One Agent](https://play.google.com/store/apps/details?id=com.cloudflare.cloudflareoneagent).
 
-### 3.2 Connectivity Configuration
+### Connectivity Configuration
 1. Launch the application and grant necessary permissions.
 2. Navigate to **Menu → Account → Login to Cloudflare Zero Trust**.
 3. Enter the Team Name: `<YOUR_TEAM_NAME>`.
@@ -49,7 +49,7 @@ Access is controlled based on verified identity and device posture rather than n
 
 ---
 
-## 4. Operational Verification
+## Operational Verification
 
 Validate your connection status using the following metrics:
 

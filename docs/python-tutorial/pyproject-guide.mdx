@@ -8,7 +8,7 @@ description: A comprehensive guide to pyproject.toml, the standardized configura
 
 `pyproject.toml` is the standardized configuration file for Python projects, defined by PEP 518 and PEP 621. It serves as a single source of truth for project metadata, dependencies, build systems, and tool settings.
 
-## 1. Why Use pyproject.toml?
+## Why Use pyproject.toml?
 
 ### Traditional vs. Modern
 Historically, Python projects used multiple files (`setup.py`, `setup.cfg`, `requirements.txt`, `.flake8`). Modern projects consolidate these into `pyproject.toml`.
@@ -22,7 +22,7 @@ Historically, Python projects used multiple files (`setup.py`, `setup.cfg`, `req
 
 ---
 
-## 2. Core Sections
+## Core Sections
 
 ### [build-system]
 Defines how the project should be built.
@@ -62,7 +62,7 @@ docs = ["sphinx", "mkdocs"]
 
 ---
 
-## 3. Tool Configuration
+## Tool Configuration
 Most modern Python tools allow configuration directly within `pyproject.toml`.
 
 ### Ruff (Linter & Formatter)
@@ -88,7 +88,7 @@ target-version = ['py311']
 
 ---
 
-## 4. Best Practices
+## Best Practices
 
 1. **Declarative First**: Avoid using `setup.py` unless you have complex C-extensions that require custom build logic.
 2. **Standard Metadata**: Use the `[project]` section instead of tool-specific sections (like `[tool.poetry]`) when possible to remain portable.
@@ -97,7 +97,7 @@ target-version = ['py311']
 
 ---
 
-## 5. Migration Example
+## Migration Example
 
 **Old `setup.py`:**
 ```python

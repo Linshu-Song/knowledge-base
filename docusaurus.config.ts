@@ -51,6 +51,13 @@ const config: Config = {
   themes: ['@docusaurus/theme-mermaid'],
 
   plugins: [
+    [
+      'docusaurus-numbered-headings',
+      {
+        enabled: true,
+        convention: 'iso-2145',
+      },
+    ],
     function vscodeLanguageserverAliasPlugin() {
       return {
         name: 'vscode-languageserver-alias-plugin',

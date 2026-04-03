@@ -49,7 +49,7 @@ At its core, `git subtree` performs a **squash merge** of the external repositor
 
 ## Basic Operations
 
-### 1. Adding a Subtree
+### Adding a Subtree
 
 ```bash
 # General syntax
@@ -65,7 +65,7 @@ git subtree add --prefix=vendor/tools https://github.com/example/tools.git main 
 | `--squash` | Squash external history into a single merge commit (recommended for a cleaner log) |
 | `<branch>` | Branch of the remote to import (`main`, `master`, `develop`, etc.) |
 
-### 2. Pulling Upstream Updates
+### Pulling Upstream Updates
 
 ```bash
 # Pull latest changes from the remote into your prefix
@@ -76,7 +76,7 @@ git subtree pull --prefix=vendor/tools https://github.com/example/tools.git main
 `git subtree pull` internally performs a `git merge` of the remote branch into your prefix directory. Conflicts, if any, follow standard Git conflict resolution rules.
 :::
 
-### 3. Pushing Changes Upstream
+### Pushing Changes Upstream
 
 ```bash
 # Push local modifications back to the remote
@@ -87,7 +87,7 @@ git subtree push --prefix=vendor/tools https://github.com/example/tools.git main
 `git subtree push` replays the sub-directory's commits and can be **slow** on large histories because it has to split the entire repo. For fast iteration, consider working in the remote directly and using `pull` instead.
 :::
 
-### 4. Splitting a Subtree
+### Splitting a Subtree
 
 ```bash
 # Create a branch that contains only the prefix history
@@ -96,7 +96,7 @@ git subtree split --prefix=vendor/tools --branch tools-split
 
 This is useful when you need to review or cherry-pick commits that belong to the subtree in isolation.
 
-### 5. Squashing Without Merge
+### Squashing Without Merge
 
 If you previously added a subtree without `--squash` and want to clean up the log:
 
