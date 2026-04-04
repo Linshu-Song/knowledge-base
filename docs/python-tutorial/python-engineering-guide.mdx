@@ -68,7 +68,8 @@ Always commit `uv.lock`. It ensures every developer and CI runner uses the exact
 ## Code Quality (Ruff & MyPy)
 
 ### Ruff Configuration
-Consolidate your linting and formatting rules in `pyproject.toml`:
+
+Ruff replaces Flake8, isort, Black, and Bandit with a single, extremely fast tool. Consolidate all rules in `pyproject.toml`:
 
 ```toml
 [tool.ruff]
@@ -77,13 +78,28 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E", "F", "W", # Default flake8
-    "I",           # isort
-    "UP",          # pyupgrade
-    "S",           # bandit (security)
-    "B",           # bugbear
+    "E", "F", "W",   # Default flake8
+    "I",             # isort (import sorting)
+    "UP",            # pyupgrade
+    "S",             # bandit (security)
+    "B",             # bugbear
 ]
+
+# Import-specific configuration
+[tool.ruff.lint.isort]
+known-first-party = ["my_package"]
+force-sort-within-sections = true  # Sort within import groups
+combine-as-imports = true           # Merge: from x import a; from x import b -> from x import a, b
+lines-after-imports = 2             # PEP 8 standard
 ```
+
+:::tip Import Rules
+The **"I"** rule enables automatic import sorting (replaces isort):
+- Groups: stdlib → third-party → local
+- Sorts alphabetically within groups
+- Detects unused imports (**F401**)
+- Flags `from module import *` (**F403**)
+:::
 
 ### Type Checking
 Use MyPy to catch logic errors before they reach production:
@@ -115,8 +131,38 @@ jobs:
 
 ---
 
+---
+
+## Code Organization
+
+### Python Import System
+
+Understanding Python's import mechanism is crucial for building scalable applications. Key concepts include:
+
+- **Absolute vs Relative Imports**: Use absolute imports for clarity, relative imports within packages
+- **`__init__.py`**: Control package-level API and initialization
+- **Avoiding Circular Imports**: Use `TYPE_CHECKING` or refactor dependencies
+- **Import Performance**: Consider lazy imports for heavy dependencies
+
+```python
+# ✅ Recommended: Absolute imports
+from my_package.utils import load_config
+from my_package.core import Engine
+
+# ✅ Acceptable: Explicit relative imports
+from .utils import load_config
+from ..core import Engine
+```
+
+:::tip
+Configure **Ruff** to enforce PEP 8 import ordering and detect circular dependencies automatically.
+:::
+
+---
+
 ## Engineering Resources
 
+*   [📄 Python Import System](./python-import-guide.mdx) — Comprehensive guide to imports, modules, and best practices.
 *   [📄 Complete Guide to `uv`](./uv-guide.mdx) — Deep dive into package management.
 *   [📄 `pyproject.toml` Guide](./pyproject-guide.mdx) — Comprehensive config reference.
 *   [📄 Tooling Introduction](./python-tools-introduction.mdx) — Comparing the ecosystem.

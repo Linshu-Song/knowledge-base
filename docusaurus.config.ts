@@ -77,7 +77,9 @@ const config: Config = {
     },
   ],
 
-  stylesheets: [],
+  stylesheets: [
+    'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap',
+  ],
 
   presets: [
     [

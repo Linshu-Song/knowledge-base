@@ -69,7 +69,8 @@ uv sync
 ## 代碼質量 (Ruff & MyPy)
 
 ### Ruff 配置
-在 `pyproject.toml` 中整合你的 lint 和格式化規則：
+
+Ruff 用單一、極快的工具替代了 Flake8、isort、Black 和 Bandit。在 `pyproject.toml` 中整合所有規則：
 
 ```toml
 [tool.ruff]
@@ -78,13 +79,28 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E", "F", "W", # 默認 flake8
-    "I",           # isort
-    "UP",          # pyupgrade
-    "S",           # bandit (安全)
-    "B",           # bugbear
+    "E", "F", "W",   # 默認 flake8
+    "I",             # isort (匯入排序)
+    "UP",            # pyupgrade
+    "S",             # bandit (安全)
+    "B",             # bugbear
 ]
+
+# 匯入相關配置
+[tool.ruff.lint.isort]
+known-first-party = ["my_package"]
+force-sort-within-sections = true  # 在匯入組內排序
+combine-as-imports = true           # 合併：from x import a; from x import b -> from x import a, b
+lines-after-imports = 2             # PEP 8 標準
 ```
+
+:::tip 匯入規則
+**"I"** 規則啟用自動匯入排序（替代 isort）：
+- 分組：標準函式庫 → 第三方 → 本地
+- 組內按字母順序排序
+- 檢測未使用的匯入（**F401**）
+- 標記 `from module import *`（**F403**）
+:::
 
 ### 類型檢查
 使用 MyPy 在進入生產環境前捕獲邏輯錯誤：
@@ -116,8 +132,36 @@ jobs:
 
 ---
 
+## 程式碼組織
+
+### Python 匯入系統
+
+理解 Python 的匯入機制對於構建可擴展應用程式至關重要。核心概念包括：
+
+- **絕對匯入 vs 相對匯入**：清晰使用絕對匯入，套件內使用相對匯入
+- **`__init__.py`**：控制套件級 API 和初始化
+- **避免循環匯入**：使用 `TYPE_CHECKING` 或重構依賴
+- **匯入效能**：考慮對重型依賴使用延遲匯入
+
+```python
+# ✅ 推薦：絕對匯入
+from my_package.utils import load_config
+from my_package.core import Engine
+
+# ✅ 可接受：顯式相對匯入
+from .utils import load_config
+from ..core import Engine
+```
+
+:::tip
+配置 **Ruff** 自動執行 PEP 8 匯入排序並檢測循環依賴。
+:::
+
+---
+
 ## 工程資源
 
+*   [📄 Python 匯入系統](./python-import-guide.mdx) — 匯入、模組和最佳實踐綜合指南。
 *   [📄 `uv` 完整指南](./uv-guide.mdx) — 深入了解包管理。
 *   [📄 `pyproject.toml` 指南](./pyproject-guide.mdx) — 詳盡的配置參考。
 *   [📄 工具介紹](./python-tools-introduction.mdx) — 生態系統對比。
