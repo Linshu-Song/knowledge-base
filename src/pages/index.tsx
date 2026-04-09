@@ -52,9 +52,9 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
-        <Heading as="h1" className="hero__title">
+        <h1 className="hero__title">
           {siteConfig.title}
-        </Heading>
+        </h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
       </div>
     </header>
@@ -65,18 +65,20 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout title="Knowledge Base" description="Internal knowledge base for SAILTECHTEAM">
-      <HomepageHeader />
-      <main>
-        <section className={styles.features}>
-          <div className="container">
-            <div className="row">
-              {SectionList.map((props, idx) => (
-                <SectionCard key={idx} {...props} />
-              ))}
+      <div className="disable_numbered_headings">
+        <HomepageHeader />
+        <main>
+          <section className={styles.features}>
+            <div className="container">
+              <div className="row">
+                {SectionList.map((props, idx) => (
+                  <SectionCard key={idx} {...props} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
+      </div>
     </Layout>
   );
 }
