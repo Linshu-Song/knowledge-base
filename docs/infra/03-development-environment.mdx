@@ -188,6 +188,101 @@ Use the CLI when you need to interact with dev containers **outside of VS Code**
 
 ---
 
+## Multi-Root Workspaces (`.code-workspace`)
+
+A **`.code-workspace`** file defines a multi-root workspace, allowing you to manage multiple projects in a single VS Code window. This is essential for both monorepo and polyrepo workflows.
+
+### File Structure
+
+```json title="*.code-workspace"
+{
+  "folders": [
+    { "path": "services/api" },
+    { "path": "services/web" },
+    { "path": "packages/shared" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true
+  },
+  "extensions": {
+    "recommendations": ["ms-python.python", "dbaeumer.vscode-eslint"]
+  }
+}
+```
+
+| Field | Purpose |
+| :--- | :--- |
+| `folders` | List of folders to include in the workspace |
+| `settings` | Workspace-scoped VS Code settings (override user settings) |
+| `extensions.recommendations` | Suggested extensions when opening this workspace |
+
+### Monorepo Example
+
+Single repository with multiple service directories:
+
+```json title="platform.code-workspace"
+{
+  "folders": [
+    { "path": "services/api-gateway" },
+    { "path": "services/user-service" },
+    { "path": "services/notification-service" },
+    { "path": "infrastructure/terraform" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.exclude": { "**/node_modules": true }
+  }
+}
+```
+
+### Polyrepo Example
+
+Multiple repositories under a shared parent directory:
+
+```
+projects/
+├── project-core/          # Main application repo
+├── project-shared/        # Shared library repo
+├── project-infra/         # Infrastructure repo
+└── platform.code-workspace
+```
+
+```json title="platform.code-workspace"
+{
+  "folders": [
+    { "path": "../project-core" },
+    { "path": "../project-shared" },
+    { "path": "../project-infra" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true
+  }
+}
+```
+
+:::tip Path Resolution
+In polyrepo setups, paths in `.code-workspace` are relative to the workspace file location. Use `../` to reference sibling repositories.
+:::
+
+### Integration with Dev Containers
+
+`.code-workspace` files work seamlessly with Dev Containers. Each folder in the workspace can have its own `devcontainer.json`:
+
+```
+projects/
+├── project-core/
+│   └── .devcontainer/
+│       └── devcontainer.json
+├── project-shared/
+│   └── .devcontainer/
+│       └── devcontainer.json
+└── platform.code-workspace
+```
+
+Open the workspace in VS Code, then reopen individual folders in containers as needed via the **Dev Containers** extension.
+
+---
+
 ## Security: SSH Agent Forwarding
 
 To maintain security, private keys remain on your host machine. We utilize **SSH Agent Forwarding** to allow the container to request authentication signatures from the host.
