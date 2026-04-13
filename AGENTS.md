@@ -13,9 +13,9 @@ SAILTECHTEAM internal knowledge base covering Deep Learning, Python, Git, and In
 
 | Command | Purpose |
 | :--- | :--- |
-| `bun run start` | Dev server (hot reload) |
-| `bun run build` | Production build |
-| `bun run serve` | Serve build locally |
+| `npm run start` | Dev server (hot reload) |
+| `npm run build` | Production build |
+| `npm run serve` | Serve build locally |
 
 ## 3. i18n
 
