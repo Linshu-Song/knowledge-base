@@ -205,6 +205,51 @@ RUN uv sync --frozen --no-dev
 
 ---
 
+## 与第三方包管理器集成
+
+某些生态系统（如 OpenMMLab）使用自己的包管理器。`uv` 负责虚拟环境，这些工具管理各自的包。
+
+### 工作流程
+
+```bash
+# 1. 用 uv 创建 venv
+uv venv .venv
+source .venv/bin/activate
+
+# 2. 通过 uv 安装第三方包管理器
+uv pip install openmim
+
+# 3. 用该管理器安装生态内的包
+mim install mmdet mmdet3d mmyolo
+```
+
+### 核心原则
+
+`uv` 管理环境和 `pip` 操作；第三方管理器处理其自有的包版本。只要在运行管理器前激活 venv，包就会安装到正确位置。
+
+### 避免环境混淆
+
+如果未激活 venv，`mim install` 可能不会使用正确的 pip。使用以下模式之一：
+
+```bash
+# 链式激活和安装
+source .venv/bin/activate && mim install mmdet
+
+# 或通过 venv 的 Python 直接调用 mim
+.venv/bin/python -m mim install mmdet
+
+# 或使用 uv run
+uv pip install openmim && uv run mim install mmdet
+```
+
+使用 `uv run` 时，环境会自动正确配置：
+
+```bash
+uv run mim install mmdet  # uv 自动处理环境
+```
+
+---
+
 ## 总结与建议
 
 1. **采用 `uv init`**：为新项目使用项目管理功能。
