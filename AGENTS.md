@@ -8,7 +8,7 @@ SAILTECHTEAM internal knowledge base covering Deep Learning, Python, Git, and In
 
 - **Docusaurus 3.9** + `.mdx` (all docs use MDX format)
 - `remark-math` + `rehype-katex` for math; `@docusaurus/theme-mermaid` for diagrams
-- Rspack + SWC via `@docusaurus/faster`; **bun** as package manager; Node >= 20
+- Rspack + SWC via `@docusaurus/faster`; **npm** as package manager; Node >= 20
 - Deployed via GitHub Actions
 
 | Command | Purpose |
