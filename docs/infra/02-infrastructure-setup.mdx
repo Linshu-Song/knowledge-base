@@ -28,7 +28,7 @@ infra/ (or platform-dev/)
     └── service-a.prod.env    # Service-specific overrides (Prod)
 ```
 
-:::tip Implementation Best Practice
+:::tip[Implementation Best Practice]
 Standardize on the `.yaml` extension and the `compose.yaml` filename (modern specification) to ensure cross-platform compatibility.
 :::
 
@@ -134,7 +134,7 @@ services:
       retries: 10
 ```
 
-:::info Technical Design Patterns
+:::info[Technical Design Patterns]
 - **Standardized Health Checks**: Enable dependent services to utilize `condition: service_healthy` to mitigate startup race conditions.
 - **Persistent Data Layers**: Use named Docker volumes to maintain state across container lifecycle transitions.
 - **Resource Optimization**: Prioritize `alpine` based images for smaller storage footprints and accelerated CI/CD pull operations.

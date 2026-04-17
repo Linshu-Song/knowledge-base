@@ -35,7 +35,7 @@ from ..core.engine import InferenceEngine
 import helpers  # 在 Python 3 中引发 ImportError
 ```
 
-:::tip 何时使用相对导入
+:::tip[何时使用相对导入]
 相对导入适用于以下场景：
 - 重构包内部代码，包名可能改变
 - 同一包内导入路径过长
@@ -55,7 +55,7 @@ from .utils import load_config
 __all__ = ["Engine", "load_config"]
 ```
 
-:::info 最佳实践
+:::info[最佳实践]
 使用 `__init__.py` 来：
 - 提供简化的包级 API
 - 从导入中隐藏内部模块
@@ -79,7 +79,7 @@ print("\n".join(sys.path))
 sys.path.append("/custom/module/path")
 ```
 
-:::danger 危险
+:::danger[危险]
 避免在生产代码中以编程方式修改 `sys.path`。这会使代码变得脆弱且依赖部署环境。应使用正确的包安装或 `PYTHONPATH` 代替。
 :::
 
@@ -145,7 +145,7 @@ def plot(data):
     plotly.plot(data)
 ```
 
-:::tip 使用场景
+:::tip[使用场景]
 动态导入适用于：
 - 插件系统
 - 延迟加载重型依赖
@@ -215,7 +215,7 @@ class Model(Trainable):
         return Trainer().train(self)
 ```
 
-:::info 运行时 vs 类型检查
+:::info[运行时 vs 类型检查]
 `TYPE_CHECKING` 常量在运行时为 `False`，但在静态类型检查期间为 `True`。这允许为类型提示导入模块而不会导致循环依赖。
 :::
 
@@ -262,7 +262,7 @@ def get_torch():
     return _torch
 ```
 
-:::tip 权衡
+:::tip[权衡]
 延迟导入可以改善启动时间，但会将错误从启动时转移到运行时。将其用于真正可选或很少使用的依赖。
 :::
 
@@ -312,7 +312,7 @@ project/
 import random  # 导入你的文件，而非标准库！
 ```
 
-:::danger 危险
+:::danger[危险]
 被遮蔽的模块会导致神秘的 bug，并使调试变得极其困难。始终检查命名冲突。
 :::
 

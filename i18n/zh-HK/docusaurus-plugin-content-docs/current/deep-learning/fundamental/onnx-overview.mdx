@@ -74,6 +74,6 @@ input_data = np.random.randn(1, 784).astype(np.float32)
 outputs = ort_session.run(None, {'input': input_data})
 ```
 
-:::note 建議
+:::note[建議]
 對於大多數深度學習工作流，ONNX 是連接訓練與高性能推理的主要橋樑。
 :::

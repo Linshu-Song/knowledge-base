@@ -59,7 +59,7 @@ uv add --dev pytest ruff mypy
 uv sync
 ```
 
-:::tip Lockfiles
+:::tip[Lockfiles]
 Always commit `uv.lock`. It ensures every developer and CI runner uses the exact same versions of every dependency, including transitive ones.
 :::
 
@@ -93,7 +93,7 @@ combine-as-imports = true           # Merge: from x import a; from x import b ->
 lines-after-imports = 2             # PEP 8 standard
 ```
 
-:::tip Import Rules
+:::tip[Import Rules]
 The **"I"** rule enables automatic import sorting (replaces isort):
 - Groups: stdlib → third-party → local
 - Sorts alphabetically within groups

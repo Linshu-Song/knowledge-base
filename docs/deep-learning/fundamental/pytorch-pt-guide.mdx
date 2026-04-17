@@ -35,7 +35,7 @@ new_model = SimpleModel()
 new_model.load_state_dict(torch.load("model_weights.pt"))
 ```
 
-:::caution Security Warning
+:::caution[Security Warning]
 Never load `.pt` or `.pth` files from untrusted sources. These files contain Python pickle data, which could execute arbitrary code upon loading.
 :::
 
@@ -52,6 +52,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.load_state_dict(torch.load("cpu_model.pt", map_location=device))
 ```
 
-:::tip Pro Tip
+:::tip[Pro Tip]
 Always record the PyTorch version used to save the model to avoid compatibility issues later.
 :::

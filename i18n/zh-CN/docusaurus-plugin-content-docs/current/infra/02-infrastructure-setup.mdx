@@ -30,7 +30,7 @@ infra/ (或 platform-dev/)
     └── service-a.prod.env    # 特定服务变量 (生产)
 ```
 
-:::tip 专业提示：文件命名
+:::tip[专业提示：文件命名]
 始终使用 `.yaml`（而非 `.yml`）以及 `compose.yaml`（现代标准），以保持跨项目的一致性。
 :::
 
@@ -155,7 +155,7 @@ services:
       retries: 10
 ```
 
-:::info 关键设计决策
+:::info[关键设计决策]
 - **健康检查 (Health Checks)**：始终包含健康检查，以便依赖服务可以使用 `condition: service_healthy` 来避免启动竞争条件。
 - **命名卷 (Named Volumes)**：使用命名卷在容器生命周期内保持数据持久化。
 - **Alpine 镜像**：优先使用基于 Alpine 的镜像，以获得更小的占用空间和更快的 CI/CD 拉取速度。
@@ -204,7 +204,7 @@ services:
 | **环境覆盖** | 日志级别、TTL | `env_file` (shared.dev.env) |
 | **机密信息** | 密码、密钥 | **Vault / 外部管理器** |
 
-:::danger 安全警示
+:::danger[安全警示]
 **绝不** 将实际的生产机密信息提交到版本控制。使用 `.env.example` 文件作为模板，并在运行时使用安全的机密管理器注入机密。
 :::
 

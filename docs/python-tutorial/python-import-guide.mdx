@@ -35,7 +35,7 @@ from ..core.engine import InferenceEngine
 import helpers  # Raises ImportError in Python 3
 ```
 
-:::tip When to Use Relative Imports
+:::tip[When to Use Relative Imports]
 Relative imports are appropriate when:
 - Refactoring package-internal code and the package name might change
 - The import path is excessively long within the same package
@@ -55,7 +55,7 @@ from .utils import load_config
 __all__ = ["Engine", "load_config"]
 ```
 
-:::info Best Practice
+:::info[Best Practice]
 Use `__init__.py` to:
 - Provide a simplified package-level API
 - Hide internal modules from imports
@@ -79,7 +79,7 @@ print("\n".join(sys.path))
 sys.path.append("/custom/module/path")
 ```
 
-:::danger Critical
+:::danger[Critical]
 Avoid modifying `sys.path` programmatically in production code. It makes code fragile and deployment-dependent. Use proper package installation or `PYTHONPATH` instead.
 :::
 
@@ -145,7 +145,7 @@ def plot(data):
     plotly.plot(data)
 ```
 
-:::tip Use Case
+:::tip[Use Case]
 Dynamic imports are useful for:
 - Plugin systems
 - Delayed loading of heavy dependencies
@@ -215,7 +215,7 @@ class Model(Trainable):
         return Trainer().train(self)
 ```
 
-:::info Runtime vs Type-Checking
+:::info[Runtime vs Type-Checking]
 The `TYPE_CHECKING` constant is `False` at runtime but `True` during static type checking. This allows imports for type hints without causing circular dependencies.
 :::
 
@@ -262,7 +262,7 @@ def get_torch():
     return _torch
 ```
 
-:::tip Trade-off
+:::tip[Trade-off]
 Lazy imports improve startup time but can shift errors from startup to runtime. Use them for truly optional or rarely used dependencies.
 :::
 
@@ -312,7 +312,7 @@ project/
 import random  # Imports your file, not stdlib!
 ```
 
-:::danger Critical
+:::danger[Critical]
 Shadowed modules cause mysterious bugs and make debugging extremely difficult. Always check for name conflicts.
 :::
 

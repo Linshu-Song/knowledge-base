@@ -74,6 +74,6 @@ input_data = np.random.randn(1, 784).astype(np.float32)
 outputs = ort_session.run(None, {'input': input_data})
 ```
 
-:::note Recommendation
+:::note[Recommendation]
 For most deep learning workflows, ONNX is the primary bridge between training and high-performance inference.
 :::

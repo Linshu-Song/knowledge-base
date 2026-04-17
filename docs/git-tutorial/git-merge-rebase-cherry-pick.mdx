@@ -80,7 +80,7 @@ Even when a fast-forward is possible, you can force a merge commit to preserve t
 git merge --no-ff feature
 ```
 
-:::tip Why `--no-ff`?
+:::tip[Why `--no-ff`?]
 A merge commit acts as a **bookmark** that groups all commits from a feature branch. This makes `git revert` easier — you can revert an entire feature by reverting a single merge commit:
 
 ```bash
@@ -169,7 +169,7 @@ gitGraph
     commit id: "D'"
 ```
 
-:::danger Golden Rule of Rebase
+:::danger[Golden Rule of Rebase]
 **Never rebase commits that have been pushed to a shared branch.**
 
 Rebasing rewrites commit hashes. If others have based work on the original commits, their history will diverge, causing confusion and duplicate commits. Only rebase your **local, unpublished** branches.
@@ -226,7 +226,7 @@ pick a1b2c3d feat: add login form
 
 Just reorder the lines in the editor.
 
-:::caution Conflict During Rebase
+:::caution[Conflict During Rebase]
 Interactive rebase can produce conflicts when commits are reordered or squashed. Resolve each conflict, then:
 
 ```bash
@@ -322,7 +322,7 @@ git cherry-pick <lost-hash>
 | `--edit` / `-e` | Open editor to modify the commit message before committing |
 | `-m <parent>` | Specify the parent number when cherry-picking a merge commit |
 
-:::tip Use `-x` for Traceability
+:::tip[Use `-x` for Traceability]
 When cherry-picking between shared branches, always use `-x` to record where the commit originated. This helps future debugging:
 
 ```bash

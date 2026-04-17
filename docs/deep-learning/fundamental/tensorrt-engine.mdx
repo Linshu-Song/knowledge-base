@@ -67,7 +67,7 @@ trt_model = torch_tensorrt.compile(
 torch.jit.save(trt_model, "model_torchtrt.engine")
 ```
 
-:::danger Hardware Binding
+:::danger[Hardware Binding]
 TensorRT engine files are bound to the specific GPU architecture they were built on. An engine built on a Tesla V100 will **not** run on a GeForce RTX 3090.
 :::
 
@@ -84,6 +84,6 @@ with open("model.engine", "rb") as f, trt.Runtime(trt.Logger(trt.Logger.INFO)) a
 context = engine.create_execution_context()
 ```
 
-:::tip Pro Tip
+:::tip[Pro Tip]
 Building optimized engines can take several minutes. For production, pre-build engines and cache them to reduce application startup time.
 :::

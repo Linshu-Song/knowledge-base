@@ -60,7 +60,7 @@ uv add --dev pytest ruff mypy
 uv sync
 ```
 
-:::tip 鎖文件 (Lockfiles)
+:::tip[鎖文件 (Lockfiles)]
 始終提交 `uv.lock`。它確保每位開發者和 CI 運行器都使用完全相同的依賴版本（包括間接依賴）。
 :::
 
@@ -94,7 +94,7 @@ combine-as-imports = true           # 合併：from x import a; from x import b 
 lines-after-imports = 2             # PEP 8 標準
 ```
 
-:::tip 匯入規則
+:::tip[匯入規則]
 **"I"** 規則啟用自動匯入排序（替代 isort）：
 - 分組：標準函式庫 → 第三方 → 本地
 - 組內按字母順序排序

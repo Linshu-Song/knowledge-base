@@ -48,7 +48,7 @@ We standardize on **Structured Logging (JSON)** in production to enable efficien
 | **Search Errors** | `docker compose logs \| grep -i error` |
 | **Time-based View** | `docker compose logs --since 15m <service>` |
 
-:::tip Log Retention
+:::tip[Log Retention]
 In production environments, configure the `json-file` logging driver with `max-size` and `max-file` limits to prevent disk exhaustion.
 :::
 
@@ -110,7 +110,7 @@ Verify all items before executing a production deployment:
 
 ---
 
-:::info Support
+:::info[Support]
 For critical production incidents, follow the internal on-call rotation protocol.
 :::
 

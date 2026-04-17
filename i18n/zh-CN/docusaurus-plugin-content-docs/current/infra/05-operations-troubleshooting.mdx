@@ -48,7 +48,7 @@ services:
 | **搜索错误** | `docker compose logs | grep -i error` |
 | **按时间查看** | `docker compose logs --since 15m <service>` |
 
-:::tip 日志保留
+:::tip[日志保留]
 在生产环境中，配置 `json-file` 日志驱动的 `max-size` 和 `max-file` 限制，以防止磁盘空间耗尽。
 :::
 
@@ -110,7 +110,7 @@ docker compose up -d --force-recreate api
 
 ---
 
-:::info 支持
+:::info[支持]
 对于严重的生产事故，请遵循内部轮值协议。
 :::
 

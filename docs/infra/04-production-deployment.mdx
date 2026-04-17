@@ -18,7 +18,7 @@ We maintain three primary environment tiers to isolate development, validation, 
 | **Staging** | Pre-production validation | **`prod` target** | CI/CD Variables + Staging Secrets |
 | **Production** | External traffic handling | **`prod` target** | **Vault / Managed Secrets Service** |
 
-:::info Principle of Parity
+:::info[Principle of Parity]
 **Build Once, Deploy Multi-Environment**: We build the production Docker image once and promote it through staging and production. Environment-specific variations are injected exclusively via runtime configuration.
 :::
 
@@ -73,7 +73,7 @@ To prevent race conditions and ensure zero-downtime releases, database migration
 2. **Success Verification**: The deployment pipeline waits for task completion.
 3. **Application Rollout**: New application containers are deployed only after the schema is confirmed.
 
-:::caution Backward Compatibility
+:::caution[Backward Compatibility]
 All migrations **must** be backward compatible to ensure the current (old) application version continues to function during the rollout phase.
 :::
 
