@@ -35,7 +35,7 @@ new_model = SimpleModel()
 new_model.load_state_dict(torch.load("model_weights.pt"))
 ```
 
-:::caution 安全警告
+:::caution[安全警告]
 切勿加載來自不可信來源的 `.pt` 或 `.pth` 文件。這些文件包含 Python pickle 數據，加載時可能會執行任意代碼。
 :::
 
@@ -52,6 +52,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.load_state_dict(torch.load("cpu_model.pt", map_location=device))
 ```
 
-:::tip 小貼士
+:::tip[小貼士]
 始終記錄用於保存模型的 PyTorch 版本，以避免日後的兼容性問題。
 :::

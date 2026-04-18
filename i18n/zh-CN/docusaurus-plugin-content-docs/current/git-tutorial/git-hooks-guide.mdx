@@ -220,7 +220,7 @@ npm install cz-conventional-changelog --save-dev
 
 ## 最佳实践
 
-:::tip 主动验证 (Proactive Validation)
+:::tip[主动验证 (Proactive Validation)]
 1. **对 Hooks 进行版本控制**：永远不要依赖本地的 `.git/hooks/`。请使用 Hook 管理工具。
 2. **快速失败 (Fail Fast)**：合理安排 hooks 顺序，使运行速度最快的检查（如 linting）先于耗时较长的检查（如集成测试）运行。
 3. **信息化错误提示**：确保 hook 脚本在拒绝提交时提供清晰的修复指南。

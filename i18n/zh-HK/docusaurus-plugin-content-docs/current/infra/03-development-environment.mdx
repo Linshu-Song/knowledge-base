@@ -19,7 +19,7 @@ title: "VS Code Dev Containers：開發環境"
 4.  **等待**環境構建完成。
 5.  **開始編碼**，所有運行時、工具和擴充插件均已預先配置。
 
-:::info 底層原理
+:::info[底層原理]
 VS Code 的 UI 運行在宿主機上，而 **VS Code Server**、終端機、偵錯器以及所有運行時（Node, Python, Go）都運行在容器**內部**。
 :::
 
@@ -110,7 +110,7 @@ graph TD
 }
 ```
 
-:::info 關鍵區別
+:::info[關鍵區別]
 在 **Monorepo** 中，`workspaceFolder` 和 `service` 名稱必須匹配服務的子目錄路徑。在 **Polyrepo** 中，`workspaceFolder` 通常映射到倉庫根目錄。
 :::
 
@@ -142,7 +142,7 @@ graph TD
 | **Dockerfile `RUN`** | 自訂或專案特定的工具安裝。 | 完全控制，但增加映像檔構建時間和 Dockerfile 複雜度。 |
 | **Compose `command`** | 運行時配置、環境設置、服務編排。 | 影響容器生命週期，不影響工具可用性。 |
 
-:::tip 推薦
+:::tip[推薦]
 優先使用 **Features** 目錄中已有的工具。只有當工具不在目錄中或需要自訂構建步驟時，才回退到 `Dockerfile` 安裝。
 :::
 
@@ -188,7 +188,7 @@ devcontainer build --workspace-folder . --push true --image-name ghcr.io/my-org/
 
 在 CI 流水線中預構建映像檔並推送到容器註冊表，可以顯著加快容器啟動速度。
 
-:::tip 何時使用 CLI
+:::tip[何時使用 CLI]
 當你需要**在 VS Code 之外**與開發容器互動時使用 CLI —— 例如 CI/CD 流水線、無頭伺服器或非 VS Code 編輯器。日常開發中，VS Code Dev Containers 擴充提供最無縫的體驗。
 :::
 

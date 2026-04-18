@@ -147,7 +147,7 @@ myproject/
 - **Sync Environment**: `uv sync` (Ensures `.venv` matches `uv.lock`)
 - **Run Command**: `uv run python main.py` (Automatically handles venv)
 
-:::tip Best Practice
+:::tip[Best Practice]
 Always commit `uv.lock` to your repository. It ensures every team member and CI environment uses the exact same dependency versions.
 :::
 
@@ -201,6 +201,51 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
+```
+
+---
+
+## Integrating with Third-Party Package Managers
+
+Some ecosystems (e.g., OpenMMLab) use their own package managers. `uv` handles the virtual environment while these tools manage their own packages.
+
+### Workflow
+
+```bash
+# 1. Create venv with uv
+uv venv .venv
+source .venv/bin/activate
+
+# 2. Install the third-party package manager via uv
+uv pip install openmim
+
+# 3. Use the manager to install ecosystem packages
+mim install mmdet mmdet3d mmyolo
+```
+
+### Key Principle
+
+`uv` manages the environment and `pip` operations; the third-party manager handles its own package versions. As long as the venv is activated before running the manager, packages install into the correct location.
+
+### Avoiding Environment Confusion
+
+If the venv is not activated, `mim install` may not use the correct pip. Use one of these patterns:
+
+```bash
+# Chain activation with installation
+source .venv/bin/activate && mim install mmdet
+
+# Or invoke mim via the venv's Python directly
+.venv/bin/python -m mim install mmdet
+
+# Or use uv run
+uv pip install openmim && uv run mim install mmdet
+```
+
+When using `uv run`, the environment is automatically configured correctly:
+
+```bash
+uv run mim install mmdet  # uv handles the environment automatically
 ```
 
 ---

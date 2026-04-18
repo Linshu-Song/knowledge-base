@@ -35,7 +35,7 @@ from ..core.engine import InferenceEngine
 import helpers  # 在 Python 3 中引發 ImportError
 ```
 
-:::tip 何時使用相對匯入
+:::tip[何時使用相對匯入]
 相對匯入適用於以下場景：
 - 重構套件內部程式碼，套件名稱可能改變
 - 同一套件內匯入路徑過長
@@ -55,7 +55,7 @@ from .utils import load_config
 __all__ = ["Engine", "load_config"]
 ```
 
-:::info 最佳實踐
+:::info[最佳實踐]
 使用 `__init__.py` 來：
 - 提供簡化的套件級 API
 - 從匯入中隱藏內部模組
@@ -79,7 +79,7 @@ print("\n".join(sys.path))
 sys.path.append("/custom/module/path")
 ```
 
-:::danger 危險
+:::danger[危險]
 避免在生產程式碼中以程式設計方式修改 `sys.path`。這會使程式碼變得脆弱且依賴部署環境。應使用正確的套件安裝或 `PYTHONPATH` 代替。
 :::
 
@@ -145,7 +145,7 @@ def plot(data):
     plotly.plot(data)
 ```
 
-:::tip 使用場景
+:::tip[使用場景]
 動態匯入適用於：
 - 插件系統
 - 延遲載入重型依賴
@@ -215,7 +215,7 @@ class Model(Trainable):
         return Trainer().train(self)
 ```
 
-:::info 執行時 vs 型別檢查
+:::info[執行時 vs 型別檢查]
 `TYPE_CHECKING` 常量在執行時為 `False`，但在靜態型別檢查期間為 `True`。這允許為型別提示匯入模組而不會導致循環依賴。
 :::
 
@@ -262,7 +262,7 @@ def get_torch():
     return _torch
 ```
 
-:::tip 權衡
+:::tip[權衡]
 延遲匯入可以改善啟動時間，但會將錯誤從啟動時轉移到執行時。將其用於真正可選或很少使用的依賴。
 :::
 
@@ -312,7 +312,7 @@ project/
 import random  # 匯入你的檔案，而非標準函式庫！
 ```
 
-:::danger 危險
+:::danger[危險]
 被遮蔽的模組會導致神秘的 bug，並使除錯變得極其困難。始終檢查命名衝突。
 :::
 

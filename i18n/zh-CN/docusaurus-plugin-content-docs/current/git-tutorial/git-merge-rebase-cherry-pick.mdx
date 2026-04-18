@@ -81,7 +81,7 @@ git merge feature
 git merge --no-ff feature
 ```
 
-:::tip 为什么要用 `--no-ff`？
+:::tip[为什么要用 `--no-ff`？]
 合并提交充当一个**书签**，将功能分支的所有提交分组在一起。这使得 `git revert` 更加容易——你可以通过还原一个合并提交来还原整个功能：
 
 ```bash
@@ -170,7 +170,7 @@ gitGraph
     commit id: "D'"
 ```
 
-:::danger Rebase 的黄金法则
+:::danger[Rebase 的黄金法则]
 **永远不要对已推送到共享分支的提交进行变基。**
 
 变基会重写提交哈希。如果其他人已经基于原始提交进行了工作，他们的历史将会分离，导致混乱和重复提交。只对你**本地的、未发布的**分支进行变基。
@@ -227,7 +227,7 @@ pick a1b2c3d feat: add login form
 
 只需在编辑器中重新排列行即可。
 
-:::caution 变基期间的冲突
+:::caution[变基期间的冲突]
 交互式变基在重新排序或压缩提交时可能会产生冲突。解决每个冲突后：
 
 ```bash
@@ -323,7 +323,7 @@ git cherry-pick <lost-hash>
 | `--edit` / `-e` | 打开编辑器在提交前修改提交消息 |
 | `-m <parent>` | 在 cherry-pick 合并提交时指定父提交编号 |
 
-:::tip 使用 `-x` 以便追溯
+:::tip[使用 `-x` 以便追溯]
 在共享分支之间进行 cherry-pick 时，始终使用 `-x` 来记录提交的原点。这有助于未来的调试：
 
 ```bash

@@ -20,6 +20,80 @@ flowchart LR
     C -- "git checkout/switch" --> A
 ```
 
+### Understanding Git's Three Areas
+
+Git manages files in three distinct areas, each serving a specific purpose:
+
+| Area | Purpose | What You See |
+| :--- | :--- | :--- |
+| **Working Directory** | Your actual files on disk where you make changes | The latest state of your files after edits |
+| **Staging Area** (Index) | A preparation area where you select changes for the next commit | A snapshot of files that will be included in the next commit |
+| **Repository** (HEAD) | The permanent history of committed changes | The committed project history with metadata (author, date, message) |
+
+**Key Differences:**
+
+- **Working Directory vs Staging Area**: The working directory contains your latest edits, while the staging area contains only the changes you've explicitly marked with `git add`. You can edit a file ten times but only stage the final version.
+
+- **Staging Area vs Repository**: The staging area holds changes for the *next* commit (transient), while the repository stores the *entire* commit history (permanent). Only `git commit` moves changes from staging to the repository.
+
+- **HEAD**: A pointer to the currently checked-out commit, typically the latest commit on your current branch.
+
+### Commands for Each Area
+
+#### Working Directory
+
+| Command | Purpose |
+| :--- | :--- |
+| `git status` | See which files have been modified |
+| `git diff` | View changes not yet staged |
+| `git checkout -- <file>` | Discard changes in working directory (restore to last committed version) |
+| `git restore <file>` | Modern alternative to `git checkout -- <file>` |
+
+#### Staging Area
+
+| Command | Purpose |
+| :--- | :--- |
+| `git add <file>` | Stage specific file |
+| `git add .` | Stage all modified files |
+| `git add -p` | Stage changes interactively (chunk by chunk) |
+| `git restore --staged <file>` | Unstage a file (keep changes) |
+| `git diff --staged` | View changes ready to be committed |
+| `git reset` | Unstage all files |
+
+#### Repository
+
+| Command | Purpose |
+| :--- | :--- |
+| `git commit -m "message"` | Commit staged changes |
+| `git commit -am "message"` | Commit all tracked files (skip staging) |
+| `git log --oneline` | View commit history |
+| `git show <hash>` | View details of a specific commit |
+| `git reset --soft HEAD~1` | Undo last commit, keep changes staged |
+| `git reset --hard HEAD~1` | Undo last commit, discard all changes |
+
+### Common Pitfalls & Safety Rules
+
+Understanding these risks helps prevent data loss and repository corruption.
+
+:::danger[Critical Rules]
+1. **Avoid force-pushing to shared branches** (`main`, `develop`) - if it is unavoidable, use `--force-with-lease` and coordinate with the team
+2. **Avoid rewriting published history on shared branches** - treat pushed commits as immutable in normal workflows
+3. **Always check before destructive operations** - run `git status` and `git diff` first
+4. **Use `git reflog` for recovery** - can restore lost commits
+:::
+
+| Area | Risk | Prevention |
+| :--- | :--- | :--- |
+| **Working Directory** | Discarding uncommitted work with `git checkout -- <file>` | Check `git diff` before discarding |
+| **Staging Area** | Accidentally staging too much with `git add .` | Use `git add -p` for interactive staging |
+| **Repository** | `git reset --hard` discards commits permanently | Create backup branch: `git branch backup` |
+
+:::tip[Safe Workflow]
+- Use `git revert` instead of `git reset` for shared history
+- Use `git reset --soft` to undo commits without losing changes
+- Commit or stash before switching branches
+:::
+
 ---
 
 ## Branching Strategies
@@ -91,7 +165,7 @@ Standardizing commit messages makes history readable and enables automated chang
 | `refactor` | Code change that neither fixes a bug nor adds a feature | `refactor: simplify loop` |
 | `chore` | Maintenance (build, deps, tools) | `chore: update docusaurus` |
 
-:::tip Atomicity
+:::tip[Atomicity]
 Keep commits **atomic**. One commit should represent one logical change. This makes `git revert` and `git cherry-pick` much safer.
 :::
 
@@ -117,7 +191,7 @@ Keep commits **atomic**. One commit should represent one logical change. This ma
 | `git reset --hard HEAD~1` | **Destructive**: Revert to previous state | Discard unwanted work |
 | `git revert <hash>` | Create a new commit that undoes a previous one | Safe undo for pushed commits |
 
-:::warning Force Push
+:::warning[Force Push]
 Never use `git push --force` on shared branches like `main` or `develop`. Use `git push --force-with-lease` if you must update a remote branch after a rebase.
 :::
 
@@ -174,7 +248,7 @@ cd ../project
 git worktree remove ../hotfix-dir
 ```
 
-:::tip Naming Convention
+:::tip[Naming Convention]
 Use a consistent prefix for worktree directories, e.g., `../project-hotfix`, `../project-review`, `../project-release`. This keeps your workspace organized.
 :::
 
@@ -194,5 +268,5 @@ Binary search to find the commit that introduced a bug.
 
 *   [📄 Merge, Rebase & Cherry-Pick](./git-merge-rebase-cherry-pick.mdx) — Integrating changes and rewriting history.
 *   [📄 Git Hooks Guide](./git-hooks-guide.mdx) — Automate linting and testing.
-*   [📄 Submodules Guide](./git-submodule-guide.mdx) — Manage external dependencies.
+*   [📄 Submodules Guide](./git-composition-strategy/submodule.mdx) — Manage external dependencies.
 *   [📄 SSH Setup](../infra/06-ssh.mdx) — Secure remote access.

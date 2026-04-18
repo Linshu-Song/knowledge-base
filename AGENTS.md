@@ -6,16 +6,16 @@ SAILTECHTEAM internal knowledge base covering Deep Learning, Python, Git, and In
 
 ## 2. Tech Stack
 
-- **Docusaurus 3.9** + `.mdx` (all docs use MDX format)
+- **Docusaurus 3.10.0** + `.mdx` (all docs use MDX format)
 - `remark-math` + `rehype-katex` for math; `@docusaurus/theme-mermaid` for diagrams
-- Rspack + SWC via `@docusaurus/faster`; **bun** as package manager; Node >= 20
+- Rspack + SWC via `@docusaurus/faster`; **npm** as package manager; Node >= 20
 - Deployed via GitHub Actions
 
 | Command | Purpose |
 | :--- | :--- |
-| `bun run start` | Dev server (hot reload) |
-| `bun run build` | Production build |
-| `bun run serve` | Serve build locally |
+| `npm run start` | Dev server (hot reload) |
+| `npm run build` | Production build |
+| `npm run serve` | Serve build locally |
 
 ## 3. i18n
 

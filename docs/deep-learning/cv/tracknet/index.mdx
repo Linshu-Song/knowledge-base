@@ -16,7 +16,7 @@ TrackNet is a specialized deep learning architecture designed for tracking high-
 | **Motion Blur** | Learning patterns from consecutive frames (Temporal Information) |
 | **Visibility** | Regression of (x, y) even when the ball is partially occluded |
 
-:::info Architecture Core
+:::info[Architecture Core]
 The network is trained not only to recognize the ball from a single frame but also to learn flying patterns from consecutive frames, utilizing spatiotemporal features.
 :::
 
@@ -67,6 +67,6 @@ Key improvements over V1:
 *   **Mixup Training**: Applied Mixup data augmentation.
 *   **Rectification Module**: Introduced a module to rectify track misalignment during occlusions or overlapping.
 
-:::warning Performance Assumption
+:::warning[Performance Assumption]
 TrackNetV3 significantly outperforms V2 in scenarios with heavy occlusions, but requires background frames for optimal initialization.
 :::

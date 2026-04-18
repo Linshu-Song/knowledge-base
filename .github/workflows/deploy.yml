@@ -23,17 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         working-directory: .
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Build website
         working-directory: .
-        run: bun run build
+        run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
         with:

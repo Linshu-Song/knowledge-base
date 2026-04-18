@@ -67,7 +67,7 @@ trt_model = torch_tensorrt.compile(
 torch.jit.save(trt_model, "model_torchtrt.engine")
 ```
 
-:::danger 硬件綁定
+:::danger[硬件綁定]
 TensorRT 引擎文件與其構建時的特定 GPU 架構綁定。在 Tesla V100 上構建的引擎**無法**在 GeForce RTX 3090 上運行。
 :::
 
@@ -84,6 +84,6 @@ with open("model.engine", "rb") as f, trt.Runtime(trt.Logger(trt.Logger.INFO)) a
 context = engine.create_execution_context()
 ```
 
-:::tip 小貼士
+:::tip[小貼士]
 構建優化的引擎可能需要幾分鐘。對於生產環境，建議預構建引擎並進行快取，以減少應用啟動時間。
 :::

@@ -20,7 +20,7 @@ A **Dev Container** is a standardized environment defined by a `devcontainer.jso
 4. **Environment Boot**: VS Code builds the environment and installs pre-defined tools.
 5. **Ready**: Runtimes, compilers, and extensions are pre-configured and active.
 
-:::info Architecture Detail
+:::info[Architecture Detail]
 The VS Code UI executes on your host machine, while the **VS Code Server**, terminal, debugger, and all runtimes (Node, Python, Go) execute **within** the container.
 :::
 
@@ -104,7 +104,7 @@ The `dockerComposeFile` paths in `devcontainer.json` differ based on your reposi
 }
 ```
 
-:::info Key Difference
+:::info[Key Difference]
 In a **monorepo**, the `workspaceFolder` and `service` name must match the service's subdirectory path. In a **polyrepo**, `workspaceFolder` typically maps to the repo root.
 :::
 
@@ -136,7 +136,7 @@ Add Features in `devcontainer.json` under the `"features"` key:
 | **Dockerfile `RUN`** | Custom or project-specific tool installation. | Full control, but increases image build time and Dockerfile complexity. |
 | **Compose `command`** | Runtime configuration, env setup, service orchestration. | Affects container lifecycle, not tool availability. |
 
-:::tip Recommendation
+:::tip[Recommendation]
 Use **Features** for anything available in the [Dev Container Feature catalog](https://containers.dev/features). Only fall back to `Dockerfile` installation for tools not in the catalog or requiring custom build steps.
 :::
 
@@ -182,7 +182,7 @@ devcontainer build --workspace-folder . --push true --image-name ghcr.io/my-org/
 
 This is useful for speeding up container startup by pre-building the image in a CI pipeline and pushing it to a container registry.
 
-:::tip When to Use the CLI
+:::tip[When to Use the CLI]
 Use the CLI when you need to interact with dev containers **outside of VS Code** — such as in CI/CD pipelines, headless servers, or non-VS Code editors. For daily development, the VS Code Dev Containers extension provides the most seamless experience.
 :::
 
@@ -260,7 +260,7 @@ projects/
 }
 ```
 
-:::tip Path Resolution
+:::tip[Path Resolution]
 In polyrepo setups, paths in `.code-workspace` are relative to the workspace file location. Use `../` to reference sibling repositories.
 :::
 

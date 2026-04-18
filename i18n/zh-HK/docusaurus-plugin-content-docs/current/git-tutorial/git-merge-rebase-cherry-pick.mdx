@@ -81,7 +81,7 @@ git merge feature
 git merge --no-ff feature
 ```
 
-:::tip 為何使用 `--no-ff`？
+:::tip[為何使用 `--no-ff`？]
 合併提交充當一個 **書籤**，將功能分支的所有提交分組在一起。這使得 `git revert` 更容易——您可以通過還原單個合併提交來還原整個功能：
 
 ```bash
@@ -170,7 +170,7 @@ gitGraph
     commit id: "D'"
 ```
 
-:::danger Rebase 的黃金法則
+:::danger[Rebase 的黃金法則]
 **千萬不要 rebase 已推送到共享分支的提交。**
 
 Rebase 會重寫提交雜湊值（commit hash）。如果其他人基於原始提交進行了工作，他們的歷史將會分叉，導致混亂和重複的提交。只 rebase 您的 **本地、未發布的** 分支。
@@ -227,7 +227,7 @@ pick a1b2c3d feat: add login form
 
 只需在編輯器中重新排列行順序即可。
 
-:::caution Rebase 期間發生衝突
+:::caution[Rebase 期間發生衝突]
 互動式 rebase 在提交被重新排序或壓縮時可能產生衝突。解決每個衝突後，執行：
 
 ```bash
@@ -323,7 +323,7 @@ git cherry-pick <lost-hash>
 | `--edit` / `-e` | 開啟編輯器，在提交前修改提交訊息 |
 | `-m <parent>` | 在 cherry-pick 合併提交時指定父提交編號 |
 
-:::tip 使用 `-x` 以便追蹤
+:::tip[使用 `-x` 以便追蹤]
 在共享分支之間進行 cherry-pick 時，始終使用 `-x` 來記錄提交的來源。這有助於未來的調試：
 
 ```bash

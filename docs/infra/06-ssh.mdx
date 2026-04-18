@@ -17,7 +17,7 @@ SSH authentication relies on a **public-key pair** consisting of two mathematica
 | **Private Key** | `~/.ssh/id_ed25519` | **Restricted Access.** Stored on your local machine only. |
 | **Public Key** | `~/.ssh/id_ed25519.pub` | **Public Distribution.** Distributed to servers and GitHub. |
 
-:::tip Algorithm Recommendation
+:::tip[Algorithm Recommendation]
 We standardize on the **Ed25519** algorithm for all new key pairs. It provides superior performance and higher security compared to older RSA standards.
 :::
 
@@ -86,7 +86,7 @@ docker run -it \
   my-engineering-image bash
 ```
 
-:::caution Security Protocol
+:::caution[Security Protocol]
 Only utilize agent forwarding when connecting to **trusted** infrastructure. A compromised remote root user could potentially use your forwarded agent socket to authenticate as you.
 :::
 
@@ -107,7 +107,7 @@ Host production-server
 
 ---
 
-:::tip Best Practice
+:::tip[Best Practice]
 Regularly audit your `~/.ssh/authorized_keys` file on remote servers to ensure only current, authorized keys are active.
 :::
 
