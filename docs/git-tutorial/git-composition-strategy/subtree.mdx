@@ -26,7 +26,7 @@ flowchart LR
     vendor -- git subtree push --> Remote
 ```
 
-At its core, `git subtree` performs a **squash merge** of the external repository's history into a designated prefix directory. The foreign commits can be replayed on top of your own tree, or squashed into a single commit per import to keep your log clean.
+At its core, `git subtree` merges an external repository into a designated prefix directory within your project. The foreign commits can either be preserved in your history, or squashed into a single commit per import when using `--squash` to keep your log clean.
 
 ---
 

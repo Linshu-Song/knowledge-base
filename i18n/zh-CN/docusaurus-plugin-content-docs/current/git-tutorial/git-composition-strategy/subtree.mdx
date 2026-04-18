@@ -25,7 +25,7 @@ flowchart LR
     vendor -- git subtree push --> Remote
 ```
 
-从本质上讲，`git subtree` 会将外部仓库的提交历史通过 **squash merge** 合并到指定的前缀目录中。外部提交可以逐条重放到你的树上，也可以压缩为单个提交以保持日志整洁。
+从本质上讲，`git subtree` 会将外部仓库合并到指定的前缀目录中。可选择保留完整历史或通过 `--squash` 压缩为单个提交以保持日志整洁。
 
 ---
 

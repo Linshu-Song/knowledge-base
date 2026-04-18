@@ -76,8 +76,8 @@ Git manages files in three distinct areas, each serving a specific purpose:
 Understanding these risks helps prevent data loss and repository corruption.
 
 :::danger[Critical Rules]
-1. **Never force push to shared branches** (`main`, `develop`) - use `--force-with-lease` instead
-2. **Never rewrite published history** - treat pushed commits as immutable
+1. **Avoid force-pushing to shared branches** (`main`, `develop`) - if it is unavoidable, use `--force-with-lease` and coordinate with the team
+2. **Avoid rewriting published history on shared branches** - treat pushed commits as immutable in normal workflows
 3. **Always check before destructive operations** - run `git status` and `git diff` first
 4. **Use `git reflog` for recovery** - can restore lost commits
 :::
