@@ -20,6 +20,80 @@ flowchart LR
     C -- "git checkout/switch" --> A
 ```
 
+### 理解 Git 的三個區域
+
+Git 在三個不同的區域管理檔案，每個區域都有特定的用途：
+
+| 區域 | 用途 | 您看到的內容 |
+| :--- | :--- | :--- |
+| **工作目錄** | 您在磁碟上實際操作檔案的地方，進行編輯 | 最新狀態的檔案（編輯後的內容） |
+| **暫存區** (索引) | 準備區域，您在此選擇要包含在下一次提交中的更改 | 將包含在下一次提交中的檔案快照 |
+| **倉庫** (HEAD) | 已提交更改的永久歷史記錄 | 包含元資料（作者、日期、訊息）的完整提交歷史 |
+
+**關鍵區別：**
+
+- **工作目錄 vs 暫存區**：工作目錄包含您的最新編輯，而暫存區僅包含您使用 `git add` 明確標記的更改。您可以編輯檔案十次，但只暫存最終版本。
+
+- **暫存區 vs 倉庫**：暫存區保存*下一次*提交的更改（臨時），而倉庫儲存*整個*提交歷史（永久）。只有 `git commit` 才能將更改從暫存區移動到倉庫。
+
+- **HEAD**：指向當前檢出的提交的指標，通常是當前分支上的最新提交。
+
+### 各區域的操作指令
+
+#### 工作目錄
+
+| 指令 | 用途 |
+| :--- | :--- |
+| `git status` | 查看哪些檔案已被修改 |
+| `git diff` | 查看尚未暫存的更改 |
+| `git checkout -- <file>` | 丟棄工作目錄中的更改（恢復到最後提交的版本） |
+| `git restore <file>` | `git checkout -- <file>` 的現代替代指令 |
+
+#### 暫存區
+
+| 指令 | 用途 |
+| :--- | :--- |
+| `git add <file>` | 暫存特定檔案 |
+| `git add .` | 暫存所有已修改檔案 |
+| `git add -p` | 互動式暫存（逐塊選擇） |
+| `git restore --staged <file>` | 取消暫存檔案（保留更改） |
+| `git diff --staged` | 查看準備提交的更改 |
+| `git reset` | 取消暫存所有檔案 |
+
+#### 倉庫
+
+| 指令 | 用途 |
+| :--- | :--- |
+| `git commit -m "message"` | 提交暫存的更改 |
+| `git commit -am "message"` | 提交所有已跟蹤檔案（跳過暫存） |
+| `git log --oneline` | 查看提交歷史 |
+| `git show <hash>` | 查看特定提交的詳細資訊 |
+| `git reset --soft HEAD~1` | 撤銷最後一次提交，保留更改在暫存區 |
+| `git reset --hard HEAD~1` | 撤銷最後一次提交，丟棄所有更改 |
+
+### 常見陷阱與安全規則
+
+了解這些風險有助於防止資料遺失和倉庫損壞。
+
+:::danger[關鍵規則]
+1. **切勿強制推送到共享分支**（`main`、`develop`）- 改用 `--force-with-lease`
+2. **切勿改寫已發布的歷史** - 已推送的提交應視為不可變
+3. **執行破壞性操作前先檢查** - 運行 `git status` 和 `git diff`
+4. **使用 `git reflog` 恢復** - 可恢復遺失的提交
+:::
+
+| 區域 | 風險 | 預防措施 |
+| :--- | :--- | :--- |
+| **工作目錄** | 使用 `git checkout -- <file>` 丟棄未提交的工作 | 丟棄前檢查 `git diff` |
+| **暫存區** | 使用 `git add .` 意外暫存過多內容 | 使用 `git add -p` 互動式暫存 |
+| **倉庫** | `git reset --hard` 永久丟棄提交 | 建立備份分支：`git branch backup` |
+
+:::tip[安全工作流程]
+- 對共享歷史使用 `git revert` 而非 `git reset`
+- 使用 `git reset --soft` 撤銷提交而不遺失更改
+- 切換分支前先提交或 stash
+:::
+
 ---
 
 ## 分支策略
@@ -91,7 +165,7 @@ gitGraph
 | `refactor` | 代碼重構（不修復 Bug 也不增加功能） | `refactor: simplify loop` |
 | `chore` | 維護（構建、依賴、工具） | `chore: update docusaurus` |
 
-:::tip 原子性
+:::tip[原子性]
 保持提交的**原子性**。一個提交應代表一個邏輯變更。這使 `git revert` 和 `git cherry-pick` 更加安全。
 :::
 
@@ -117,7 +191,7 @@ gitGraph
 | `git reset --hard HEAD~1` | **破壞性**：回退到上一狀態 | 丟棄不需要的工作 |
 | `git revert <hash>` | 建立一個撤銷之前提交的新提交 | 安全地撤銷已推送的提交 |
 
-:::warning 強制推送
+:::warning[強制推送]
 切勿在 `main` 或 `develop` 等共享分支上使用 `git push --force`。如果必須在變基後更新遠端分支，請使用 `git push --force-with-lease`。
 :::
 
@@ -174,7 +248,7 @@ cd ../project
 git worktree remove ../hotfix-dir
 ```
 
-:::tip 命名規範
+:::tip[命名規範]
 為工作目錄使用統一的前綴，如 `../project-hotfix`、`../project-review`、`../project-release`，保持工作區整潔。
 :::
 
