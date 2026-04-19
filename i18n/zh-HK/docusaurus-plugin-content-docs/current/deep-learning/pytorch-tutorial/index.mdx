@@ -3,18 +3,19 @@ title: PyTorch 教學
 description: 從基礎到高級分散式訓練的全面 PyTorch 指南。
 ---
 
+---
+title: PyTorch 教學
+description: 簡要介紹 PyTorch：張量、自動微分與核心概念，協助你快速上手。
+---
+
 # PyTorch 教學
 
-歡迎來到 PyTorch 教學知識庫！
+PyTorch 是一個用於 Python 的開源機器學習框架，廣泛用於研究與生產環境。它的兩個核心特性是：
 
-本教學採用模組化的樹狀結構進行組織，專為可擴展式學習而設計。無論您是在建構第一個神經網路，還是在多個 GPU 上擴展大型語言模型，您都能在這裡找到相關的指南。
+- 高效的張量庫，並對 GPU 有良好支援。
+- 支援動態計算圖的自動微分引擎（Autograd）。
 
-## 結構概覽
+本教學側重於實用工程模式：如何使用張量與設備、用 torch.nn.Module 建構模型、準備高性能數據管線，以及應用現代訓練技巧來做實驗與部署。
 
-1. **基礎入門 (`01-fundamentals`)**：PyTorch 的基石，涵蓋張量操作和 `autograd` 自動微分引擎。
-2. **核心工程組件 (`02-core-components`)**：您將每天使用的工程必備品：`Dataset`、`DataLoader`、`nn.Module`、自訂層和最佳化策略。
-3. **高級進階與最佳化 (`03-advanced-optimization`)**：生產規模深度學習的技術，包括分散式數據平行 (DDP)、全切片數據平行 (FSDP) 和混合精度 (AMP)。
-4. **高層框架 (`04-frameworks`)**：如 PyTorch Lightning 等自動化了樣板工程任務的高階函式庫。
-5. **垂直領域實戰 (`05-domain-applications`)**：特定任務的垂直領域實現，涵蓋從電腦視覺和自然語言處理到時間序列預測的內容。
-
+如果你是初學者，建議從基礎篇（Fundamentals）開始學習張量與自動微分；如果你要維護或上線模型，核心組件（Core Components）部分涵蓋日常工程模式。
 
