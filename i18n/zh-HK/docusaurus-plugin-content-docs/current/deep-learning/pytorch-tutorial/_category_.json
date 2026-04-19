@@ -1,0 +1,10 @@
+{
+  "label": "PyTorch 教學",
+  "position": 5,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "doc",
+    "id": "index"
+  }
+}

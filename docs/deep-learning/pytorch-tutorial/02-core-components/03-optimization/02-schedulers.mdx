@@ -1,0 +1,106 @@
+---
+sidebar_position: 2
+title: Learning Rate Schedulers
+description: Explore learning rate scheduling strategies like StepLR, CosineAnnealing, and OneCycleLR.
+---
+
+# Learning Rate Schedulers
+
+While selecting the right optimizer is important, dynamically changing the learning rate (LR) during training is critical for reaching the global minimum. Schedulers in `torch.optim.lr_scheduler` are designed to adjust the learning rate based on the number of epochs or a set of predefined milestones.
+
+## How Schedulers Work
+
+A scheduler is initialized with an optimizer object and adjusts the `lr` attribute of its parameter groups over time.
+
+```python
+import torch.optim as optim
+
+optimizer = optim.AdamW(model.parameters(), lr=0.1)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
+# Training loop
+for epoch in range(100):
+    # Train the model...
+    train(...)
+    # Evaluate...
+    val(...)
+    # Adjust learning rate based on the epoch progress
+    scheduler.step()
+```
+
+:::warning
+You should always call `scheduler.step()` *after* `optimizer.step()`. Calling it before will result in the first epoch using the *second* learning rate defined by the scheduler, instead of the initial learning rate.
+:::
+
+## Common Scheduling Strategies
+
+PyTorch offers several built-in scheduling strategies.
+
+### `StepLR` and `MultiStepLR`
+
+Decays the learning rate by a multiplicative factor (`gamma`) every `step_size` epochs (in `StepLR`) or at specific milestone epochs (in `MultiStepLR`).
+
+```python
+# Decay LR by 0.1 every 30 epochs
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
+# Decay LR by 0.1 at epochs 30, 80, and 120
+scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 80, 120], gamma=0.1)
+```
+
+### `ReduceLROnPlateau`
+
+This scheduler acts when a metric has stopped improving. For instance, when the validation loss stops decreasing, this scheduler will automatically reduce the learning rate to help the model escape saddle points and converge.
+
+```python
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
+
+# Inside the training loop: it requires the metric being monitored
+for epoch in range(100):
+    train(...)
+    val_loss = val(...)
+    scheduler.step(val_loss) # Pass validation metric to the scheduler
+```
+
+### `CosineAnnealingLR`
+
+Sets the learning rate according to a cosine annealing schedule. This technique is popular because it starts with a high learning rate, descends rapidly, and then slowly settles at a lower learning rate, often yielding robust generalization.
+
+```python
+# T_max is the maximum number of iterations
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-6)
+```
+
+### `OneCycleLR`
+
+The One Cycle Policy. It sweeps the learning rate from a low starting value to a very high peak (during the first phase of training), and then down to a value much lower than the initial rate (in the second phase). This approach often leads to "super-convergence," drastically speeding up training while preventing the model from getting stuck in sharp minima.
+
+```python
+# Needs total steps per epoch (e.g., len(dataloader))
+scheduler = optim.lr_scheduler.OneCycleLR(
+    optimizer, 
+    max_lr=1e-2, 
+    steps_per_epoch=len(train_loader), 
+    epochs=100
+)
+
+# Crucial difference: For OneCycleLR, the step is called per BATCH, not per epoch.
+for epoch in range(100):
+    for batch in train_loader:
+        train(...)
+        scheduler.step()
+```
+
+## Scheduler Comparison
+
+| Scheduler | Best Use Case | Pro/Con |
+| :--- | :--- | :--- |
+| **StepLR** / **MultiStepLR** | Traditional architectures (e.g., ResNet on ImageNet) | Easy to understand / Hard boundaries can cause sudden drops in accuracy. |
+| **ReduceLROnPlateau** | When the total number of epochs is unknown. | Reactive, adapts to current model state / Highly dependent on metric noise. |
+| **CosineAnnealingLR** | Standard schedule for many modern networks. | Smooth decay / Requires setting `T_max` explicitly. |
+| **OneCycleLR** | Faster training convergence, complex tasks (NLP/Vision). | Acts as a regularizer / Sensitive to `max_lr` tuning. Requires batch-level updates. |
+
+## References
+
+- [PyTorch Official Documentation: lr_scheduler](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate)
+- [Smith, 2018: Super-Convergence: Very Fast Training of Neural Networks Using Large Learning Rates](https://arxiv.org/abs/1708.07120)

@@ -1,0 +1,88 @@
+---
+sidebar_position: 1
+title: 最佳化器比較
+description: 常見 PyTorch 最佳化器（如 SGD、Adam 和 AdamW）的概述。
+---
+
+# 最佳化器比較
+
+最佳化器是用於改變神經網路屬性（如權重和學習率）以減少損失的演算法或方法。最佳化演算法或策略負責減少損失並提供盡可能準確的結果。
+
+在 PyTorch 中，所有最佳化演算法都封裝在 `torch.optim` 套件中。
+
+## 基本用法
+
+要使用最佳化器，您必須透過傳遞一個包含參數（應最佳化的張量）的可迭代物件來實例化它，並有選擇地設定特定於最佳化器的選項，如學習率（`lr`）。
+
+```python
+import torch.optim as optim
+
+# 實例化最佳化器
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+# 在訓練迴圈內
+optimizer.zero_grad()  # 1. 清除舊梯度
+loss.backward()        # 2. 計算新梯度（反向傳播）
+optimizer.step()       # 3. 更新參數
+```
+
+:::danger[關鍵步驟]
+始終在計算損失梯度（透過 `loss.backward()`）之前呼叫 `optimizer.zero_grad()`。預設情況下，PyTorch 中的梯度是累積的。如果未能清除它們，將導致不正確的更新。
+:::
+
+## 常見最佳化器
+
+最佳化器的選擇顯著影響模型的收斂速度和最終準確性。
+
+### 隨機梯度下降 (SGD)
+
+經典演算法。它在目標函式梯度的相反方向上更新參數。它通常受益於 **動量（Momentum）**，這有助於在正確方向上加速梯度，從而抑制振盪。
+
+```python
+# 帶有 Nesterov 動量的 SGD
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, nesterov=True)
+```
+
+### Adam
+
+Adam（自適應矩估計）從梯度的一階和二階矩的估計中為不同參數計算單獨的自適應學習率。由於其快速的初始收斂速度，它通常是許多深度學習任務的預設選擇。
+
+```python
+# 標準 Adam 最佳化器
+optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08)
+```
+
+### AdamW
+
+Adam 的一種變體，將權重衰減與梯度更新解耦。在經驗上已證明它比 Adam 產生更好的泛化效能，尤其是在 Transformer 模型和大型視覺模型中。
+
+```python
+# 在現代架構中，AdamW 受到比 Adam 更多的青睞
+optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
+```
+
+## 比較表
+
+| 最佳化器 | 優點 | 缺點 | 最佳用例 |
+| :--- | :--- | :--- | :--- |
+| **SGD (+Momentum)** | 通常能找到更平坦、更具泛化性的最小值。 | 需要仔細調整學習率和動量。初始收斂較慢。 | 影像分類、ResNets。 |
+| **Adam** | 收斂快。對學習率調整不太敏感。 | 泛化有時可能比 SGD 差。 | GAN、標準 MLP、快速原型設計。 |
+| **AdamW** | 修復了 Adam 中的權重衰減正規化。出色的泛化能力。 | 需要仔細調整 `weight_decay`。 | Transformer（NLP/Vision）、最先進的模型。 |
+
+## 參數組
+
+您可以透過向最佳化器傳遞字典的可迭代物件，為網路的不同部分定義不同的學習率或超參數。
+
+```python
+# 微調範例：
+# 使用較大的學習率訓練分類器，凍結或緩慢訓練基礎模型
+optim.SGD([
+    {'params': model.base.parameters(), 'lr': 1e-4},
+    {'params': model.classifier.parameters(), 'lr': 1e-2}
+], momentum=0.9)
+```
+
+## 參考資料
+
+- [PyTorch 官方文件：torch.optim](https://pytorch.org/docs/stable/optim.html)
+- [解耦權重衰減正規化 (Loshchilov & Hutter, 2017)](https://arxiv.org/abs/1711.05101)

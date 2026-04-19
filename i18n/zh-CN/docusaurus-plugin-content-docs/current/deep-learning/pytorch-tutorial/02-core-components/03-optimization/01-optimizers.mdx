@@ -1,0 +1,88 @@
+---
+sidebar_position: 1
+title: 优化器比较
+description: 常见 PyTorch 优化器（如 SGD、Adam 和 AdamW）的概述。
+---
+
+# 优化器比较
+
+优化器是用于改变神经网络属性（如权重和学习率）以减少损失的算法或方法。优化算法或策略负责减少损失并提供尽可能准确的结果。
+
+在 PyTorch 中，所有优化算法都封装在 `torch.optim` 包中。
+
+## 基本用法
+
+要使用优化器，您必须通过传递一个包含参数（应优化的张量）的可迭代对象来实例化它，并有选择地设置特定于优化器的选项，如学习率（`lr`）。
+
+```python
+import torch.optim as optim
+
+# 实例化优化器
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+# 在训练循环内
+optimizer.zero_grad()  # 1. 清除旧梯度
+loss.backward()        # 2. 计算新梯度（反向传播）
+optimizer.step()       # 3. 更新参数
+```
+
+:::danger[关键步骤]
+始终在计算损失梯度（通过 `loss.backward()`）之前调用 `optimizer.zero_grad()`。默认情况下，PyTorch 中的梯度是累积的。如果未能清除它们，将导致不正确的更新。
+:::
+
+## 常见优化器
+
+优化器的选择显著影响模型的收敛速度和最终准确性。
+
+### 随机梯度下降 (SGD)
+
+经典算法。它在目标函数梯度的相反方向上更新参数。它通常受益于 **动量（Momentum）**，这有助于在正确方向上加速梯度，从而抑制振荡。
+
+```python
+# 带有 Nesterov 动量的 SGD
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, nesterov=True)
+```
+
+### Adam
+
+Adam（自适应矩估计）从梯度的一阶和二阶矩的估计中为不同参数计算单独的自适应学习率。由于其快速的初始收敛速度，它通常是许多深度学习任务的默认选择。
+
+```python
+# 标准 Adam 优化器
+optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08)
+```
+
+### AdamW
+
+Adam 的一种变体，将权重衰减与梯度更新解耦。在经验上已证明它比 Adam 产生更好的泛化性能，尤其是在 Transformer 模型和大型视觉模型中。
+
+```python
+# 在现代架构中，AdamW 受到比 Adam 更多的青睐
+optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
+```
+
+## 比较表
+
+| 优化器 | 优点 | 缺点 | 最佳用例 |
+| :--- | :--- | :--- | :--- |
+| **SGD (+Momentum)** | 通常能找到更平坦、更具泛化性的最小值。 | 需要仔细调整学习率和动量。初始收敛较慢。 | 图像分类、ResNets。 |
+| **Adam** | 收敛快。对学习率调整不太敏感。 | 泛化有时可能比 SGD 差。 | GAN、标准 MLP、快速原型设计。 |
+| **AdamW** | 修复了 Adam 中的权重衰减正则化。出色的泛化能力。 | 需要仔细调整 `weight_decay`。 | Transformer（NLP/Vision）、最先进的模型。 |
+
+## 参数组
+
+您可以通过向优化器传递字典的可迭代对象，为网络的不同部分定义不同的学习率或超参数。
+
+```python
+# 微调示例：
+# 使用较大的学习率训练分类器，冻结或缓慢训练基础模型
+optim.SGD([
+    {'params': model.base.parameters(), 'lr': 1e-4},
+    {'params': model.classifier.parameters(), 'lr': 1e-2}
+], momentum=0.9)
+```
+
+## 参考资料
+
+- [PyTorch 官方文档：torch.optim](https://pytorch.org/docs/stable/optim.html)
+- [解耦权重衰减正则化 (Loshchilov & Hutter, 2017)](https://arxiv.org/abs/1711.05101)

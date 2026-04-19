@@ -1,0 +1,100 @@
+---
+sidebar_position: 1
+title: Dataset 与 DataLoader 基础
+description: 使用 Dataset 和 DataLoader 在 PyTorch 中进行数据加载的基础知识。
+---
+
+# Dataset 与 DataLoader 基础
+
+高效的数据加载是任何深度学习管道的重要组成部分。PyTorch 提供了两个核心的数据原语：`torch.utils.data.Dataset` 和 `torch.utils.data.DataLoader`。它们允许您将数据预处理代码与模型训练代码解耦，从而提高可读性和模块化。
+
+## `Dataset`
+
+`Dataset` 存储样本及其相应的标签。要创建自定义数据集，您必须创建一个继承自 `torch.utils.data.Dataset` 的类，并实现三个基本方法：
+
+1. `__init__`：初始化包含数据、变换以及任何其他必要配置的目录。
+2. `__len__`：返回数据集中的样本总数。
+3. `__getitem__`：检索数据集中给定索引 `idx` 处的样本。
+
+### 示例：自定义图像数据集
+
+```python
+import os
+from PIL import Image
+from torch.utils.data import Dataset
+from torchvision import transforms
+
+class CustomImageDataset(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None):
+        self.img_labels = self._load_annotations(annotations_file)
+        self.img_dir = img_dir
+        self.transform = transform
+
+    def _load_annotations(self, file_path):
+        # 加载标签的实现
+        return [("img1.jpg", 0), ("img2.jpg", 1)]
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.img_labels[idx][0])
+        image = Image.open(img_path).convert("RGB")
+        label = self.img_labels[idx][1]
+        
+        if self.transform:
+            image = self.transform(image)
+            
+        return image, label
+```
+
+## `DataLoader`
+
+`Dataset` 每次检索我们数据集的特征和标签的一个样本。在模型训练期间，您通常希望以“小批量”（minibatches）的形式传递样本，在每个轮次（epoch）重新洗牌数据以减少模型过拟合，并使用 Python 的多进程来加速数据检索。
+
+`DataLoader` 是一个可迭代对象，它抽象了这种复杂性。
+
+```python
+from torch.utils.data import DataLoader
+
+# 实例化数据集
+transform = transforms.ToTensor()
+dataset = CustomImageDataset(
+    annotations_file="labels.csv", 
+    img_dir="img_dir", 
+    transform=transform
+)
+
+# 创建 DataLoader
+dataloader = DataLoader(
+    dataset, 
+    batch_size=64, 
+    shuffle=True, 
+    num_workers=4,
+    pin_memory=True
+)
+```
+
+### 关键参数
+
+| 参数 | 目的 | 推荐设置 |
+| :--- | :--- | :--- |
+| `batch_size` | 每个批次的样本数 | 取决于 GPU 内存（例如 32、64、128） |
+| `shuffle` | 随机化数据顺序 | 训练集设为 `True`，验证/测试集设为 `False` |
+| `num_workers` | 用于数据加载的子进程数 | 从 `4` 或 `8` 开始（监控 CPU/GPU 利用率） |
+| `pin_memory` | 更快地将数据传输到支持 CUDA 的 GPU | 如果使用 GPU 则设为 `True` |
+
+## 数据流图
+
+```mermaid
+graph LR
+    A[磁盘上的原始数据] -->|Dataset| B(单个样本和标签)
+    B -->|__getitem__| C{变换/增强}
+    C --> D[处理后的样本]
+    D -->|DataLoader| E[批次张量]
+    E -->|pin_memory=True| F[GPU 内存]
+```
+
+## 参考资料
+
+- [PyTorch 官方教程：Datasets & DataLoaders](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html)

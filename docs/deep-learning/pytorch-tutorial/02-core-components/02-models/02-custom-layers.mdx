@@ -1,0 +1,126 @@
+---
+sidebar_position: 2
+title: Custom Layers and Initialization
+description: Build advanced architectures and manage custom parameters with nn.Module.
+---
+
+# Custom Layers and Initialization
+
+While `torch.nn` provides many standard layers (e.g., `Linear`, `Conv2d`, `BatchNorm`), advanced model architectures frequently require creating custom layers. This allows you to encapsulate specific operations and handle parameter initialization explicitly.
+
+## Defining a Custom Layer
+
+Creating a custom layer is identical to creating a custom model: you subclass `nn.Module`. 
+
+The key difference lies in how you handle **learnable parameters**. When a tensor is assigned as an attribute of a module, it is not automatically registered as a learnable parameter. You must explicitly wrap it in `nn.Parameter`.
+
+### Example: A Custom Linear Layer
+
+```python
+import torch
+from torch import nn
+import math
+
+class CustomLinear(nn.Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super(CustomLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        
+        # Define the weight matrix
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        
+        # Define the bias vector
+        if bias:
+            self.bias = nn.Parameter(torch.Tensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+            
+        # Initialize the parameters
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # Implementation of He initialization (Kaiming uniform)
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def forward(self, input):
+        # Apply the linear transformation
+        return nn.functional.linear(input, self.weight, self.bias)
+
+    def extra_repr(self):
+        # A nice representation when printing the module
+        return 'in_features={}, out_features={}, bias={}'.format(
+            self.in_features, self.out_features, self.bias is not None
+        )
+```
+
+## Advanced Parameter Initialization
+
+Parameter initialization plays a critical role in the convergence speed and final performance of deep neural networks. PyTorch's `torch.nn.init` module offers a wide array of initialization strategies.
+
+### Weight Initialization Techniques
+
+When initializing large models, iterating over the module's layers and applying an initialization scheme is standard practice.
+
+```python
+import torch.nn.init as init
+
+def initialize_weights(m):
+    """
+    Applies custom initialization rules to specific layer types recursively.
+    """
+    if isinstance(m, nn.Conv2d):
+        # Kaiming Normal (He) for Conv layers followed by ReLU
+        init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        # Standard Normalization scale to 1, shift to 0
+        init.constant_(m.weight, 1)
+        init.constant_(m.bias, 0)
+    elif isinstance(m, nn.Linear):
+        # Xavier Normal for dense layers
+        init.xavier_normal_(m.weight)
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
+
+# Apply initialization to an entire model
+model = CustomModel()
+model.apply(initialize_weights)
+```
+
+### Buffer Registration
+
+Sometimes, you need to store states that are not updated by gradients (e.g., tracking moving averages). These are called **buffers**. They will be part of the `state_dict` and moved to the GPU with the model, but they won't be optimized.
+
+```python
+class RunningMeanLayer(nn.Module):
+    def __init__(self, feature_dim):
+        super().__init__()
+        # Register a buffer filled with zeros
+        self.register_buffer('running_mean', torch.zeros(feature_dim))
+        
+    def forward(self, x):
+        # Update buffer during forward pass
+        if self.training:
+            batch_mean = x.mean(dim=0)
+            self.running_mean = 0.9 * self.running_mean + 0.1 * batch_mean
+            
+        # Normalize by running mean
+        return x - self.running_mean
+```
+
+## Best Practices
+
+1. **Use `nn.Parameter` Only For Gradients**: Ensure only parameters that should be updated via backpropagation are wrapped in `nn.Parameter`.
+2. **Handle Dimensions Properly**: When implementing `forward()`, ensure your custom logic gracefully handles variable batch sizes (`x.shape[0]`).
+3. **Use the `apply()` Method**: `model.apply(fn)` recursively applies `fn` to every submodule (as returned by `.children()`) as well as `self`. This is the preferred way to initialize model weights.
+
+## References
+
+- [PyTorch Documentation: torch.nn.init](https://pytorch.org/docs/stable/nn.init.html)
+- [He et al. (2015): Delving Deep into Rectifiers](https://arxiv.org/abs/1502.01852)

@@ -1,0 +1,126 @@
+---
+sidebar_position: 2
+title: 自訂層與初始化
+description: 使用 nn.Module 建構進階架構並管理自訂參數。
+---
+
+# 自訂層與初始化
+
+雖然 `torch.nn` 提供了許多標準層（例如 `Linear`，`Conv2d`，`BatchNorm`），但進階模型架構經常需要建立自訂層。這允許您封裝特定操作並明確處理參數初始化。
+
+## 定義自訂層
+
+建立自訂層與建立自訂模型相同：您需要繼承 `nn.Module`。
+
+關鍵區別在於您如何處理 **可學習的參數**。當一個張量被賦值為模組的屬性時，它不會自動被註冊為可學習參數。您必須明確地將其包裹在 `nn.Parameter` 中。
+
+### 範例：自訂線性層
+
+```python
+import torch
+from torch import nn
+import math
+
+class CustomLinear(nn.Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super(CustomLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        
+        # 定義權重矩陣
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        
+        # 定義偏差向量
+        if bias:
+            self.bias = nn.Parameter(torch.Tensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+            
+        # 初始化參數
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        # 實作 He 初始化（Kaiming 均勻分佈）
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def forward(self, input):
+        # 應用線性轉換
+        return nn.functional.linear(input, self.weight, self.bias)
+
+    def extra_repr(self):
+        # 列印模組時的友善表示
+        return 'in_features={}, out_features={}, bias={}'.format(
+            self.in_features, self.out_features, self.bias is not None
+        )
+```
+
+## 進階參數初始化
+
+參數初始化在深度神經網路的收斂速度和最終效能中起著關鍵作用。PyTorch 的 `torch.nn.init` 模組提供了廣泛的初始化策略。
+
+### 權重初始化技術
+
+在初始化大型模型時，遍歷模組的各層並應用初始化方案是標準做法。
+
+```python
+import torch.nn.init as init
+
+def initialize_weights(m):
+    """
+    遞迴地對特定層類型應用自訂初始化規則。
+    """
+    if isinstance(m, nn.Conv2d):
+        # 對緊隨 ReLU 的卷積層使用 Kaiming Normal (He)
+        init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        # 標準正規化縮放至 1，平移至 0
+        init.constant_(m.weight, 1)
+        init.constant_(m.bias, 0)
+    elif isinstance(m, nn.Linear):
+        # 密集層的 Xavier Normal
+        init.xavier_normal_(m.weight)
+        if m.bias is not None:
+            init.constant_(m.bias, 0)
+
+# 對整個模型應用初始化
+model = CustomModel()
+model.apply(initialize_weights)
+```
+
+### 緩衝區註冊
+
+有時，您需要儲存不透過梯度更新的狀態（例如，追蹤移動平均值）。這些被稱為 **緩衝區（buffers）**。它們將成為 `state_dict` 的一部分，並與模型一起移動到 GPU，但不會被最佳化。
+
+```python
+class RunningMeanLayer(nn.Module):
+    def __init__(self, feature_dim):
+        super().__init__()
+        # 註冊一個充滿零的緩衝區
+        self.register_buffer('running_mean', torch.zeros(feature_dim))
+        
+    def forward(self, x):
+        # 在前向傳播期間更新緩衝區
+        if self.training:
+            batch_mean = x.mean(dim=0)
+            self.running_mean = 0.9 * self.running_mean + 0.1 * batch_mean
+            
+        # 按移動平均值正規化
+        return x - self.running_mean
+```
+
+## 最佳實踐
+
+1. **僅對梯度使用 `nn.Parameter`**：確保只有應該透過反向傳播更新的參數才被包裹在 `nn.Parameter` 中。
+2. **正確處理維度**：在實作 `forward()` 時，確保您的自訂邏輯能夠優雅地處理可變的批次大小（`x.shape[0]`）。
+3. **使用 `apply()` 方法**：`model.apply(fn)` 遞迴地將 `fn` 應用於每個子模組（由 `.children()` 返回）以及 `self`。這是初始化模型權重的首選方式。
+
+## 參考資料
+
+- [PyTorch 文件：torch.nn.init](https://pytorch.org/docs/stable/nn.init.html)
+- [He et al. (2015): Delving Deep into Rectifiers](https://arxiv.org/abs/1502.01852)

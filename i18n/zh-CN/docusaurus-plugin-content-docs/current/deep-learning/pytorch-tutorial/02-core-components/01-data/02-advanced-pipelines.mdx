@@ -1,0 +1,50 @@
+---
+sidebar_position: 2
+title: 高级数据管道
+description: 使用 Iterable Datasets 和 IterDataPipe 的高级数据加载（待扩展）。
+---
+
+# 高级数据管道
+
+对于大规模数据集或流式传输场景，其中数据是动态生成或从远程源流式传输的，标准的映射样式（Map-style）`Dataset` 变得低效或无法使用。PyTorch 提供了一个称为 `IterableDataset` 的高级原语和一个称为 `TorchData` 的专用库。
+
+:::note
+此页面目前正在开发中。以下主题将在未来的更新中扩展。
+:::
+
+## `IterableDataset` 和 `IterDataPipe`
+
+常规的 `Dataset` 依赖于索引（`__getitem__`），而 `IterableDataset` 实现了 `__iter__` 协议，按顺序生成数据点。
+
+`IterDataPipe` 是 TorchData 中引入的一种较新的范式，它直接在可迭代数据流上链接操作（例如解析、解码、批处理）。
+
+```python
+from torch.utils.data import IterableDataset
+
+class StreamingDataset(IterableDataset):
+    def __init__(self, data_stream):
+        self.data_stream = data_stream
+
+    def __iter__(self):
+        for data in self.data_stream:
+            yield self.process(data)
+```
+
+## 未来主题
+
+### `TorchData` 库
+
+`TorchData` 生态系统促进了可组合的数据加载管道。我们将涵盖：
+- 组合 `DataPipe` 以处理复杂的数据格式
+- 使用多进程和多节点设置并行化数据加载
+
+### 视频和音频流
+
+处理多维、顺序数据需要特殊考虑：
+- **音频管道**：与 `torchaudio.datasets` 集成并进行实时频谱图处理
+- **视频流**：使用 `torchvision.io` 进行高效的帧提取和流式传输
+
+## 参考资料
+
+- [PyTorch 官方文档：Iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets)
+- [TorchData GitHub 仓库](https://github.com/pytorch/data)

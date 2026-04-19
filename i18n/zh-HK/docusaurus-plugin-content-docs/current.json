@@ -12,6 +12,127 @@
     "message": "DevOps 與基礎設施"
   },
   "sidebar.tutorialSidebar.category.Computer Vision": {
-    "message": "電腦視覺"
+    "message": "電腦視覺",
+    "description": "The label for category 'Computer Vision' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.PyTorch Tutorial": {
+    "message": "PyTorch 教學",
+    "description": "The label for category 'PyTorch Tutorial' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Fundamentals": {
+    "message": "基礎入門",
+    "description": "The label for category 'Fundamentals' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Core Components": {
+    "message": "核心工程組件",
+    "description": "The label for category 'Core Components' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Data": {
+    "message": "資料",
+    "description": "The label for category 'Data' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Models": {
+    "message": "模型",
+    "description": "The label for category 'Models' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Optimization": {
+    "message": "最佳化",
+    "description": "The label for category 'Optimization' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Advanced & Optimization": {
+    "message": "高級進階與最佳化",
+    "description": "The label for category 'Advanced & Optimization' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Distributed Training": {
+    "message": "分散式訓練",
+    "description": "The label for category 'Distributed Training' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Performance": {
+    "message": "效能最佳化",
+    "description": "The label for category 'Performance' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Frameworks": {
+    "message": "高層框架",
+    "description": "The label for category 'Frameworks' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.PyTorch Lightning": {
+    "message": "PyTorch Lightning",
+    "description": "The label for category 'PyTorch Lightning' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Domain Applications": {
+    "message": "垂直領域實戰",
+    "description": "The label for category 'Domain Applications' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.NLP": {
+    "message": "自然語言處理",
+    "description": "The label for category 'NLP' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Time Series": {
+    "message": "時間序列",
+    "description": "The label for category 'Time Series' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.pytorchTutorial.cv": {
+    "message": "電腦視覺",
+    "description": "The label for category Computer Vision in PyTorch Tutorial"
+  },
+  "sidebar.tutorialSidebar.category.PyTorch Tutorial.link.generated-index.description": {
+    "message": "從基礎到高級分散式訓練的全面 PyTorch 指南。",
+    "description": "The generated-index page description for category 'PyTorch Tutorial' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Fundamentals.link.generated-index.description": {
+    "message": "PyTorch 的基石，涵蓋張量操作和自動微分引擎。",
+    "description": "The generated-index page description for category 'Fundamentals' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Core Components.link.generated-index.description": {
+    "message": "日常必備的核心組件：Dataset、DataLoader、nn.Module、自訂層以及最佳化策略。",
+    "description": "The generated-index page description for category 'Core Components' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Data.link.generated-index.description": {
+    "message": "實現無縫訓練的高效數據載入和高級數據處理管道。",
+    "description": "The generated-index page description for category 'Data' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Models.link.generated-index.description": {
+    "message": "使用 nn.Module 建構自訂的網路架構。",
+    "description": "The generated-index page description for category 'Models' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Optimization.link.generated-index.description": {
+    "message": "為你的模型選擇合適的最佳化器和學習率排程器。",
+    "description": "The generated-index page description for category 'Optimization' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Advanced & Optimization.link.generated-index.description": {
+    "message": "適用於生產規模深度學習的技術，包括 DDP、FSDP 和 AMP。",
+    "description": "The generated-index page description for category 'Advanced & Optimization' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Distributed Training.link.generated-index.description": {
+    "message": "跨多個 GPU 和運算節點擴展模型。",
+    "description": "The generated-index page description for category 'Distributed Training' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Performance.link.generated-index.description": {
+    "message": "混合精度訓練和 torch.compile 編譯加速。",
+    "description": "The generated-index page description for category 'Performance' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Frameworks.link.generated-index.description": {
+    "message": "用於自動化樣板工程任務的高階框架與函式庫。",
+    "description": "The generated-index page description for category 'Frameworks' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.PyTorch Lightning.link.generated-index.description": {
+    "message": "組織 PyTorch 程式碼，將科研與工程解耦。",
+    "description": "The generated-index page description for category 'PyTorch Lightning' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Domain Applications.link.generated-index.description": {
+    "message": "跨不同 AI 領域的垂直、特定任務實現。",
+    "description": "The generated-index page description for category 'Domain Applications' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.pytorchTutorial.cv.link.generated-index.description": {
+    "message": "從 Torchvision 基礎到高級影像分類與分割。",
+    "description": "The generated-index page description for category 'pytorchTutorial.cv' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.NLP.link.generated-index.description": {
+    "message": "從基礎 Transformer 架構到大型語言模型 (LLM) 微調。",
+    "description": "The generated-index page description for category 'NLP' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Time Series.link.generated-index.description": {
+    "message": "時間序列預測模型及特定的數據處理技術。",
+    "description": "The generated-index page description for category 'Time Series' in sidebar 'tutorialSidebar'"
   }
 }
