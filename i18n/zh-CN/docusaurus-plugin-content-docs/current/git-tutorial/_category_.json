@@ -2,6 +2,7 @@
   "label": "Git 教程",
   "position": 3,
   "link": {
-    "type": "generated-index"
+    "type": "doc",
+    "id": "git-tutorial/index"
   }
 }
