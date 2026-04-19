@@ -1,8 +1,3 @@
 {
   "label": "DevOps 与基础设施",
-  "position": 4,
-  "link": {
-    "type": "doc",
-    "id": "infra/index"
-  }
-}
+  "position": 4}

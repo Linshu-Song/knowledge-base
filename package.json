@@ -5,6 +5,8 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start --host 0.0.0.0",
+    "start:zh-CN": "docusaurus start --locale zh-CN --host 0.0.0.0",
+    "start:zh-HK": "docusaurus start --locale zh-HK --host 0.0.0.0",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",

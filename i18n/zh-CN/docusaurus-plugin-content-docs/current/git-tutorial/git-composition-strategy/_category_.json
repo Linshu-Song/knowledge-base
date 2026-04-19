@@ -2,7 +2,7 @@
   "label": "Git 组合策略",
   "position": 4,
   "link": {
-    "type": "generated-index",
-    "description": "在 Submodule 与 Subtree 之间做出明智选择"
+    "type": "doc",
+    "id": "git-tutorial/git-composition-strategy/index"
   }
 }
