@@ -1,10 +1,10 @@
 ---
 sidebar_position: 3
-title: "VS Code Dev Containers: Development Environment"
+title: Dev Containers
 description: Comprehensive guide to using VS Code Dev Containers for consistent, isolated, and reproducible development workflows.
 ---
 
-# Development Environment (Dev Containers)
+# Dev Containers
 
 We standardize on **VS Code Dev Containers** to ensure a consistent, isolated, and high-fidelity development environment for every engineer. This approach eliminates "works on my machine" inconsistencies and reduces project onboarding time to minutes.
 
@@ -309,5 +309,4 @@ ssh-add -l          # Lists keys available from host agent
 | **"fatal: detected dubious ownership"** | Host/Container UID mismatch | Set `updateRemoteUserUID: true` in `devcontainer.json`. |
 | **SSH Auth Failure** | Key not registered on host | Execute `ssh-add -l` on host to verify key availability. |
 | **Startup Latency** | Heavy `postCreateCommand` | Move stable tool installation to the base `Dockerfile`. |
-
 

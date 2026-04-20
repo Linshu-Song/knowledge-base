@@ -1,9 +1,9 @@
 ---
 sidebar_position: 4
-title: "CI/CD 流水線：生產部署"
+title: 生產部署
 ---
 
-# 生產部署 (CI/CD)
+# 生產部署
 
 我們的部署策略側重於 **環境一致性**、**不可變鏡像** 和 **自動化流水線**。我們確保在推送到生產環境之前，在預發佈 (Staging) 環境中驗證完全相同的構建產物。
 
@@ -97,4 +97,3 @@ sequenceDiagram
     STG->>REG: 將 image:sha-xyz 重新打標為 prod-latest
     REG->>PRD: 部署 prod-latest
 ```
-

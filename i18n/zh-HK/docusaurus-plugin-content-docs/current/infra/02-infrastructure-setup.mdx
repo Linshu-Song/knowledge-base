@@ -1,9 +1,9 @@
 ---
 sidebar_position: 2
-title: "Docker Compose：基礎設施搭建"
+title: 基礎設施搭建
 ---
 
-# 基礎設施搭建 (Docker Compose)
+# 基礎設施搭建
 
 本指南定義了使用 **Docker Compose** 進行本地基礎設施編排的標準方法。我們優先採用 **分層、基於 Profile 的配置**，可從簡單服務擴展到複雜的多平台架構。
 
@@ -244,4 +244,3 @@ flowchart LR
 | **依賴項** | 完整 (開發 + 運行時) | 僅運行時 |
 | **源代碼** | 綁定掛載 | 複製並構建 |
 | **安全性** | 非 Root (映射 UID) | 最小化 (nobody/alpine) |
-

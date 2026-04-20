@@ -1,10 +1,10 @@
 ---
 sidebar_position: 6
-title: "SSH Key Management & Access Security"
+title: SSH Access Security
 description: Practical guide to securing access using SSH, including key generation, agent forwarding, and workflow optimization.
 ---
 
-# SSH & Access Security
+# SSH Access Security
 
 Secure access to remote servers and Git repositories is fundamentally built on the **SSH (Secure Shell)** protocol. We utilize asymmetric cryptography to ensure that authentication credentials are never transmitted over the network and remain stored exclusively on your local machine.
 
@@ -30,7 +30,7 @@ Execute the following command to generate a new key pair:
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
-:::note
+:::note[Passphrase Handling]
 Accept the default storage path and provide a strong passphrase for local encryption.
 :::
 
@@ -110,4 +110,3 @@ Host production-server
 :::tip[Best Practice]
 Regularly audit your `~/.ssh/authorized_keys` file on remote servers to ensure only current, authorized keys are active.
 :::
-

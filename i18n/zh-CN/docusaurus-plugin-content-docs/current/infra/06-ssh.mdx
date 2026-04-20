@@ -1,10 +1,10 @@
 ---
 sidebar_position: 6
-title: "SSH 密钥管理与访问安全"
+title: SSH 访问安全
 description: 通过 SSH 确保访问安全的实用指南，包括密钥生成、代理转发和工作流优化。
 ---
 
-# SSH 与访问安全
+# SSH 访问安全
 
 对远程服务器和 Git 仓库的安全访问从根本上建立在 **SSH (Secure Shell)** 协议之上。我们利用非对称加密技术，确保身份验证凭据永远不会在网络上传输，并仅存储在您的本地计算机上。
 
@@ -30,7 +30,7 @@ SSH 身份验证依赖于由两个数学相关文件组成的 **公私钥对**�
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
-:::note
+:::note[密码处理]
 接受默认存储路径并为本地加密提供强密码。
 :::
 
@@ -110,4 +110,3 @@ Host production-server
 :::tip[最佳实践]
 定期审核远程服务器上的 `~/.ssh/authorized_keys` 文件，确保只有当前授权的密钥处于活动状态。
 :::
-

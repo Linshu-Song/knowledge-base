@@ -1,9 +1,9 @@
 ---
 sidebar_position: 2
-title: "Docker Compose：基础设施搭建"
+title: 基础设施搭建
 ---
 
-# 基础设施搭建 (Docker Compose)
+# 基础设施搭建
 
 本指南定义了使用 **Docker Compose** 进行本地基础设施编排的标准方法。我们优先采用 **分层、基于 Profile 的配置**，可从简单服务扩展到复杂的多平台架构。
 
@@ -244,4 +244,3 @@ flowchart LR
 | **依赖项** | 完整 (开发 + 运行时) | 仅运行时 |
 | **源代码** | 绑定挂载 | 复制并构建 |
 | **安全性** | 非 Root (映射 UID) | 最小化 (nobody/alpine) |
-
