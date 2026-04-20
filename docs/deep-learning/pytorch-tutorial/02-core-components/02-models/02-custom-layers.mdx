@@ -1,126 +1,116 @@
 ---
 sidebar_position: 2
-title: Custom Layers and Initialization
-description: Build advanced architectures and manage custom parameters with nn.Module.
+title: Custom Layers
+description: Build advanced architectures and understand parameter initialization strategies in PyTorch.
 ---
 
-# Custom Layers and Initialization
+# Custom Layers
 
-While `torch.nn` provides many standard layers (e.g., `Linear`, `Conv2d`, `BatchNorm`), advanced model architectures frequently require creating custom layers. This allows you to encapsulate specific operations and handle parameter initialization explicitly.
+While PyTorch provides a rich standard library of layers (`nn.Linear`, `nn.Conv2d`), modern deep learning research frequently requires defining custom mathematical operations. Building a custom layer goes beyond writing a `forward` function—it requires principled management of learnable parameters and rigorous weight initialization.
 
-## Defining a Custom Layer
+## The Anatomy of a Custom Layer
 
-Creating a custom layer is identical to creating a custom model: you subclass `nn.Module`. 
+Creating a custom layer is structurally identical to building a full model: you subclass `nn.Module`. The core difference lies in how you manually define and register the layer's internal tensors.
 
-The key difference lies in how you handle **learnable parameters**. When a tensor is assigned as an attribute of a module, it is not automatically registered as a learnable parameter. You must explicitly wrap it in `nn.Parameter`.
+### Explicit Parameter Registration
 
-### Example: A Custom Linear Layer
+When a standard tensor is assigned as an attribute, PyTorch treats it as a standard Python object. To integrate a tensor into the autograd engine and optimizer, it must be wrapped in `nn.Parameter`.
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 import math
 
-class CustomLinear(nn.Module):
-    def __init__(self, in_features, out_features, bias=True):
-        super(CustomLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
+class CustomProjection(nn.Module):
+    def __init__(self, in_features: int, out_features: int):
+        super().__init__()
+        # Wrap tensors in nn.Parameter to make them learnable and trackable
+        self.weight = nn.Parameter(torch.empty((out_features, in_features)))
+        self.bias = nn.Parameter(torch.empty(out_features))
         
-        # Define the weight matrix
-        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
-        
-        # Define the bias vector
-        if bias:
-            self.bias = nn.Parameter(torch.Tensor(out_features))
-        else:
-            self.register_parameter('bias', None)
-            
-        # Initialize the parameters
         self.reset_parameters()
 
     def reset_parameters(self):
-        # Implementation of He initialization (Kaiming uniform)
+        # Initialization logic belongs here
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-            nn.init.uniform_(self.bias, -bound, bound)
+        nn.init.zeros_(self.bias)
 
-    def forward(self, input):
-        # Apply the linear transformation
-        return nn.functional.linear(input, self.weight, self.bias)
-
-    def extra_repr(self):
-        # A nice representation when printing the module
-        return 'in_features={}, out_features={}, bias={}'.format(
-            self.in_features, self.out_features, self.bias is not None
-        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.nn.functional.linear(x, self.weight, self.bias)
 ```
 
-## Advanced Parameter Initialization
+:::tip[The `reset_parameters` Convention]
+It is a PyTorch convention to encapsulate initialization logic within a `reset_parameters()` method. This allows the weights to be easily re-initialized later without instantiating a new object.
+:::
 
-Parameter initialization plays a critical role in the convergence speed and final performance of deep neural networks. PyTorch's `torch.nn.init` module offers a wide array of initialization strategies.
+## The Mathematics of Initialization
 
-### Weight Initialization Techniques
+Initialization is not merely a hyperparameter; it determines whether a deep network can train at all. Poor initialization leads to **vanishing** or **exploding** gradients.
 
-When initializing large models, iterating over the module's layers and applying an initialization scheme is standard practice.
+### Why Initialization Matters
+
+Consider a deep linear network where the forward pass at layer $l$ is $h^{(l)} = W^{(l)} h^{(l-1)}$. If the variance of the weights is not carefully scaled, the variance of the activations will exponentially grow or decay with the network depth:
+
+$$
+\text{Var}(h^{(l)}) = n \cdot \text{Var}(W^{(l)}) \cdot \text{Var}(h^{(l-1)})
+$$
+
+Where $n$ is the fan-in (number of input units). To maintain a stable variance ($\text{Var}(h^{(l)}) \approx \text{Var}(h^{(l-1)})$), we need $n \cdot \text{Var}(W^{(l)}) = 1$, which means $\text{Var}(W) = \frac{1}{n}$.
+
+### Standard Strategies
+
+1. **Xavier (Glorot) Initialization**: Designed for symmetric activation functions like `tanh`. It scales weights based on both input and output dimensions.
+2. **Kaiming (He) Initialization**: Designed for non-linearities like ReLU, which zero out half of the variance. It multiplies the variance by 2 to compensate: $\text{Var}(W) = \frac{2}{n_{in}}$.
+
+:::warning[Initialization Mismatch]
+Using Xavier initialization with ReLU activations will systematically halve the signal variance at each layer, leading to vanishing gradients in deep networks. Always match the initialization scheme to your activation function.
+:::
+
+## Applying Initialization Systematically
+
+Instead of initializing layers one by one, PyTorch provides `model.apply(fn)`, which recursively visits every node in the module tree (including the root itself) and applies the given function `fn`.
+
+```mermaid
+graph TD
+    App["model.apply(init_weights)"] --> Root["Root Model"]
+    Root --> Block1["Block 1"]
+    Root --> Block2["Block 2"]
+    
+    Block1 --> Conv1["nn.Conv2d (Applies Kaiming)"]
+    Block1 --> BN1["nn.BatchNorm2d (Applies Constant)"]
+    
+    Block2 --> Conv2["nn.Conv2d (Applies Kaiming)"]
+    Block2 --> BN2["nn.BatchNorm2d (Applies Constant)"]
+```
+
+### The `apply` Pattern
+
+By defining a dispatch function, you can systematically initialize an entire architecture based on layer types:
 
 ```python
 import torch.nn.init as init
 
-def initialize_weights(m):
-    """
-    Applies custom initialization rules to specific layer types recursively.
-    """
-    if isinstance(m, nn.Conv2d):
-        # Kaiming Normal (He) for Conv layers followed by ReLU
-        init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+def init_weights(m: nn.Module):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        # Kaiming normal for layers followed by ReLU
+        init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
         if m.bias is not None:
-            init.constant_(m.bias, 0)
-    elif isinstance(m, nn.BatchNorm2d):
-        # Standard Normalization scale to 1, shift to 0
-        init.constant_(m.weight, 1)
-        init.constant_(m.bias, 0)
-    elif isinstance(m, nn.Linear):
-        # Xavier Normal for dense layers
-        init.xavier_normal_(m.weight)
-        if m.bias is not None:
-            init.constant_(m.bias, 0)
+            init.zeros_(m.bias)
+    elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.LayerNorm):
+        # Scale to 1, shift to 0
+        init.ones_(m.weight)
+        init.zeros_(m.bias)
 
-# Apply initialization to an entire model
-model = CustomModel()
-model.apply(initialize_weights)
+# Execute the recursive initialization
+model.apply(init_weights)
 ```
 
-### Buffer Registration
+## Summary
 
-Sometimes, you need to store states that are not updated by gradients (e.g., tracking moving averages). These are called **buffers**. They will be part of the `state_dict` and moved to the GPU with the model, but they won't be optimized.
-
-```python
-class RunningMeanLayer(nn.Module):
-    def __init__(self, feature_dim):
-        super().__init__()
-        # Register a buffer filled with zeros
-        self.register_buffer('running_mean', torch.zeros(feature_dim))
-        
-    def forward(self, x):
-        # Update buffer during forward pass
-        if self.training:
-            batch_mean = x.mean(dim=0)
-            self.running_mean = 0.9 * self.running_mean + 0.1 * batch_mean
-            
-        # Normalize by running mean
-        return x - self.running_mean
-```
-
-## Best Practices
-
-1. **Use `nn.Parameter` Only For Gradients**: Ensure only parameters that should be updated via backpropagation are wrapped in `nn.Parameter`.
-2. **Handle Dimensions Properly**: When implementing `forward()`, ensure your custom logic gracefully handles variable batch sizes (`x.shape[0]`).
-3. **Use the `apply()` Method**: `model.apply(fn)` recursively applies `fn` to every submodule (as returned by `.children()`) as well as `self`. This is the preferred way to initialize model weights.
+Custom layers give you absolute control over mathematical operations, but with that power comes the responsibility of correct parameter registration and initialization. Remember to always wrap learnable tensors in `nn.Parameter`, use `reset_parameters` for encapsulation, and leverage `model.apply` for robust, tree-wide initialization strategies.
 
 ## References
 
-- [PyTorch Documentation: torch.nn.init](https://pytorch.org/docs/stable/nn.init.html)
-- [He et al. (2015): Delving Deep into Rectifiers](https://arxiv.org/abs/1502.01852)
+- [PyTorch Docs: torch.nn.init](https://pytorch.org/docs/stable/nn.init.html)
+- [Delving Deep into Rectifiers (He et al.)](https://arxiv.org/abs/1502.01852)
+- [Understanding the difficulty of training deep feedforward neural networks (Glorot & Bengio)](https://proceedings.mlr.press/v9/glorot10a.html)

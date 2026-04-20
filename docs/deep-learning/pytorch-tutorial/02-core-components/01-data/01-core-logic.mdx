@@ -1,10 +1,10 @@
 ---
 sidebar_position: 1
-title: 核心逻辑：从 Item 到 DataLoader
+title: Data Pipeline
 description: 深入探讨 PyTorch 数据管线的核心逻辑，理解从单条样本到批量加载的演进过程。
 ---
 
-# 核心逻辑：从 Item 到 DataLoader
+# Data Pipeline
 
 在 PyTorch 中，数据管线并不只是 `Dataset` 和 `DataLoader` 两个类的简单组合。要构建健壮、可扩展的数据流，我们必须从底层的样本设计出发，理解数据在其生命周期中的各个阶段：
 
@@ -96,7 +96,7 @@ samples = [dataset[i] for i in indices]
 batch = collate_fn(samples)
 ```
 
-:::info
+:::info[Batch Construction]
 **结论**：`DataLoader` 并不是凭空“造”出 batch，它是先获取一串 item，再将它们拼装起来。**Batch 只是“多个 item 的组合”，而非数据流的最基础单元。**
 :::
 

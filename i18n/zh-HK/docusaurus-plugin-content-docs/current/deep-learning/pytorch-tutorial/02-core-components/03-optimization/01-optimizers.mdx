@@ -1,51 +1,55 @@
 ---
 sidebar_position: 1
-title: 最佳化器比較
+title: 最佳化器
 description: 常見 PyTorch 最佳化器（如 SGD、Adam 和 AdamW）的概述。
 ---
 
-# 最佳化器比較
+# 最佳化器
 
-最佳化器是用於改變神經網路屬性（如權重和學習率）以減少損失的演算法或方法。最佳化演算法或策略負責減少損失並提供盡可能準確的結果。
+最佳化器（Optimizers）是深度學習中的核心組件，用於更新神經網路的狀態（如權重和偏置）以最小化損失函數。
 
-在 PyTorch 中，所有最佳化演算法都封裝在 `torch.optim` 套件中。
+從數學上講，函數的梯度指向的是其數值增長最快的方向。而在深度學習中，我們的目標是尋找損失函數的最小值（即尋找「谷底」），因此最佳化演算法會沿著 **梯度的負方向** 更新參數，從而實現損失的持續下降。
+
+在 PyTorch 中，所有的最佳化演算法都封裝在 `torch.optim` 模組下。
 
 ## 基本用法
 
-要使用最佳化器，您必須透過傳遞一個包含參數（應最佳化的張量）的可迭代物件來實例化它，並有選擇地設定特定於最佳化器的選項，如學習率（`lr`）。
+使用最佳化器通常需要兩個步驟：首先傳入模型參數進行實例化，然後在訓練迴圈中調用更新方法。
 
 ```python
 import torch.optim as optim
 
-# 實例化最佳化器
+# 1. 實例化最佳化器：傳入參數列表（model.parameters()）並設定學習率
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-# 在訓練迴圈內
-optimizer.zero_grad()  # 1. 清除舊梯度
-loss.backward()        # 2. 計算新梯度（反向傳播）
-optimizer.step()       # 3. 更新參數
+# 2. 訓練迴圈內部的標準步驟
+optimizer.zero_grad()  # 清除上一步留下的舊梯度
+loss.backward()        # 計算當前步的梯度（反向傳播）
+optimizer.step()       # 根據梯度更新模型參數
 ```
 
 :::danger[關鍵步驟]
-始終在計算損失梯度（透過 `loss.backward()`）之前呼叫 `optimizer.zero_grad()`。預設情況下，PyTorch 中的梯度是累積的。如果未能清除它們，將導致不正確的更新。
+**務必在 `loss.backward()` 之前調用 `optimizer.zero_grad()`**。PyTorch 預設會累加梯度（這種設計是為了支持多步更新或大 Batch 模擬），如果不手動清零，會導致梯度計算錯誤，模型將無法收斂。
 :::
 
-## 常見最佳化器
+## 常見最佳化器解析
 
-最佳化器的選擇顯著影響模型的收斂速度和最終準確性。
+選擇合適的最佳化器對模型的收斂速度和最終性能至關重要。
 
 ### 隨機梯度下降 (SGD)
 
-經典演算法。它在目標函式梯度的相反方向上更新參數。它通常受益於 **動量（Momentum）**，這有助於在正確方向上加速梯度，從而抑制振盪。
+最經典的最佳化演算法。它沿著梯度的負方向更新參數。在實際應用中，通常會結合 **動量 (Momentum)** 機制，利用慣性加速在正確方向上的搜尋並抑制震盪。
+
+「隨機」一詞的含義：在實踐中，SGD 通常不會在每次更新時計算整個訓練集的精確梯度，而是使用隨機抽樣得到的子集（即 mini-batch）或甚至單個樣本來估計梯度。這樣做可使單次更新的計算成本大幅降低、更新更頻繁，且由噪聲引入的隨機性有時能幫助最佳化器跳出淺表局部最小值。其代價是梯度估計的方差增加，因此需要透過調整批次大小（batch size）和學習率來達到穩健訓練。
 
 ```python
-# 帶有 Nesterov 動量的 SGD
+# 帶 Nesterov 動量的 SGD（通常比普通動量收斂更穩健）
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, nesterov=True)
 ```
 
 ### Adam
 
-Adam（自適應矩估計）從梯度的一階和二階矩的估計中為不同參數計算單獨的自適應學習率。由於其快速的初始收斂速度，它通常是許多深度學習任務的預設選擇。
+Adam (Adaptive Moment Estimation) 結合了動量和自適應學習率的思想。它會根據梯度的一階矩（均值）和二階矩（方差）為每個參數動態調整學習率。由於其「開箱即用」的特性和極快的初始收斂速度，Adam 是目前大多數任務的首選。
 
 ```python
 # 標準 Adam 最佳化器
@@ -54,35 +58,34 @@ optimizer = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-
 
 ### AdamW
 
-Adam 的一種變體，將權重衰減與梯度更新解耦。在經驗上已證明它比 Adam 產生更好的泛化效能，尤其是在 Transformer 模型和大型視覺模型中。
+Adam 的改良版。它將 **權重衰減 (Weight Decay)** 從梯度更新中解耦出來。實驗證明，AdamW 在 Transformer、大型視覺模型等現代架構上的泛化性能優於傳統 Adam。
 
 ```python
-# 在現代架構中，AdamW 受到比 Adam 更多的青睞
+# 現代深度學習架構（如 Transformer）的首選
 optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
 ```
 
-## 比較表
+## 核心選型對比
 
-| 最佳化器 | 優點 | 缺點 | 最佳用例 |
+| 最佳化器 | 優勢 | 劣勢 | 推薦場景 |
 | :--- | :--- | :--- | :--- |
-| **SGD (+Momentum)** | 通常能找到更平坦、更具泛化性的最小值。 | 需要仔細調整學習率和動量。初始收斂較慢。 | 影像分類、ResNets。 |
-| **Adam** | 收斂快。對學習率調整不太敏感。 | 泛化有時可能比 SGD 差。 | GAN、標準 MLP、快速原型設計。 |
-| **AdamW** | 修復了 Adam 中的權重衰減正規化。出色的泛化能力。 | 需要仔細調整 `weight_decay`。 | Transformer（NLP/Vision）、最先進的模型。 |
+| **SGD (+Momentum)** | 通常能找到更平坦、泛化性更好的解。 | 學習率和動量極其敏感，初始收斂慢。 | 影像分類 (ResNet 系列)、科研調優。 |
+| **Adam** | 收斂極快，對超參數初值不敏感。 | 後期可能出現不收斂或泛化不如 SGD。 | GAN、常規 MLP、快速原型開發。 |
+| **AdamW** | 解決了 Adam 的權重衰減失效問題，泛化性極佳。 | 同樣需要精細調整 `weight_decay`。 | **Transformer (NLP/CV)**、SOTA 模型訓練。 |
 
-## 參數組
+## 進階：分層學習率 (Parameter Groups)
 
-您可以透過向最佳化器傳遞字典的可迭代物件，為網路的不同部分定義不同的學習率或超參數。
+你可以通過向最佳化器傳遞字典列表，為模型不同層設定差異化的超參數。這在 **遷移學習 (Transfer Learning)** 和 **微調 (Fine-tuning)** 中非常有用。
 
 ```python
-# 微調範例：
-# 使用較大的學習率訓練分類器，凍結或緩慢訓練基礎模型
-optim.SGD([
-    {'params': model.base.parameters(), 'lr': 1e-4},
+# 案例：以較小步長微調特徵提取層，以較大步長訓練分類層
+optimizer = optim.SGD([
+    {'params': model.backbone.parameters(), 'lr': 1e-4},
     {'params': model.classifier.parameters(), 'lr': 1e-2}
 ], momentum=0.9)
 ```
 
-## 參考資料
+## 延伸閱讀
 
 - [PyTorch 官方文件：torch.optim](https://pytorch.org/docs/stable/optim.html)
-- [解耦權重衰減正規化 (Loshchilov & Hutter, 2017)](https://arxiv.org/abs/1711.05101)
+- [AdamW 核心論文：Decoupled Weight Decay Regularization (2017)](https://arxiv.org/abs/1711.05101)

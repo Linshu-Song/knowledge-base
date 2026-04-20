@@ -1,10 +1,10 @@
 ---
 sidebar_position: 2
-title: Dataset 架构与多介质适配
+title: Dataset Design
 description: 探讨如何设计具备高扩展性的 Dataset 层，以兼容多种数据格式与存储介质。
 ---
 
-# Dataset 架构与多介质适配
+# Dataset Design
 
 在实际工业界项目中，数据往往不会乖乖地躺在一个本地文件夹里。你可能会面对本地的图像文件、云端的 Parquet 表格、远程数据库游标或是 Kafka 的数据流。为了保持训练代码的稳定性，我们需要一个具备高扩展性的 Dataset 架构。
 
@@ -88,7 +88,7 @@ class MyStreamingDataset(IterableDataset):
         return iter(range(iter_start, iter_end))
 ```
 
-:::caution
+:::caution[IterableDataset Sharding]
 由于 `IterableDataset` 不具备全局索引，`Sampler` 和 `BatchSampler` 均无法与其配合使用。所有的采样逻辑、Shuffle 逻辑都必须实现在 Dataset 内部。
 :::
 

@@ -28,7 +28,7 @@ for epoch in range(100):
     scheduler.step()
 ```
 
-:::warning
+:::warning[Step Order]
 You should always call `scheduler.step()` *after* `optimizer.step()`. Calling it before will result in the first epoch using the *second* learning rate defined by the scheduler, instead of the initial learning rate.
 :::
 

@@ -1,10 +1,10 @@
 ---
 sidebar_position: 3
-title: 采样、批处理与高级 DataLoader
+title: DataLoader and Samplers
 description: 深入讲解 DataLoader 运行期策略，掌握 Sampler 机制、自定义批处理逻辑以及性能优化调参。
 ---
 
-# 采样、批处理与高级 DataLoader
+# DataLoader and Samplers
 
 当你已经定义了坚固的“单样本契约”（Dataset），接下来的任务是如何将这些样本“又快又好”地组织成供模型消费的 Batch。这正是 `Sampler`、`collate_fn` 和 `DataLoader` 高级参数的用武之地。
 
@@ -19,7 +19,7 @@ description: 深入讲解 DataLoader 运行期策略，掌握 Sampler 机制、�
 - **`WeightedRandomSampler`**：按给定权重采样。**解决长尾分布、类别极度不平衡问题**的最佳利器。
 - **`DistributedSampler`**：分布式训练（DDP）的基石，确保每个 GPU 进程拿到互不重叠的数据分片。
 
-:::info
+:::info[BatchSampler]
 `BatchSampler` 是一个更为特殊的采样器，它包装了上述单个样本的采样器，直接产出**一批**索引。例如长度分桶（Length Bucketing）策略，就通常通过自定义 `BatchSampler` 来实现。
 :::
 
@@ -98,4 +98,3 @@ PyTorch 仅自动管理自身的随机种子。如果你使用了 `numpy.random`
 2. 在 DataLoader 开启 `pin_memory=True`。
 3. 仅在**训练主循环**中执行 `.to(device, non_blocking=True)`。
 :::
-
