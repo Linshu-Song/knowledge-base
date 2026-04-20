@@ -1,0 +1,101 @@
+---
+sidebar_position: 3
+title: 采样、批处理与高级 DataLoader
+description: 深入讲解 DataLoader 运行期策略，掌握 Sampler 机制、自定义批处理逻辑以及性能优化调参。
+---
+
+# 采样、批处理与高级 DataLoader
+
+当你已经定义了坚固的“单样本契约”（Dataset），接下来的任务是如何将这些样本“又快又好”地组织成供模型消费的 Batch。这正是 `Sampler`、`collate_fn` 和 `DataLoader` 高级参数的用武之地。
+
+## 采样的艺术：Sampler 层
+
+许多开发者以为高级的数据控制都在 Dataset 层，但实际上，控制**“模型在每一轮看到哪些数据、以什么顺序看到”**的灵魂在于 `Sampler`。
+
+对于 Map-style 数据集，PyTorch 提供了丰富的采样器：
+
+- **`SequentialSampler`**：按顺序采样（常用于验证 / 测试集）。
+- **`RandomSampler`**：打乱顺序采样（常用于训练集）。`DataLoader(shuffle=True)` 内部就是自动启用了它。
+- **`WeightedRandomSampler`**：按给定权重采样。**解决长尾分布、类别极度不平衡问题**的最佳利器。
+- **`DistributedSampler`**：分布式训练（DDP）的基石，确保每个 GPU 进程拿到互不重叠的数据分片。
+
+:::info
+`BatchSampler` 是一个更为特殊的采样器，它包装了上述单个样本的采样器，直接产出**一批**索引。例如长度分桶（Length Bucketing）策略，就通常通过自定义 `BatchSampler` 来实现。
+:::
+
+## 批处理的灵魂：`collate_fn`
+
+如果说 Sampler 决定了“拿哪几个索引”，那么 `collate_fn` 就决定了**“这几个样本如何合并成一个 Batch”**。
+
+默认的 `default_collate` 非常聪明：它能自动为 Tensor 增加批次维度，把 NumPy 数组和 Python 数字转为 Tensor，甚至会原样保留字典和元组的外层结构。
+
+:::danger[关键点：Shape 与类型一致性]
+当样本无法直接“堆叠”时，DataLoader 内部会抛出严重的报错。这通常发生在变长序列或复杂对象上。
+:::
+
+在以下场景中，你**必须**自定义 `collate_fn`：
+1. **变长序列**：如 NLP 中的句子，或者语音频谱，各个样本长度不同，无法直接 stack。需要在这里手写 Padding 逻辑补齐长度。
+2. **变长集合**：如目标检测中，每张图的 bounding boxes 数量不同。
+3. **自定义对象**：如果你的样本返回了自定义的 Python class 而非基础类型。
+
+```python
+import torch
+
+def pad_collate_fn(batch):
+    # batch 是一个列表，包含了 dataset 返回的多个字典样本
+    # 假设每个样本为: {"input_ids": tensor([L]), "label": int}
+    
+    # 1. 提取所有序列并找到本批次最大长度
+    sequences = [item["input_ids"] for item in batch]
+    labels = [item["label"] for item in batch]
+    
+    # 2. 对序列进行 Padding (使用 pad_sequence 工具)
+    from torch.nn.utils.rnn import pad_sequence
+    padded_seqs = pad_sequence(sequences, batch_first=True, padding_value=0)
+    
+    # 3. 返回规整后的 Tensor 字典
+    return {
+        "input_ids": padded_seqs,
+        "labels": torch.tensor(labels, dtype=torch.long)
+    }
+```
+
+## 高级性能与调度参数
+
+`DataLoader` 最好保持“薄”，主要承载运行期的并行调度与传输策略。核心参数如下：
+
+| 参数 | 作用与推荐 |
+| :--- | :--- |
+| `num_workers` | 开启多进程加载。**建议：先设为 0 调通业务逻辑（单进程报错栈清晰），再逐步调大（如 4 或 8）。** |
+| `pin_memory` | **GPU 训练时强烈建议开启 `True`**。它将数据加载到锁页内存中，从而使 CPU 到 CUDA 的拷贝极其迅速。 |
+| `prefetch_factor` | 每个 worker 提前拉取多少个 batch。在网络 IO 或磁盘读取较慢时可适当调大，以隐藏读取延迟。 |
+| `persistent_workers` | 若设为 `True`，在每个 epoch 结束时不会销毁 worker 进程。**适合 epoch 数很多且 worker 初始化（如读元数据）极慢的任务。** |
+
+## 工程排雷指南
+
+:::warning[多进程内存爆炸]
+在多进程模式下，Worker 会通过写时拷贝（Copy-On-Write）复制父进程中被访问的 Python 对象。如果你在 `Dataset.__init__` 中保存了一个几百万行的巨型 Python `list`，子进程的内存占用会随 Worker 数量成倍增加。
+:::
+
+:::success[内存优化]
+将超大元数据（如路径列表、标注信息）转换为 **NumPy 数组**、**Pandas DataFrame** 或使用 **内存映射文件（mmap）**。这些结构在多进程间共享时更具效率。
+:::
+
+:::warning[随机性失效]
+PyTorch 仅自动管理自身的随机种子。如果你使用了 `numpy.random` 或 `random` 库，子进程可能会继承父进程的随机状态，导致不同 Worker 产出相同的变换结果。
+:::
+
+:::success[种子初始化]
+在 DataLoader 的 `worker_init_fn` 中，根据 `worker_id` 显式地为 NumPy 等第三方库重新设定种子。
+:::
+
+:::warning[CUDA 资源死锁]
+在多进程 `Dataset` 或 `collate_fn` 中直接执行 `.to("cuda")` 可能导致死锁、资源竞争或显存溢出。
+:::
+
+:::success[异步拷贝最佳实践]
+1. 在 Dataset 中始终返回 **CPU Tensor**。
+2. 在 DataLoader 开启 `pin_memory=True`。
+3. 仅在**训练主循环**中执行 `.to(device, non_blocking=True)`。
+:::
+
