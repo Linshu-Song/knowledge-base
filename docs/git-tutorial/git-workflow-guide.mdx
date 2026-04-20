@@ -1,9 +1,9 @@
 ---
 sidebar_position: 1
-title: Git Workflow & Branching Strategy
+title: Git Workflow
 ---
 
-# Git Workflow & Branching Strategy
+# Git Workflow
 
 This guide covers professional Git workflows, branching strategies, conventional commits, and essential commands for daily development.
 
@@ -252,7 +252,7 @@ git worktree remove ../hotfix-dir
 Use a consistent prefix for worktree directories, e.g., `../project-hotfix`, `../project-review`, `../project-release`. This keeps your workspace organized.
 :::
 
-:::caution
+:::caution[One Worktree per Branch]
 Each branch can only be checked out in **one** worktree at a time. Attempting to check out the same branch in two trees will fail.
 :::
 

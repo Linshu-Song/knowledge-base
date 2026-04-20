@@ -1,10 +1,10 @@
 ---
 sidebar_position: 4
-title: Git Ignore 工程指南
+title: Git Ignore
 description: .gitignore、.git/info/exclude、全域忽略、模式語法及優先級規則的完整參考。
 ---
 
-# Git Ignore 工程指南
+# Git Ignore
 
 **在專案、本地和全域範圍內管理未跟蹤檔案**
 
@@ -70,7 +70,7 @@ flowchart TD
 !important.log
 ```
 
-:::caution
+:::caution[否定規則限制]
 否定規則僅在父目錄本身未被忽略時才有效。如果 `logs/` 已被忽略，`!logs/important.log` 不會生效 — Git 不會檢查已被忽略的目錄內部。
 :::
 
@@ -158,7 +158,7 @@ notes/
 .DS_Store
 ```
 
-:::tip
+:::tip[本地排除檔案]
 當檔案屬於專案特定但不應強制對整個團隊生效忽略規則時，使用 `.git/info/exclude`。這樣可以保持 `.gitignore` 簡潔，專注於通用模式。
 :::
 
@@ -237,7 +237,7 @@ Git 按以下順序求值忽略規則（後面的規則覆寫前面的規則）�
 3. **`.git/info/exclude`** — 本地儲存庫排除檔案。
 4. **`core.excludesFile`** — 全域忽略檔案。
 
-:::info
+:::info[規則優先級]
 在單個 `.gitignore` 檔案內，**最後匹配的規則生效**。位於忽略模式之後的否定 `!pattern` 會重新包含匹配的檔案。
 :::
 

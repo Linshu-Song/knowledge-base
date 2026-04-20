@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Git Subtree Engineering Guide
+# Git Subtree
 
 **Embedding External Repositories Without a Separate Pointer File**
 
@@ -55,7 +55,7 @@ git subtree add --prefix=vendor/tools https://github.com/example/tools.git main 
 git subtree pull --prefix=vendor/tools https://github.com/example/tools.git main --squash
 ```
 
-:::info
+:::info[Subtree Merge Behavior]
 `git subtree pull` internally performs a `git merge` of the remote branch into your prefix directory. Conflicts, if any, follow standard Git conflict resolution rules.
 :::
 

@@ -103,7 +103,7 @@ import importlib
 importlib.reload(math)
 ```
 
-:::note
+:::note[sys.modules 快取]
 `sys.modules` 快取意味著匯入語句本質上是單例建構函式。模組級程式碼在每個直譯器階段中只執行一次。
 :::
 

@@ -1,9 +1,9 @@
 ---
 sidebar_position: 4
-title: "CI/CD 流水线：生产部署"
+title: 生产部署
 ---
 
-# 生产部署 (CI/CD)
+# 生产部署
 
 我们的部署策略侧重于 **环境一致性**、**不可变镜像** 和 **自动化流水线**。我们确保在推送到生产环境之前，在预发布 (Staging) 环境中验证完全相同的构建产物。
 
@@ -97,4 +97,3 @@ sequenceDiagram
     STG->>REG: 将 image:sha-xyz 重新打标为 prod-latest
     REG->>PRD: 部署 prod-latest
 ```
-

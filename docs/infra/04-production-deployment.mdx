@@ -1,10 +1,10 @@
 ---
 sidebar_position: 4
-title: "CI/CD Pipelines: Production Deployment"
+title: Production Deployment
 description: Engineering standards for CI/CD pipelines, including environment tiers, immutable image tagging, and automated release workflows.
 ---
 
-# Production Deployment (CI/CD)
+# Production Deployment
 
 Our deployment strategy focuses on **Environment Parity**, **Immutable Artifacts**, and **Automated Pipelines**. We prioritize high-confidence releases by validating exact binary images in pre-production before final deployment.
 
@@ -96,5 +96,4 @@ sequenceDiagram
     STG->>REG: Retag image:sha-xyz as stable-latest
     REG->>PRD: Execute Production Rollout
 ```
-
 

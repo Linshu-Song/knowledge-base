@@ -54,7 +54,7 @@ git subtree add --prefix=vendor/tools https://github.com/example/tools.git main 
 git subtree pull --prefix=vendor/tools https://github.com/example/tools.git main --squash
 ```
 
-:::info
+:::info[子树合并行为]
 `git subtree pull` 内部执行的是 `git merge`。如有冲突，按照标准 Git 冲突解决流程处理即可。
 :::
 
