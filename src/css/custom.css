@@ -19,8 +19,8 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 
   /* Font families */
-  --ifm-font-family-base: 'Geist', system-ui, -apple-system, sans-serif;
-  --ifm-font-family-monospace: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ifm-font-family-base: 'Roboto', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Line height - compact but descender-friendly */
   --ifm-line-height-base: 1.45;
