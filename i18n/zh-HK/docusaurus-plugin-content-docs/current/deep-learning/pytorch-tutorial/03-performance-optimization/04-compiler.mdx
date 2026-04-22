@@ -1,0 +1,58 @@
+---
+sidebar_position: 4
+title: 模型編譯
+description: 使用 torch.compile 加速訓練和推理。
+---
+
+# 模型編譯
+
+從歷史上看，PyTorch 完全在**動態圖模式 (Eager Mode)** 下運行。這意味著每個操作（例如，矩陣乘法、ReLU、加法）都獨立執行，一個接一個地執行。雖然動態圖模式非常適合調試和動態圖，但它犧牲了大量性能，因為框架無法看到「全局」來優化操作。
+
+在 PyTorch 2.0 中引入的 `torch.compile` 將圖編譯帶到了 PyTorch，同時保持了動態圖模式的體驗。
+
+## `torch.compile` 是如何工作的
+
+通過編譯模型，PyTorch 在運行操作之前分析操作序列。它使用一個名為 **TorchInductor** 的後端將操作融合在一起。
+
+例如，如果您的模型執行加法然後執行 ReLU，動態圖模式需要：
+1. 從 VRAM 讀取張量 A。
+2. 從 VRAM 讀取張量 B。
+3. 將它們相加，將結果寫回寫入 VRAM。
+4. 從 VRAM 讀取結果。
+5. 應用 ReLU，將最終結果寫入 VRAM。
+
+編譯後的模型將**融合**這些操作成為單個自定義內核，從而大幅降低所需的記憶體頻寬（這通常是現代 GPU 的主要瓶頸）。
+
+## 編譯模式
+
+`torch.compile` 接受一個 `mode` 參數來控制其優化的積極程度：
+
+*   **`default`**：平衡編譯時間和性能。非常適合大多數用例。
+*   **`reduce-overhead`**：大幅優化執行以減少 Python 開銷。非常適合小型模型，在這些模型中，Python 開銷佔執行時間的很大一部分。使用 CUDA 圖 (CUDA graphs)。
+*   **`max-autotune`**：分析多個不同的 CUDA 內核並選擇最快的一個。編譯需要很長時間，但可以產生最快的執行速度。將其用於最終的生產訓練運行或推理。
+
+在 PyTorch 中，編譯只是包裝實例化模型的一個函數調用：
+
+```python
+import torch
+import torchvision.models as models
+
+model = models.resnet50()
+
+# 編譯模型
+fast_model = torch.compile(model, mode="default")
+
+# 正常使用編譯後的模型進行訓練或推理
+for inputs, targets in dataloader:
+    outputs = fast_model(inputs)
+```
+
+## 圖斷裂 (Graph Breaks)
+
+有時，`torch.compile` 會遇到無法安全編譯成圖的 Python 代碼（例如，打印張量的值、複雜的數據依賴控制流）。發生這種情況時，它會執行**圖斷裂**。
+
+模型回退到動態圖模式，執行複雜的 Python 代碼，然後開始為剩餘的操作編譯新圖。
+
+:::warning[盡量減少圖斷裂]
+雖然 `torch.compile` 仍然可以在有圖斷裂的情況下工作，但性能會下降。為了獲得最大速度，您需要一個單一的、連續的圖。您可以通過查看編譯日誌來調試圖斷裂。
+:::

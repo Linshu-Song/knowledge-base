@@ -1,0 +1,52 @@
+---
+sidebar_position: 1
+title: 數據流水線優化
+description: 優化 PyTorch 數據加載和預處理以防止 CPU 瓶頸。
+---
+
+# 數據流水線優化
+
+在訓練深度學習模型時，GPU 通常比 CPU 快得多。如果 CPU 無法足夠快地加載和預處理數據，GPU 將處於閒置狀態等待數據。這被稱為 **CPU 瓶頸**或 **I/O 瓶頸**。
+
+優化數據流水線主要涉及正確配置標準的 PyTorch `DataLoader`。
+
+## 工作進程數 (Number of Workers)
+
+`DataLoader` 中的 `num_workers` 參數決定了用於數據加載的子進程數。
+
+:::tip[最佳 num_workers]
+一個常見的經驗法則是將 `num_workers` 設置為可用的 CPU 核心數，或者 `4 * num_gpus`。然而，設置得太高會導致過多的開銷和記憶體消耗。務必進行基準測試以找到最佳平衡點。
+:::
+
+## 鎖頁記憶體 (Pinned Memory)
+
+在 GPU 上訓練時，數據必須從 CPU RAM 傳輸到 GPU VRAM。預設情況下，這種傳輸是可分頁的，這意味著作業系統可以移動它。鎖定記憶體將數據鎖定在特定的 RAM 位置，從而允許更快地、非同步地將數據傳輸到 GPU。
+
+:::note[何時使用 pin_memory]
+在 GPU 上進行訓練時，請始終設置 `pin_memory=True`。如果僅在 CPU 上訓練，請將其保留為 `False`。
+:::
+
+## 持久化工作進程 (Persistent Workers)
+
+預設情況下，PyTorch 在一個 epoch 結束時銷毀工作進程，並在下一個 epoch 開始時重新創建它們。這種卸載和啟動過程需要時間。
+
+:::info[持久化工作進程]
+設置 `persistent_workers=True` 可以在 epoch 之間保持工作進程存活。這消除了每個 epoch 開始時的初始化開銷，這對於小型數據集或快速 epoch 尤為明顯。
+:::
+
+## DataLoader 配置範例
+
+在初始化 `DataLoader` 時，可以直接應用這些優化：
+
+```python
+from torch.utils.data import DataLoader
+
+train_loader = DataLoader(
+    dataset=train_dataset,
+    batch_size=32,
+    num_workers=8,               # 1. 並行工作進程
+    pin_memory=True,             # 2. 快速 CPU 到 GPU 傳輸
+    persistent_workers=True,     # 3. 避免 epoch 重啟開銷
+    prefetch_factor=2            # 4. 提前緩衝批次
+)
+```
