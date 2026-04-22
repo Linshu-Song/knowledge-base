@@ -10,7 +10,13 @@ import styles from './index.module.css';
 import * as zhCN from './_index.zh-CN';
 import * as zhHK from './_index.zh-HK';
 
-const DefaultSectionList = [
+type SectionCardProps = {
+  title: string;
+  description: string;
+  link: string;
+};
+
+const DefaultSectionList: SectionCardProps[] = [
   {
     title: 'Deep Learning',
     description: 'Computer Vision (YOLO series, CNN), object tracking (TrackNet), and fundamental concepts.',
@@ -33,12 +39,12 @@ const DefaultSectionList = [
   },
 ];
 
-function SectionCard({title, description, link, emoji}: any) {
+function SectionCard({title, description, link}: SectionCardProps) {
   return (
     <div className={clsx('col col--6', styles.cardCol)}>
       <Link to={link} className={styles.card}>
         <Heading as="h3">
-          {emoji} {title}
+          {title}
         </Heading>
         <p>{description}</p>
       </Link>
@@ -48,8 +54,8 @@ function SectionCard({title, description, link, emoji}: any) {
 
 export default function Home(): ReactNode {
   const {siteConfig, i18n} = useDocusaurusContext();
-  
-  let currentSectionList = DefaultSectionList;
+
+  let currentSectionList: SectionCardProps[] = DefaultSectionList;
   let currentTitle = siteConfig.title;
   let currentTagline = siteConfig.tagline;
 
