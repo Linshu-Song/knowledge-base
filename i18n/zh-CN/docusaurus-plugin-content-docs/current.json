@@ -90,18 +90,11 @@
     "message": "性能优化",
     "description": "The label for category 'Performance Optimization' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Frameworks": {
-    "message": "高层框架",
-    "description": "The label for category 'Frameworks' in sidebar 'tutorialSidebar'"
-  },
   "sidebar.tutorialSidebar.category.PyTorch Lightning": {
     "message": "PyTorch Lightning",
     "description": "The label for category 'PyTorch Lightning' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Domain Applications": {
-    "message": "垂直领域实战",
-    "description": "The label for category 'Domain Applications' in sidebar 'tutorialSidebar'"
-  },
+  
   "sidebar.tutorialSidebar.category.NLP": {
     "message": "自然语言处理",
     "description": "The label for category 'NLP' in sidebar 'tutorialSidebar'"
@@ -150,18 +143,12 @@
     "message": "混合精度训练和 torch.compile 编译加速。",
     "description": "The generated-index page description for category 'Performance Optimization' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Frameworks.link.generated-index.description": {
-    "message": "用于自动化样板工程任务的高层框架与库。",
-    "description": "The generated-index page description for category 'Frameworks' in sidebar 'tutorialSidebar'"
-  },
+  
   "sidebar.tutorialSidebar.category.PyTorch Lightning.link.generated-index.description": {
     "message": "组织 PyTorch 代码，将科研与工程解耦。",
     "description": "The generated-index page description for category 'PyTorch Lightning' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Domain Applications.link.generated-index.description": {
-    "message": "跨不同 AI 领域的垂直、特定任务实现。",
-    "description": "The generated-index page description for category 'Domain Applications' in sidebar 'tutorialSidebar'"
-  },
+  
   "sidebar.tutorialSidebar.category.pytorchTutorial.cv.link.generated-index.description": {
     "message": "从 Torchvision 基础到高级图像分类与分割。",
     "description": "The generated-index page description for category 'Computer Vision' in sidebar 'tutorialSidebar'"
