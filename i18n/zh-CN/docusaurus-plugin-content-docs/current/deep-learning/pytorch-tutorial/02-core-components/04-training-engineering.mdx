@@ -1,0 +1,130 @@
+---
+sidebar_position: 4
+title: 训练工程
+description: 构建健壮的 PyTorch 训练流水线的核心组件，涵盖从损失函数到部署准备的各个环节。
+---
+
+# 训练工程
+
+健壮的模型训练不仅涉及前向和反向传播。构建可扩展且具备弹性的训练流水线需要管理状态、硬件、监控以及导出模型以供部署。
+
+:::tip[Lightning Integration]
+诸如 PyTorch Lightning 之类的框架会自动处理本文中讨论的大部分工程样板代码，包括设备管理、精度控制、训练循环和检查点。理解这些底层概念对于调试和扩展这些高级框架至关重要。
+:::
+
+## 训练循环工程
+
+健壮的训练循环负责处理数据迭代、优化步骤和评估。
+
+### 标准模板
+
+结构良好的训练循环应将前向传播、损失计算、反向传播和参数更新分离开来。确保正确调用 `model.train()` 和 `model.eval()`。
+
+```python
+for epoch in range(num_epochs):
+    model.train()
+    for batch_idx, (data, targets) in enumerate(train_loader):
+        data, targets = data.to(device), targets.to(device)
+        
+        optimizer.zero_grad()
+        outputs = model(data)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+```
+
+### 高级优化技术
+
+- **梯度累积**：通过在调用 `optimizer.step()` 之前累积多个步骤的梯度来模拟更大的批量大小。在严格的内存限制下非常有用。
+- **梯度裁剪**：使用 `torch.nn.utils.clip_grad_norm_` 将梯度裁剪到最大范数，防止梯度爆炸。
+- **早停**：当验证指标在预定义的轮数（耐心值）内停止改善时停止训练，防止过拟合。
+
+### 指标计算与日志记录
+
+在训练和验证期间跟踪性能指标（准确率、精确率、召回率）和损失。使用指数平滑或简单的逐轮次累积来维护滑动平均值。
+
+## 训练状态管理
+
+正确的状态管理确保训练可以可靠地暂停、恢复和评估。
+
+### 检查点策略
+
+仅保存模型权重（`model.state_dict()`）不足以恢复训练。完整的检查点必须包括：
+
+- 模型权重（`model.state_dict()`）
+- 优化器状态（`optimizer.state_dict()`）
+- 调度器状态（`scheduler.state_dict()`）
+- 当前轮次和全局步数
+- 最佳验证指标
+
+```python
+checkpoint = {
+    'epoch': epoch,
+    'model_state': model.state_dict(),
+    'optimizer_state': optimizer.state_dict(),
+    'loss': loss_value
+}
+torch.save(checkpoint, 'checkpoint.pth')
+```
+
+### 恢复机制
+
+要恢复训练，加载检查点并恢复所有组件的状态。如果需要完全的可重复性，确保同时管理随机种子。
+
+### 最佳模型逻辑
+
+在每个轮次结束时跟踪验证指标。如果当前指标超过历史最佳值，则单独保存 `best_model.pth`，以确保无论后续是否发生过拟合或早停，都能保留最佳权重。
+
+## 设备与分布式执行
+
+高效管理硬件可加速训练过程。
+
+### 设备最佳实践
+
+避免硬编码 `'cuda'` 或 `'cpu'`。动态分配设备，并在可能的情况下使用非阻塞数据传输。
+
+```python
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+# Use non_blocking=True if pin_memory=True in DataLoader
+data = data.to(device, non_blocking=True)
+```
+
+### 混合精度训练
+
+`torch.cuda.amp` 启用了自动混合精度（AMP），利用 `float16` 实现更快的计算和更低的内存使用，同时在必要时使用 `float32` 保持模型准确性。使用 `GradScaler` 防止梯度更新期间的下溢。
+
+## 调试与监控
+
+了解模型的内部状态对于诊断训练故障至关重要。
+
+### 钩子机制
+
+PyTorch 提供钩子（Hooks）来检查或修改中间张量，而无需改变模型的代码结构。
+- **前向钩子**：用于提取中间特征图。
+- **反向钩子**：允许检查流经特定层的梯度。
+
+### 集成日志平台
+
+集成 **TensorBoard** 或 **Weights & Biases (W&B)** 等工具，可视化随时间变化的损失曲线、学习率和硬件利用率。这些平台提供历史上下文和实验跟踪功能。
+
+### 常见训练陷阱
+
+- **梯度爆炸/消失**：监控梯度范数。使用梯度裁剪或调整初始化策略。
+- **NaN 检测**：使用 `torch.autograd.set_detect_anomaly(True)` 识别产生 `NaN` 值的操作，通常由除以零、不稳定的对数或过高的学习率引起。
+
+## 模型导出与部署准备
+
+将研究成果转化为生产就绪模型需要标准化。
+
+### TorchScript 导出
+
+使用 `torch.jit.trace`（用于静态控制流）或 `torch.jit.script`（用于动态控制流）将 PyTorch 模型转换为独立于 Python 运行时的序列化表示。
+
+### ONNX 导出
+
+开放神经网络交换（ONNX）格式提供了跨各种推理引擎（如 TensorRT、ONNX Runtime）的互操作性。使用 `torch.onnx.export` 导出模型。
+
+### 量化基础
+
+通过将权重和激活从 `float32` 转换为 `int8`，减小模型大小并提高推理速度。PyTorch 支持训练后量化（PTQ）和量化感知训练（QAT）。

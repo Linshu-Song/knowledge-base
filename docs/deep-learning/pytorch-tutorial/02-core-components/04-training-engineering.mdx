@@ -1,0 +1,130 @@
+---
+sidebar_position: 4
+title: Training Engineering
+description: Core components for engineering robust PyTorch training pipelines, from loss functions to deployment preparation.
+---
+
+# Training Engineering
+
+Robust model training requires more than just a forward and backward pass. Engineering a scalable and resilient training pipeline involves managing state, hardware, monitoring, and exporting models for deployment.
+
+:::tip[Lightning Integration]
+Frameworks like PyTorch Lightning automatically handle most of the engineering boilerplate discussed in this document, including devices, precision, loops, and checkpoints. Understanding these underlying concepts is crucial for debugging and extending these higher-level frameworks.
+:::
+
+## Training Loop Engineering
+
+A robust training loop handles data iteration, optimization steps, and evaluation.
+
+### Standard Template
+
+A well-structured training loop separates the forward pass, loss computation, backpropagation, and parameter updates. Ensure `model.train()` and `model.eval()` are called appropriately.
+
+```python
+for epoch in range(num_epochs):
+    model.train()
+    for batch_idx, (data, targets) in enumerate(train_loader):
+        data, targets = data.to(device), targets.to(device)
+        
+        optimizer.zero_grad()
+        outputs = model(data)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+```
+
+### Advanced Optimization Techniques
+
+- **Gradient Accumulation**: Simulates larger batch sizes by accumulating gradients over multiple steps before calling `optimizer.step()`. Useful under strict memory constraints.
+- **Gradient Clipping**: Prevents gradient explosion by clipping gradients to a maximum norm using `torch.nn.utils.clip_grad_norm_`.
+- **Early Stopping**: Halts training when validation metrics stop improving for a predefined number of epochs (patience), preventing overfitting.
+
+### Metrics Calculation and Logging
+
+Track performance metrics (accuracy, precision, recall) and loss during training and validation. Maintain a running average using exponential smoothing or simple epoch-wise accumulation.
+
+## Training State Management
+
+Proper state management ensures that training can be paused, resumed, and evaluated reliably.
+
+### Checkpoint Strategy
+
+Saving only the model weights (`model.state_dict()`) is insufficient for resuming training. A complete checkpoint must include:
+
+- Model weights (`model.state_dict()`)
+- Optimizer state (`optimizer.state_dict()`)
+- Scheduler state (`scheduler.state_dict()`)
+- Current epoch and global step
+- Best validation metric
+
+```python
+checkpoint = {
+    'epoch': epoch,
+    'model_state': model.state_dict(),
+    'optimizer_state': optimizer.state_dict(),
+    'loss': loss_value
+}
+torch.save(checkpoint, 'checkpoint.pth')
+```
+
+### Recovery Mechanism
+
+To resume training, load the checkpoint and restore the states for all components. Ensure the random seed is also managed if exact reproducibility is required.
+
+### Best Model Logic
+
+Track the validation metric at the end of each epoch. If the current metric surpasses the historical best, save a separate `best_model.pth` to ensure the optimal weights are preserved regardless of subsequent overfitting or early stopping.
+
+## Device and Distributed Execution
+
+Managing hardware efficiently accelerates the training process.
+
+### Device Best Practices
+
+Avoid hardcoding `'cuda'` or `'cpu'`. Dynamically assign devices and utilize non-blocking data transfers where possible.
+
+```python
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+# Use non_blocking=True if pin_memory=True in DataLoader
+data = data.to(device, non_blocking=True)
+```
+
+### Mixed Precision Training
+
+`torch.cuda.amp` enables Automatic Mixed Precision (AMP), utilizing `float16` for faster computation and lower memory usage while maintaining model accuracy with `float32` where necessary. Use `GradScaler` to prevent underflow during gradient updates.
+
+## Debugging and Monitoring
+
+Visibility into the model's internal state is critical for diagnosing training failures.
+
+### Hook Mechanisms
+
+PyTorch provides hooks to inspect or modify intermediate tensors without altering the model's code structure.
+- **Forward Hooks**: Useful for extracting intermediate feature maps.
+- **Backward Hooks**: Allow inspection of gradients flowing through specific layers.
+
+### Integration with Logging Platforms
+
+Integrate tools like **TensorBoard** or **Weights & Biases (W&B)** to visualize loss curves, learning rates, and hardware utilization over time. These platforms provide historical context and experiment tracking capabilities.
+
+### Common Training Traps
+
+- **Gradient Explosion / Vanishing**: Monitor gradient norms. Use gradient clipping or adjust initialization strategies.
+- **NaN Detection**: Use `torch.autograd.set_detect_anomaly(True)` to identify operations generating `NaN` values, often caused by division by zero, unstable logarithms, or excessively high learning rates.
+
+## Model Export and Deployment Preparation
+
+Transitioning from a research artifact to a production-ready model requires standardization.
+
+### TorchScript Export
+
+Convert PyTorch models into a serialized representation independent of the Python runtime using `torch.jit.trace` (for static control flow) or `torch.jit.script` (for dynamic control flow).
+
+### ONNX Export
+
+The Open Neural Network Exchange (ONNX) format provides interoperability across various inference engines (e.g., TensorRT, ONNX Runtime). Export models using `torch.onnx.export`.
+
+### Quantization Basics
+
+Reduce model size and increase inference speed by converting weights and activations from `float32` to `int8`. PyTorch supports Post-Training Quantization (PTQ) and Quantization-Aware Training (QAT).

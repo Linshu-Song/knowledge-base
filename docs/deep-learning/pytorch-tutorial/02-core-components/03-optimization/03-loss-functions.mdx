@@ -1,0 +1,39 @@
+---
+sidebar_position: 3
+title: Loss Functions
+description: Objective functions for different deep learning tasks and how to implement custom loss modules.
+---
+
+# Loss Functions
+
+Choosing and implementing the correct loss function is fundamental to optimization.
+
+## Common Loss Types
+
+Different tasks require specific objective functions:
+
+- **Classification Loss**: Use `nn.CrossEntropyLoss` for multi-class classification (combines `nn.LogSoftmax` and `nn.NLLLoss`). For multi-label tasks, use `nn.BCEWithLogitsLoss`.
+- **Regression Loss**: `nn.MSELoss` (L2 loss) is standard, but `nn.L1Loss` (MAE) or `nn.SmoothL1Loss` (Huber loss) are more robust to outliers.
+- **Contrastive Learning Loss**: Used for metric learning (e.g., InfoNCE, Triplet Loss). Often requires custom implementations or specialized libraries, utilizing cosine similarity and margin-based penalties.
+
+## Custom Loss Implementation
+
+When standard loss functions are insufficient, create custom loss modules by subclassing `nn.Module`.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1.0, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        return focal_loss.mean()
+```

@@ -1,0 +1,39 @@
+---
+sidebar_position: 3
+title: 损失函数
+description: 适用于不同深度学习任务的目标函数及其自定义模块的实现方法。
+---
+
+# 损失函数
+
+选择并实现正确的损失函数是优化的基础。
+
+## 常见损失类型
+
+不同的任务需要特定的目标函数：
+
+- **分类损失**：对于多分类任务，使用 `nn.CrossEntropyLoss`（结合了 `nn.LogSoftmax` 和 `nn.NLLLoss`）。对于多标签任务，使用 `nn.BCEWithLogitsLoss`。
+- **回归损失**：`nn.MSELoss`（L2 损失）是标准选择，但 `nn.L1Loss`（MAE）或 `nn.SmoothL1Loss`（Huber 损失）对异常值更具鲁棒性。
+- **对比学习损失**：用于度量学习（例如 InfoNCE，Triplet Loss）。通常需要自定义实现或使用专门的库，利用余弦相似度和基于间隔的惩罚。
+
+## 自定义损失实现
+
+当标准损失函数不足以满足需求时，可以通过继承 `nn.Module` 来创建自定义损失模块。
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1.0, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        return focal_loss.mean()
+```
