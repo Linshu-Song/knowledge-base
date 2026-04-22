@@ -1,0 +1,92 @@
+---
+sidebar_position: 3
+title: DataLoader 與採樣器
+description: 深入講解 DataLoader 運行期策略，掌握 Sampler 機制、自訂批次邏輯以及效能調參。
+---
+
+# DataLoader 與採樣器
+
+當你已經定義了穩固的「單樣本契約」（Dataset），接下來的任務是如何將這些樣本「又快又好」地組織成供模型消費的 Batch。這正是 `Sampler`、`collate_fn` 和 `DataLoader` 高級參數的用武之地。
+
+## 採樣的藝術：Sampler 層
+
+許多開發者以為高階的數據控制都在 Dataset 層，但實際上，控制**「模型在每一輪看到哪些數據、以什麼順序看到」**的靈魂在於 `Sampler`。
+
+對於 Map-style 數據集，PyTorch 提供了豐富的採樣器：
+
+- **`SequentialSampler`**：按順序採樣（常用於驗證 / 測試集）。
+- **`RandomSampler`**：打亂順序採樣（常用於訓練集）。`DataLoader(shuffle=True)` 內部就是自動啟用了它。
+- **`WeightedRandomSampler`**：按給定權重採樣。**解決長尾分佈、類別極度不平衡問題**的最佳利器。
+- **`DistributedSampler`**：分散式訓練（DDP）的基石，確保每個 GPU 程序拿到互不重疊的數據分片。
+
+:::info[BatchSampler]
+`BatchSampler` 是一個更為特殊的採樣器，它包裝了上述單個樣本的採樣器，直接產出**一批**索引。例如長度分桶（Length Bucketing）策略，就通常透過自訂 `BatchSampler` 來實現。
+:::
+
+## 批次處理的靈魂：`collate_fn`
+
+如果說 Sampler 決定了「拿哪幾個索引」，那麼 `collate_fn` 就決定了**「這幾個樣本如何合併成一個 Batch」**。
+
+預設的 `default_collate` 非常聰明：它能自動為 Tensor 增加批次維度，把 NumPy 陣列和 Python 數字轉為 Tensor，甚至會原樣保留字典和元組的外層結構。
+
+:::danger[關鍵點：Shape 與型別一致性]
+當樣本無法直接「堆疊」時，DataLoader 內部會拋出嚴重的錯誤。這通常發生在變長序列或複雜物件上。
+:::
+
+在以下場景中，你**必須**自訂 `collate_fn`：
+1. **變長序列**：如 NLP 中的句子，或者語音頻譜，各個樣本長度不同，無法直接 stack。需要在這裡手寫 Padding 邏輯補齊長度。
+2. **變長集合**：如目標檢測中，每張圖的 bounding boxes 數量不同。
+3. **自訂物件**：如果你的樣本回傳了自訂的 Python class 而非基礎型別。
+
+```python
+import torch
+
+def pad_collate_fn(batch):
+    # batch 是一個列表，包含了 dataset 回傳的多個字典樣本
+    # 假設每個樣本為: {"input_ids": tensor([L]), "label": int}
+    
+    # 1. 提取所有序列並找到本批次最大長度
+    sequences = [item["input_ids"] for item in batch]
+    labels = [item["label"] for item in batch]
+    
+    # 2. 對序列進行 Padding (使用 pad_sequence 工具)
+    from torch.nn.utils.rnn import pad_sequence
+    padded_seqs = pad_sequence(sequences, batch_first=True, padding_value=0)
+    
+    # 3. 回傳規整後的 Tensor 字典
+    return {
+        "input_ids": padded_seqs,
+        "labels": torch.tensor(labels, dtype=torch.long)
+    }
+```
+
+## 高級效能與調度參數
+
+`DataLoader` 最好保持「薄」，主要承載運行期的並行調度與傳輸策略。核心參數如下：
+
+| 參數 | 作用與建議 |
+| :--- | :--- |
+| `num_workers` | 開啟多進程載入。**建議：先設為 0 調通業務邏輯（單進程報錯堆疊清晰），再逐步調大（如 4 或 8）。** |
+| `pin_memory` | **GPU 訓練時強烈建議開啟 `True`**。它將數據載入到鎖頁記憶體中，從而使 CPU 到 CUDA 的拷貝極其迅速。 |
+| `prefetch_factor` | 每個 worker 提前拉取多少個 batch。在網路 IO 或磁碟讀取較慢時可適當調大，以隱藏讀取延遲。 |
+| `persistent_workers` | 若設為 `True`，在每個 epoch 結束時不會銷毀 worker 進程。**適合 epoch 數很多且 worker 初始化（如讀元資料）極慢的任務。** |
+
+## 工程排雷指南
+
+多進程載入最常見的失敗點，不是 `DataLoader` 本身，而是 **Python 物件、隨機種子和裝置遷移** 三個環節。
+
+:::warning[多進程記憶體爆炸]
+在多進程模式下，Worker 會透過寫時複製（Copy-On-Write）複製父進程中被訪問的 Python 物件。如果你在 `Dataset.__init__` 中保存了一個幾百萬行的巨型 Python `list`，子進程的記憶體佔用會隨 Worker 數量成倍增加。
+:::
+
+| 症狀 | 常見原因 | 建議處理 |
+| :--- | :--- | :--- |
+| Worker 記憶體隨數量線性增長 | 大型 Python 容器被複製 | 將路徑列表、標註資訊轉為 **NumPy 陣列**、**Pandas DataFrame** 或 **mmap** |
+| 不同 Worker 產出相同增強結果 | `numpy.random` / `random` 沒有重新設種子 | 在 `worker_init_fn` 中基於 `worker_id` 重置第三方庫隨機種子 |
+| 多進程裡直接 `.to("cuda")` 卡死 | 子進程碰 CUDA 資源 | `Dataset` 只回傳 **CPU Tensor**，在主訓練循環中再遷移到 GPU |
+
+:::tip[非同步拷貝最佳實踐]
+1. 在 `Dataset` 中始終回傳 **CPU Tensor**。
+2. 在 `DataLoader` 中開啟 `pin_memory=True`。
+3. 只在**訓練主循環**中執行 `.to(device, non_blocking=True)`。
+:::

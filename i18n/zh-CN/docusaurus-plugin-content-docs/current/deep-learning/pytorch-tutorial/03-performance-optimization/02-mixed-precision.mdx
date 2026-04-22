@@ -1,0 +1,84 @@
+---
+sidebar_position: 2
+title: 混合精度训练
+description: 使用 AMP (自动混合精度) 加速训练并减少 VRAM 使用。
+---
+
+# 混合精度训练
+
+默认情况下，PyTorch 使用 32 位浮点数（`float32` 或 FP32）执行所有张量操作。然而，现代 GPU 包含针对较低精度格式（如 16 位浮点数 `float16` 或 FP16 以及 `bfloat16` 或 BF16）优化的专用硬件（如 Tensor Cores）。
+
+**自动混合精度 (AMP)** 智能地在较低精度下运行某些操作以节省内存并提高速度，同时将需要较高动态范围的操作保持在 `float32`。
+
+## 较低精度的优势
+
+1. **更快的计算**：Tensor Cores 处理 16 位数学运算的速度比 32 位数学运算快几个数量级。
+2. **减少内存**：梯度、激活值和权重占用更少的 VRAM，从而允许更大的批次大小或更大的模型。
+3. **内存带宽**：移动 16 位数据所需的时间是 32 位数据的一半，从而缓解了内存带宽瓶颈。
+
+## FP16 (Float16)
+
+FP16 使用 1 个符号位、5 个指数位和 10 个尾数位来表示数字。由于它的指数位少于 FP32，因此其动态范围较窄，这有时会导致梯度下溢（梯度变为零）。AMP 在底层使用**梯度缩放器 (Gradient Scaler)** 来防止这种情况。
+
+```python
+import torch
+
+scaler = torch.amp.GradScaler('cuda')
+
+for inputs, targets in dataloader:
+    optimizer.zero_grad()
+    
+    # 将操作转换为混合精度
+    with torch.amp.autocast('cuda', dtype=torch.float16):
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        
+    # 缩放损失并调用 backward 以创建缩放后的梯度
+    scaler.scale(loss).backward()
+    
+    # 取消缩放梯度并更新权重
+    scaler.step(optimizer)
+    scaler.update()
+```
+
+## BF16 (BFloat16)
+
+BF16 为指数分配了 8 位（与 FP32 相同），为尾数分配了 7 位。这意味着它具有**与 FP32 完全相同的动态范围**，从而消除了梯度下溢问题。然而，它牺牲了小数精度。
+
+BF16 在训练大型语言模型 (LLM) 和其他不稳定的架构时备受青睐，因为它不需要梯度缩放器。
+
+:::warning[硬件要求]
+BF16 需要 Ampere 架构的 GPU（例如 RTX 30 系列、A100）或更新版本。如果您使用的是较旧的 GPU（如 V100 或 RTX 20 系列），则必须坚持使用标准的 FP16。
+:::
+
+```python
+import torch
+
+for inputs, targets in dataloader:
+    optimizer.zero_grad()
+    
+    # BF16 不需要 GradScaler
+    with torch.amp.autocast('cuda', dtype=torch.bfloat16):
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        
+    loss.backward()
+    optimizer.step()
+```
+
+## TensorFloat-32 (TF32)
+
+TF32 是在 Ampere GPU 中引入的一种特殊格式。它使用 8 位作为指数（如 BF16/FP32），并使用 10 位作为尾数（如 FP16）。
+
+与 FP16/BF16 不同，TF32 **不是**您将张量转换成的数据类型。相反，它是 Tensor Cores 的一种内部执行模式。当您将两个 FP32 矩阵相乘时，GPU 可以在内部使用 TF32 执行数学运算，从而提供巨大的速度提升，而几乎无需更改代码。
+
+:::info[启用 TF32]
+PyTorch 默认情况下会禁用矩阵乘法的 TF32，以确保完美的重现性。要在 Ampere 及以上版本的 GPU 上启用它以获得免费的速度提升，请在脚本开始时全局运行此命令。
+:::
+
+```python
+import torch
+
+# 必须在初始化之前全局运行
+torch.set_float32_matmul_precision('high')
+```

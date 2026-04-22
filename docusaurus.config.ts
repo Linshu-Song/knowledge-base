@@ -90,7 +90,7 @@ const config: Config = {
           editUrl: 'https://github.com/SAILTECHTEAM/knowledge-base/tree/main/',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
-          showLastUpdateTime: true,
+          showLastUpdateTime: false,
         },
         blog: false,
         theme: {

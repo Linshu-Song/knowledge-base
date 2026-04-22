@@ -1,0 +1,83 @@
+---
+sidebar_position: 3
+title: 記憶體優化
+description: 將更大的模型和批次放入有限 GPU VRAM 中的技術。
+---
+
+# 記憶體優化
+
+訓練大型模型經常會觸及 GPU VRAM 的物理極限。當遇到記憶體不足 (OOM) 錯誤時，您無法立即購買更大的 GPU。相反，您可以利用幾種記憶體優化技術，用運算時間換取 VRAM 空間。
+
+## 梯度累加 (Gradient Accumulation)
+
+當您為了避免 OOM 錯誤而減小批次大小時，梯度會變得更加嘈雜，這可能會影響收斂。**梯度累加**允許您通過在多次較小的正向/反向傳播中累加梯度，然後再實際更新權重，從而模擬大的批次大小。
+
+例如，通過運行 4 個大小為 16 的批次，累加梯度，然後執行優化器步驟，可以模擬大小為 64 的批次。這使記憶體使用量保持在批次大小為 16 的水平，同時提供批次大小為 64 的穩定性。
+
+在原生 PyTorch 中，這需要仔細放置 `zero_grad()` 和 `step()` 調用：
+
+```python
+# 步進前累加的微批次數量
+accumulation_steps = 4
+
+optimizer.zero_grad()
+
+for i, (inputs, targets) in enumerate(dataloader):
+    outputs = model(inputs)
+    
+    # 縮放損失以解決累加問題
+    loss = criterion(outputs, targets) / accumulation_steps
+    loss.backward()  # 梯度在此處累加
+    
+    # 僅每 `accumulation_steps` 次迭代執行一次優化步驟
+    if (i + 1) % accumulation_steps == 0:
+        optimizer.step()
+        optimizer.zero_grad()  # 重置梯度以進行下一個累加週期
+```
+
+## 梯度檢查點 (Gradient Checkpointing)
+
+在正向傳播期間，PyTorch 會將中間激活保存在記憶體中，因為在反向傳播（反向傳播）期間計算梯度需要它們。對於非常深的模型，存儲這些激活會消耗絕大部分 VRAM。
+
+**梯度檢查點**（或激活檢查點）丟棄這些中間激活以節省記憶體。在反向傳播期間，PyTorch 會即時重新計算它們。這顯著減少了 VRAM 使用量，代價是訓練時間大約延長 20-30%。
+
+:::info[用運算換記憶體]
+檢查點是終極的「運算換記憶體」權衡。在訓練基礎模型或處理超高解析度圖像時，這是必不可少的。
+:::
+
+要實現這一點，在 `forward` 傳遞期間使用 `torch.utils.checkpoint.checkpoint` 包裝您的子模組。
+
+```python
+import torch.nn as nn
+from torch.utils.checkpoint import checkpoint
+
+class DeepModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Sequential(...)
+        self.layer2 = nn.Sequential(...)
+
+    def forward(self, x):
+        # 正常的正向傳播會消耗大量記憶體
+        # x = self.layer1(x)
+        
+        # 檢查點的正向傳播節省記憶體，在反向傳播中重新計算
+        x = checkpoint(self.layer1, x, use_reentrant=False)
+        x = checkpoint(self.layer2, x, use_reentrant=False)
+        return x
+```
+
+## 梯度裁剪 (Gradient Clipping)
+
+雖然梯度裁剪主要是一種防止梯度爆炸（數值不穩定性）的技術，但它也可以防止 `NaN` 值傳播並損壞您的優化器狀態。在使用動態範圍有限的混合精度格式時，這尤其有用。
+
+```python
+import torch
+
+loss.backward()
+
+# 在採取步驟之前，將梯度的範數裁剪為 1.0
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+optimizer.step()
+```

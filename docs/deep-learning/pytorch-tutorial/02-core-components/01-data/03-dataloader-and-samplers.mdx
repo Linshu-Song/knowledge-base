@@ -1,0 +1,92 @@
+---
+sidebar_position: 3
+title: DataLoader and Samplers
+description: Explore DataLoader runtime strategy, Sampler mechanics, custom batching logic, and performance tuning.
+---
+
+# DataLoader and Samplers
+
+Once the single-sample contract is defined, the next task is to organize samples into batches efficiently and correctly for model consumption. This is where `Sampler`, `collate_fn`, and advanced `DataLoader` parameters matter.
+
+## The art of sampling: the `Sampler` layer
+
+Many developers assume advanced data control lives in `Dataset`, but the real mechanism that controls **which data the model sees each epoch and in what order** is `Sampler`.
+
+For Map-style datasets, PyTorch provides several samplers:
+
+- **`SequentialSampler`**: samples in order, often used for validation and test sets.
+- **`RandomSampler`**: samples in shuffled order, often used for training sets. `DataLoader(shuffle=True)` enables it internally.
+- **`WeightedRandomSampler`**: samples according to weights. A strong option for long-tail distributions and severe class imbalance.
+- **`DistributedSampler`**: the foundation of distributed training (DDP), ensuring each GPU process receives non-overlapping data shards.
+
+:::info[BatchSampler]
+`BatchSampler` is a special sampler that wraps a single-sample sampler and yields **batches** of indices directly. For example, length bucketing is usually implemented with a custom `BatchSampler`.
+:::
+
+## The soul of batching: `collate_fn`
+
+If `Sampler` decides which indices to take, then `collate_fn` decides **how those samples are merged into a batch**.
+
+The default `default_collate` is smart: it automatically adds a batch dimension to tensors, converts NumPy arrays and Python numbers into tensors, and preserves the outer structure of dictionaries and tuples.
+
+:::danger[Key point: shape and type consistency]
+When samples cannot be stacked directly, `DataLoader` raises an error. This usually happens with variable-length sequences or complex objects.
+:::
+
+You **must** customize `collate_fn` in the following cases:
+1. **Variable-length sequences**: for example, sentences in NLP or speech spectrograms, where sample lengths differ and cannot be stacked directly. Padding must be implemented here.
+2. **Variable-size sets**: for example, object detection where each image has a different number of bounding boxes.
+3. **Custom objects**: when samples return a custom Python class instead of primitive types.
+
+```python
+import torch
+
+def pad_collate_fn(batch):
+    # batch is a list containing multiple dictionary samples returned by the dataset
+    # Assume each sample looks like: {"input_ids": tensor([L]), "label": int}
+    
+    # 1. Extract all sequences and find the max length in the batch
+    sequences = [item["input_ids"] for item in batch]
+    labels = [item["label"] for item in batch]
+    
+    # 2. Pad sequences (using pad_sequence)
+    from torch.nn.utils.rnn import pad_sequence
+    padded_seqs = pad_sequence(sequences, batch_first=True, padding_value=0)
+    
+    # 3. Return a normalized tensor dictionary
+    return {
+        "input_ids": padded_seqs,
+        "labels": torch.tensor(labels, dtype=torch.long)
+    }
+```
+
+## Advanced performance and scheduling parameters
+
+`DataLoader` should stay thin and mainly handle runtime parallel scheduling and transfer strategy. Core parameters:
+
+| Parameter | Purpose and recommendation |
+| :--- | :--- |
+| `num_workers` | Enables multiprocessing data loading. **Recommendation: start with `0` to validate logic with a clear single-process stack trace, then gradually increase to 4 or 8.** |
+| `pin_memory` | **Strongly recommended as `True` for GPU training**. It places data in pinned memory for much faster CPU-to-CUDA transfers. |
+| `prefetch_factor` | How many batches each worker preloads. Increase it when network I/O or disk reads are slow to hide latency. |
+| `persistent_workers` | If `True`, worker processes are kept alive after each epoch. **Useful when there are many epochs and worker initialization is expensive.** |
+
+## Engineering troubleshooting guide
+
+The most common failure points in multiprocessing are not `DataLoader` itself, but **Python objects, random seeds, and device transfers**.
+
+:::warning[Multiprocessing memory blow-up]
+In multiprocessing mode, workers copy Python objects accessed in the parent process via copy-on-write. If `Dataset.__init__` stores a huge Python `list` with millions of rows, child-process memory usage will grow roughly with the number of workers.
+:::
+
+| Symptom | Common cause | Recommended fix |
+| :--- | :--- | :--- |
+| Worker memory grows with count | Large Python containers are copied | Convert path lists and annotations to **NumPy arrays**, **Pandas DataFrames**, or **mmap** |
+| Different workers produce identical augmentation results | `numpy.random` / `random` were not reseeded | Reseed third-party RNGs in `worker_init_fn` using `worker_id` |
+| Direct `.to("cuda")` in multiprocessing hangs | CUDA resources are touched in child processes | Let `Dataset` return **CPU tensors** only, then move to GPU in the main training loop |
+
+:::tip[Async copy best practices]
+1. Always return **CPU tensors** from `Dataset`.
+2. Enable `pin_memory=True` in `DataLoader`.
+3. Call `.to(device, non_blocking=True)` only in the **main training loop**.
+:::
