@@ -1,0 +1,50 @@
+---
+sidebar_position: 2
+title: 進階數據管道
+description: 使用 Iterable Datasets 和 IterDataPipe 的進階數據載入（待擴展）。
+---
+
+# 進階數據管道
+
+對於大規模資料集或串流傳輸場景，其中資料是動態生成或從遠端來源串流傳輸的，標準的對應樣式（Map-style）`Dataset` 變得低效或無法使用。PyTorch 提供了一個稱為 `IterableDataset` 的進階原語和一個稱為 `TorchData` 的專用函式庫。
+
+:::note[開發中]
+此頁面目前正在開發中。以下主題將在未來的更新中擴展。
+:::
+
+## `IterableDataset` 和 `IterDataPipe`
+
+常規的 `Dataset` 依賴於索引（`__getitem__`），而 `IterableDataset` 實作了 `__iter__` 協定，按順序生成資料點。
+
+`IterDataPipe` 是 TorchData 中引入的一種較新的範式，它直接在可迭代資料流上連結操作（例如解析、解碼、批次處理）。
+
+```python
+from torch.utils.data import IterableDataset
+
+class StreamingDataset(IterableDataset):
+    def __init__(self, data_stream):
+        self.data_stream = data_stream
+
+    def __iter__(self):
+        for data in self.data_stream:
+            yield self.process(data)
+```
+
+## 未來主題
+
+### `TorchData` 函式庫
+
+`TorchData` 生態系統促進了可組合的資料載入管道。我們將涵蓋：
+- 組合 `DataPipe` 以處理複雜的資料格式
+- 使用多處理程序和多節點設定平行化資料載入
+
+### 視訊和音訊串流
+
+處理多維、順序資料需要特殊考慮：
+- **音訊管道**：與 `torchaudio.datasets` 整合並進行即時頻譜圖處理
+- **視訊串流**：使用 `torchvision.io` 進行高效的影格擷取和串流傳輸
+
+## 參考資料
+
+- [PyTorch 官方文件：Iterable-style datasets](https://pytorch.org/docs/stable/data.html#iterable-style-datasets)
+- [TorchData GitHub 儲存庫](https://github.com/pytorch/data)

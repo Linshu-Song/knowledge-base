@@ -1,9 +1,9 @@
 ---
 sidebar_position: 1
-title: Git 工作流与分支策略
+title: Git 工作流
 ---
 
-# Git 工作流与分支策略
+# Git 工作流
 
 本指南涵盖了 Git 工作流、分支策略、Conventional Commits 规范以及日常开发中的常用命令。
 
@@ -252,7 +252,7 @@ git worktree remove ../hotfix-dir
 为工作目录使用统一的前缀，如 `../project-hotfix`、`../project-review`、`../project-release`，保持工作区整洁。
 :::
 
-:::caution
+:::caution[单分支单工作区]
 同一分支**同时只能在一个工作树中**检出。尝试在两个工作树中检出相同分支会失败。
 :::
 

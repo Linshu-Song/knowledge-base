@@ -1,0 +1,148 @@
+---
+sidebar_position: 3
+title: Model Surgery
+description: A practical guide to inspecting, modifying, and extracting features from pretrained PyTorch models.
+---
+
+# Model Surgery
+
+One of the most common tasks for a deep learning engineer isn't training a model from scratch, but rather adapting an existing, pretrained model to a new task. This process of inspecting, modifying, and extracting parts of a model is often referred to as **Model Surgery**.
+
+For a junior developer, interacting with a massive architecture like ResNet or Vision Transformer (ViT) can be intimidating. This guide provides a step-by-step approach to confidently "operate" on any PyTorch model.
+
+## Step 1: Inspecting the Architecture
+
+Before making any modifications, you must understand the exact hierarchical structure of the model. PyTorch modules are deeply nested trees.
+
+### The Naive Way: `print(model)`
+Simply printing the model outputs its nested structure. While verbose, it accurately shows the names of the modules, which are exactly the variable names you need to access them.
+
+```python
+import torchvision.models as models
+
+model = models.resnet18()
+print(model)
+# Output snippet:
+# ResNet(
+#   (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+#   (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+#   (relu): ReLU(inplace=True)
+#   ...
+#   (fc): Linear(in_features=512, out_features=1000, bias=True)
+# )
+```
+
+From this output, we know the first convolution is stored at `model.conv1` and the final classification head is stored at `model.fc`.
+
+:::tip[Use `torchinfo`]
+For a more professional and readable summary (including output shapes and parameter counts per layer), use the third-party library `torchinfo`.
+```python
+from torchinfo import summary
+summary(model, input_size=(1, 3, 224, 224))
+```
+:::
+
+## Step 2: Modifying Layers
+
+The most classic transfer learning scenario is taking a model trained on ImageNet (which has 1000 classes) and adapting it to a custom dataset (e.g., classifying cats vs. dogs, which has 2 classes).
+
+To do this, we simply overwrite the final layer with a new one.
+
+```python
+import torch.nn as nn
+
+# 1. Identify the name of the final layer (e.g., 'fc' for ResNet, 'classifier' for MobileNet)
+in_features = model.fc.in_features
+
+# 2. Replace it with a new, untrained layer
+model.fc = nn.Linear(in_features, out_features=2)
+```
+
+By assigning a new module to `model.fc`, PyTorch automatically deregisters the old parameters and registers the new ones. The new `nn.Linear` layer is initialized randomly by default.
+
+:::warning[Layer Naming Variations]
+Different architectures use different names for their final layer. ResNet uses `.fc`, VGG and DenseNet use `.classifier`, and Vision Transformers (ViT) use `.heads`. Always print the model first!
+:::
+
+## Step 3: Freezing Parameters
+
+If you only want to train your newly added layer (a technique called "Linear Probing"), you must freeze the rest of the model. "Freezing" simply means telling PyTorch's Autograd engine not to calculate gradients for those parameters, which saves massive amounts of memory and compute.
+
+```python
+# 1. Freeze all parameters in the entire model
+for param in model.parameters():
+    param.requires_grad = False
+
+# 2. Unfreeze only the parameters of the newly added layer
+# (Since we just created it, it defaults to requires_grad=True, 
+# but if you froze the model AFTER replacing the layer, you must unfreeze it)
+for param in model.fc.parameters():
+    param.requires_grad = True
+```
+
+When passing parameters to your optimizer, it is a best practice to only pass the unfrozen parameters:
+```python
+optimizer = torch.optim.Adam(
+    filter(lambda p: p.requires_grad, model.parameters()), 
+    lr=1e-3
+)
+```
+
+## Step 4: Extracting Intermediate Features
+
+Sometimes you don't want the final output; you want the intermediate feature maps (e.g., for Object Detection or Neural Style Transfer).
+
+### The "Rewrite" Approach (Not Recommended)
+A beginner might copy-paste the entire `forward` method from the source code and modify it to return multiple tensors. **Do not do this.** It breaks easily when PyTorch updates its backend code, and it makes your code unmaintainable.
+
+### The Hook Approach (Professional)
+PyTorch provides `register_forward_hook`, which allows you to attach a listener to any module. The hook triggers every time the module finishes its forward pass, giving you access to its input and output.
+
+```python
+intermediate_features = {}
+
+def get_features(name):
+    # This hook function will be called automatically during forward()
+    def hook(module, input, output):
+        intermediate_features[name] = output.detach()
+    return hook
+
+# Register hooks to the layers we care about
+model.layer1.register_forward_hook(get_features('feat1'))
+model.layer3.register_forward_hook(get_features('feat3'))
+
+# Run the model
+x = torch.randn(1, 3, 224, 224)
+_ = model(x)
+
+# The dictionary now contains the intermediate tensors!
+print(intermediate_features['feat1'].shape)
+```
+
+### The Modern Approach: Feature Extractor
+Since PyTorch 1.11, the `torchvision.models.feature_extraction` module uses graph tracing (`torch.fx`) to elegantly rewrite the model for you.
+
+```python
+from torchvision.models.feature_extraction import create_feature_extractor
+
+# Define a dictionary mapping the internal node names to your custom keys
+return_nodes = {
+    'layer1.2.relu': 'feat1',
+    'layer3.5.relu': 'feat3'
+}
+
+# Create a new model that outputs exactly what you requested
+feature_extractor = create_feature_extractor(model, return_nodes=return_nodes)
+
+# The output is a dictionary!
+out = feature_extractor(x)
+print(out['feat1'].shape)
+```
+
+## Summary
+
+Modifying pretrained models is a fundamental engineering skill. Remember this workflow:
+1. **Inspect** the architecture (`print` or `torchinfo`).
+2. **Replace** specific components using standard Python assignment (`model.layer_name = new_layer`).
+3. **Freeze** parameters using `requires_grad = False` to prevent catastrophic forgetting.
+4. **Extract** intermediate representations gracefully using Hooks or `create_feature_extractor`, avoiding ugly rewrites of the `forward` function.

@@ -1,10 +1,10 @@
 ---
 sidebar_position: 6
-title: "SSH 密鑰管理與訪問安全"
+title: SSH 存取安全
 description: 通過 SSH 確保訪問安全的實用指南，包括密鑰生成、代理轉發和工作流優化。
 ---
 
-# SSH 與訪問安全
+# SSH 存取安全
 
 對遠程服務器和 Git 倉庫的安全訪問從根本上建立在 **SSH (Secure Shell)** 協議之上。我們利用非對稱加密技術，確保身份驗證憑據永遠不會在網絡上傳輸，並僅存儲在您的本地計算機上。
 
@@ -30,7 +30,7 @@ SSH 身份驗證依賴於由兩個數學相關文件組成的 **公私鑰對**�
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
 ```
-:::note
+:::note[密碼處理]
 接受默認存儲路徑並為本地加密提供強密碼。
 :::
 
@@ -110,4 +110,3 @@ Host production-server
 :::tip[最佳實踐]
 定期審核遠程服務器上的 `~/.ssh/authorized_keys` 內容，確保只有當前授權的密鑰處於活動狀態。
 :::
-

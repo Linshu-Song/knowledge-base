@@ -1,0 +1,67 @@
+---
+sidebar_position: 5
+title: Profiling and Bottlenecks
+description: Identify performance bottlenecks using PyTorch Profiler.
+---
+
+# Profiling and Bottlenecks
+
+Before blindly applying performance optimizations, you must first identify where the bottleneck lies. In deep learning, bottlenecks typically fall into one of three categories:
+
+1. **CPU-bound (Data Loading / Preprocessing)**: The GPU is waiting for the CPU to supply batches of data.
+2. **GPU-bound (Compute)**: The GPU is fully utilized crunching numbers, and the CPU is waiting for it to finish.
+3. **I/O-bound or Communication-bound**: Time is spent reading from disk or transferring data across PCIe/Network.
+
+## PyTorch Profiler
+
+The PyTorch Profiler API is the standard tool to understand the execution time and memory consumption of your PyTorch models. It tracks operations at the C++ level and CUDA level, providing an exact timeline of events.
+
+```python
+import torch
+import torch.profiler
+
+# Wrap your training step in the profiler context
+with torch.profiler.profile(
+    activities=[
+        torch.profiler.ProfilerActivity.CPU,
+        torch.profiler.ProfilerActivity.CUDA,
+    ],
+    schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+    on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler'),
+    record_shapes=True,
+    profile_memory=True,
+    with_stack=True
+) as prof:
+    for step, (inputs, targets) in enumerate(dataloader):
+        if step >= 5:
+            break
+            
+        # Standard training steps
+        optimizer.zero_grad()
+        loss = model(inputs)
+        loss.backward()
+        optimizer.step()
+        
+        # Tell the profiler we finished a step
+        prof.step()
+```
+
+:::tip[Profiling Overhead]
+Profiling slows down your training loop significantly. Only run the profiler for a few steps (e.g., 5-10 batches) rather than a full epoch.
+:::
+
+## Analyzing the Output
+
+Profiling data can be exported to a format that can be viewed in TensorBoard using the PyTorch Profiler plugin.
+
+### Key Metrics to Check
+
+1. **GPU Utilization**: If your GPU utilization is low (e.g., < 80%), you likely have a CPU data-loading bottleneck. You should revisit your `num_workers`, `pin_memory`, and data augmentation pipelines.
+2. **Kernel Time**: If GPU utilization is high, look at which operations (kernels) take the most time. E.g., if convolutions are slow, you might benefit from AMP (Mixed Precision) or TF32.
+3. **Memory Timeline**: The profiler can plot memory allocation over time. Spikes in memory often correlate with the forward pass storing activations. If the peaks are too close to your VRAM limit, consider Gradient Checkpointing.
+
+## Identifying Data Loading Bottlenecks
+
+A quick, code-free way to check if you are data-loading bound is to monitor your GPU usage using `nvidia-smi` or `nvtop`. 
+
+If the GPU utilization constantly drops to 0% and then spikes back up to 100%, the GPU is stalling while waiting for the next batch. The utilization should remain consistently high (95%+) during a healthy training run.

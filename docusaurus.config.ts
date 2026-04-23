@@ -78,7 +78,8 @@ const config: Config = {
   ],
 
   stylesheets: [
-    'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Source+Code+Pro:wght@200..900&display=swap',
+    'https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght,MONO@0,300..800,1;1,300..800,1&family=Intel+One+Mono:ital,wght@0,300..700;1,300..700&display=swap',
   ],
 
   presets: [
@@ -90,7 +91,7 @@ const config: Config = {
           editUrl: 'https://github.com/SAILTECHTEAM/knowledge-base/tree/main/',
           remarkPlugins: [remarkMath],
           rehypePlugins: [rehypeKatex],
-          showLastUpdateTime: true,
+          showLastUpdateTime: false,
         },
         blog: false,
         theme: {
@@ -130,10 +131,10 @@ const config: Config = {
         {
           title: 'Sections',
           items: [
-            {label: 'Deep Learning', to: '/docs/category/deep-learning'},
-            {label: 'Python Tutorial', to: '/docs/category/python-tutorial'},
-            {label: 'Git Tutorial', to: '/docs/category/git-tutorial'},
-            {label: 'Infrastructure', to: '/docs/category/devops--infrastructure'},
+            {label: 'Deep Learning', to: '/docs/deep-learning/fundamental/'},
+            {label: 'Python Tutorial', to: '/docs/python-tutorial/'},
+            {label: 'Git Tutorial', to: '/docs/git-tutorial/'},
+            {label: 'Infrastructure', to: '/docs/infra/architecture-overview'},
           ],
         },
         {

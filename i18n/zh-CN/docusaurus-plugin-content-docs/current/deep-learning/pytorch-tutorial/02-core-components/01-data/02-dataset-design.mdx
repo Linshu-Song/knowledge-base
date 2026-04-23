@@ -1,0 +1,96 @@
+---
+sidebar_position: 2
+title: 数据集设计
+description: 探讨如何设计具备高扩展性的 Dataset 层，以兼容多种数据格式与存储介质。
+---
+
+# 数据集设计
+
+在实际工业界项目中，数据往往不会乖乖地躺在一个本地文件夹里。你可能会面对本地的图像文件、云端的 Parquet 表格、远程数据库游标或是 Kafka 的数据流。为了保持训练代码的稳定性，我们需要一个具备高扩展性的 Dataset 架构。
+
+## 两类 Dataset 的分野
+
+PyTorch 原生支持两种形态的数据集，它们对应着两种截然不同的底层物理读取模式：
+
+### Map-style `Dataset`
+- **核心接口**：实现 `__getitem__()` 和通常的 `__len__()`。
+- **适用场景**：数据长度已知且支持 **$O(1)$ 随机访问**。例如本地图像目录、加载到内存的 DataFrame 或固定大小的索引文件。
+- **优势**：完美适配 PyTorch 的各种采样器（Sampler），可以轻松实现打乱（Shuffle）和按权重采样。
+
+### Iterable-style `IterableDataset`
+- **核心接口**：实现 `__iter__()`，产出一个迭代器。
+- **适用场景**：顺序访问更自然，或者随机访问成本极高的数据源。例如流式数据库读取、超大日志流解析、实时生成的对抗样本。
+- **注意**：由于没有“全局索引”概念，`Sampler`（如随机采样、批采样）不适用于此类数据集。
+
+## 高可扩展性的分层设计
+
+为了同时兼容多种数据格式（Dataset Format）和不同存储介质，最稳妥的做法是**把“样本语义”与“物理存储读取”解耦**。
+
+通过分层设计，我们可以构建一个灵活的数据预处理管线：
+
+```mermaid
+graph LR
+  A[Source] --> B(Reader)
+  B --> C(Decoder)
+  C --> D[Dataset]
+  D --> E[DataLoader]
+```
+
+- **Source / Reader**：处理“数据从哪里来”。例如建立 S3 连接、读取本地磁盘或打开数据库句柄。
+- **Decoder / Parser**：处理“怎么解析格式”。负责将原始字节流解码为 NumPy、Tensor 或 PIL Image。
+- **Dataset**：承载抽象的“单样本契约”。它只关心如何将解析后的数据映射为统一的业务字段（如 `image`、`label`）。
+
+:::tip[适配器模式]
+不要为每一种数据源编写不同的训练代码。应当构建如 `ImageFolderAdapter`、`ParquetAdapter`、`StreamAdapter` 等类，并在内部完成从 Source 到底层 Dataset 的转换。只要它们输出相同的 Sample Schema，下游的训练逻辑就无需任何改动。
+:::
+
+## 高阶 Dataset 组合操作
+
+很多时候，你不需要从头手写所有的逻辑，PyTorch 提供了一系列原语用于数据集的组合与切割：
+
+| 工具类 | 适用场景 | 作用说明 |
+| :--- | :--- | :--- |
+| `ConcatDataset` | **多数据集联合训练** | 将多个 Map-style 数据集首尾拼接。类似于在行维度增加样本量。 |
+| `ChainDataset` | **多流式源联合** | 将多个 `IterableDataset` 串接在一起，读完一个流接着读下一个流。 |
+| `StackDataset` | **多模态对齐** | 比如 Dataset A 产出图像，Dataset B 产出文本。Stack 可将其按索引并行对齐。 |
+| `Subset` | **划分切分** | 给定一个索引列表，生成原数据集的子集（常用于切分训练集与验证集）。 |
+
+## `IterableDataset` 与多进程陷阱
+
+:::warning[数据重复风险]
+使用 `IterableDataset` 配合 `DataLoader(num_workers > 0)` 时，每个 worker 进程都会获得 Dataset 对象的一个完整副本。如果不在 `__iter__` 中手动切分，**每个进程都会从头读取完全相同的数据**，导致数据重复。
+:::
+
+:::success[正确做法]
+必须在 `__iter__()` 中利用 `torch.utils.data.get_worker_info()` 进行分片处理，确保每个 Worker 只消费其负责的数据分片。
+:::
+
+```python
+import math
+from torch.utils.data import IterableDataset, get_worker_info
+
+class MyStreamingDataset(IterableDataset):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def __iter__(self):
+        worker_info = get_worker_info()
+        if worker_info is None:  # 单进程模式
+            iter_start = self.start
+            iter_end = self.end
+        else:  # 多进程模式，对数据进行切分
+            per_worker = int(math.ceil((self.end - self.start) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            iter_start = self.start + worker_id * per_worker
+            iter_end = min(iter_start + per_worker, self.end)
+            
+        return iter(range(iter_start, iter_end))
+```
+
+:::caution[IterableDataset Sharding]
+由于 `IterableDataset` 不具备全局索引，`Sampler` 和 `BatchSampler` 均无法与其配合使用。所有的采样逻辑、Shuffle 逻辑都必须实现在 Dataset 内部。
+:::
+
+
+通过这种分层和组合策略，你可以构建起能够支撑千万级规模、灵活挂载多种存储系统的现代深度学习数据底座。

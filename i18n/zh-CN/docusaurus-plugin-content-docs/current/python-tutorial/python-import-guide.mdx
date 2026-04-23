@@ -103,7 +103,7 @@ import importlib
 importlib.reload(math)
 ```
 
-:::note
+:::note[sys.modules 缓存]
 `sys.modules` 缓存意味着导入语句本质上是单例构造函数。模块级代码在每个解释器会话中只执行一次。
 :::
 

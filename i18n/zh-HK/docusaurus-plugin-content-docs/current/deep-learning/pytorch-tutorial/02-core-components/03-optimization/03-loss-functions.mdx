@@ -1,0 +1,39 @@
+---
+sidebar_position: 3
+title: 損失函數
+description: 適用於不同深度學習任務的目標函數及其自訂模組的實作方法。
+---
+
+# 損失函數
+
+選擇並實作正確的損失函數是最佳化的基礎。
+
+## 常見損失類型
+
+不同的任務需要特定的目標函數：
+
+- **分類損失**：對於多分類任務，使用 `nn.CrossEntropyLoss`（結合了 `nn.LogSoftmax` 和 `nn.NLLLoss`）。對於多標籤任務，使用 `nn.BCEWithLogitsLoss`。
+- **迴歸損失**：`nn.MSELoss`（L2 損失）是標準選擇，但 `nn.L1Loss`（MAE）或 `nn.SmoothL1Loss`（Huber 損失）對異常值更具魯棒性。
+- **對比學習損失**：用於度量學習（例如 InfoNCE，Triplet Loss）。通常需要自訂實作或使用專門的函式庫，利用餘弦相似度和基於邊界的懲罰。
+
+## 自訂損失實作
+
+當標準損失函數不足以滿足需求時，可以透過繼承 `nn.Module` 來建立自訂損失模組。
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1.0, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        return focal_loss.mean()
+```

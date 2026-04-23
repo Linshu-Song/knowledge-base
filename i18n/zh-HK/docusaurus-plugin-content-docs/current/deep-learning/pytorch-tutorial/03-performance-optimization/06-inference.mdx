@@ -1,0 +1,70 @@
+---
+sidebar_position: 6
+title: 推理優化
+description: 為部署和低延遲推理優化 PyTorch 模型。
+---
+
+# 推理優化
+
+訓練側重於吞吐量（每秒處理的樣本數）和記憶體效率（梯度）。推理則優先考慮**延遲**（單次預測所需的時間）和**吞吐量**。
+
+因為我們在推理期間不需要計算梯度或更新權重，所以我們可以應用在訓練期間無效的幾種優化。
+
+## 推理上下文
+
+在運行 PyTorch 模型進行推理時，有兩個必須執行的步驟：
+
+1. **評估模式 (Evaluation Mode)**：將 Dropout 和 BatchNorm 等層切換到評估模式。Dropout 被禁用，BatchNorm 使用其學習到的運行統計信息而不是批次統計信息。
+2. **禁用梯度**：禁用梯度跟蹤可防止 PyTorch 存儲中間激活，從而大量節省記憶體和運算時間。
+
+```python
+import torch
+
+# 禁用 Dropout，觸發 BatchNorm 的評估路徑
+model.eval()
+
+# 完全繞過梯度跟蹤和中間激活存儲
+with torch.inference_mode():
+    predictions = model(input_batch)
+```
+
+## 圖優化 (`torch.compile`)
+
+雖然 `torch.compile` 可以加速訓練，但它在推理中最耀眼。通過融合操作（例如，卷積 + ReLU），記憶體頻寬使用率顯著下降。
+
+對於生產推理，通常使用 `max-autotune` 模式來發現適合您的特定 GPU 架構的最快內核。
+
+```python
+import torch
+
+# 將算子融合到統一的執行內核中
+fast_model = torch.compile(model, mode="max-autotune")
+
+with torch.inference_mode():
+    output = fast_model(input_batch)
+```
+
+## 導出到生產環境
+
+在生產環境（例如，在 FastAPI 或 Flask 等 Python 服務器內）中運行原始 PyTorch 模型通常不是最佳選擇，這是因為 Python 的全局解釋器鎖 (GIL) 和開銷。相反，模型通常被導出到更快的運行時。
+
+### ONNX
+
+**開放神經網絡交換 (Open Neural Network Exchange, ONNX)** 是一種被廣泛支持的格式。您可以將 PyTorch 模型導出到 ONNX，然後可以使用 ONNX Runtime (C++) 或 TensorRT (NVIDIA) 運行該模型。
+
+### TensorRT
+
+NVIDIA 的 **TensorRT** 是在 NVIDIA GPU 上部署模型的黃金標準。它執行激進的層融合、精度校準（例如 INT8 量化）以及針對您的特定 GPU 模型的內核自動調整。PyTorch 模型可以通過 ONNX 轉換為 TensorRT，或者直接使用 `Torch-TensorRT` 進行轉換。
+
+:::note[更多詳情]
+有關使用 ONNX 或 TensorRT 轉換和部署的詳細指南，請參閱「深度學習基礎」部分。
+:::
+
+## 量化 (Quantization)
+
+雖然混合精度 (FP16/BF16) 在訓練中很常見，但推理通常可以容忍 **INT8** 精度。
+
+量化將浮點權重的連續空間映射到 8 位整數中。這使模型大小減少了 4 倍，記憶體頻寬減少了 4 倍，從而在配備了整數 Tensor Cores 的現代 GPU 上提供了巨大的速度提升。
+
+*   **PTQ（訓練後量化，Post-Training Quantization）**：最簡單的方法。使用小型校準數據集查找激活的最小/最大邊界，將訓練好的 FP32 模型轉換為 INT8。
+*   **QAT（量化感知訓練，Quantization-Aware Training）**：如果 PTQ 嚴重損害了模型的準確性，QAT 會在訓練期間模擬量化誤差，從而允許模型適應並保持準確性。

@@ -1,10 +1,10 @@
 ---
 sidebar_position: 4
-title: Git Ignore Engineering Guide
+title: Git Ignore
 description: Complete reference for .gitignore, .git/info/exclude, global ignores, pattern syntax, and precedence rules.
 ---
 
-# Git Ignore Engineering Guide
+# Git Ignore
 
 **Managing Untracked Files Across Project, Local, and Global Scopes**
 
@@ -70,7 +70,7 @@ Use `!` to re-include a file previously ignored by a broader rule:
 !important.log
 ```
 
-:::caution
+:::caution[Negation Limitation]
 Negation only works if the parent directory is not itself ignored. If `logs/` is ignored, `!logs/important.log` will not work — Git never looks inside ignored directories.
 :::
 
@@ -158,7 +158,7 @@ notes/
 .DS_Store
 ```
 
-:::tip
+:::tip[Local Exclude File]
 Use `.git/info/exclude` when a file is project-specific but shouldn't force an ignore rule on the entire team. This keeps `.gitignore` clean and focused on universally relevant patterns.
 :::
 
@@ -237,7 +237,7 @@ Git evaluates ignore rules in the following order (later rules override earlier 
 3. **`.git/info/exclude`** — Local repository exclude file.
 4. **`core.excludesFile`** — Global ignore file.
 
-:::info
+:::info[Rule Precedence]
 Within a single `.gitignore` file, **the last matching rule wins**. A negation `!pattern` placed after an ignore pattern will re-include matching files.
 :::
 

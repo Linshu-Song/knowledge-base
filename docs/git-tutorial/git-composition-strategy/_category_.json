@@ -2,7 +2,7 @@
   "label": "Git Composition Strategy",
   "position": 4,
   "link": {
-    "type": "generated-index",
-    "description": "Choosing Between Submodule and Subtree for Dependency Management"
+    "type": "doc",
+    "id": "git-tutorial/git-composition-strategy/index"
   }
 }

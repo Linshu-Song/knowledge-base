@@ -1,0 +1,67 @@
+---
+sidebar_position: 5
+title: 性能分析与瓶颈
+description: 使用 PyTorch Profiler 识别性能瓶颈。
+---
+
+# 性能分析与瓶颈
+
+在盲目应用性能优化之前，您必须首先确定瓶颈所在。在深度学习中，瓶颈通常分为三类：
+
+1. **受限于 CPU（数据加载 / 预处理）**：GPU 正在等待 CPU 提供数据批次。
+2. **受限于 GPU（计算）**：GPU 已被完全利用以进行数字运算，而 CPU 正在等待它完成。
+3. **受限于 I/O 或通信**：时间花费在从磁盘读取或跨 PCIe/网络传输数据上。
+
+## PyTorch Profiler
+
+PyTorch Profiler API 是了解 PyTorch 模型的执行时间和内存消耗的标准工具。它在 C++ 级别和 CUDA 级别跟踪操作，提供事件的精确时间线。
+
+```python
+import torch
+import torch.profiler
+
+# 在分析器上下文中包装您的训练步骤
+with torch.profiler.profile(
+    activities=[
+        torch.profiler.ProfilerActivity.CPU,
+        torch.profiler.ProfilerActivity.CUDA,
+    ],
+    schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+    on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler'),
+    record_shapes=True,
+    profile_memory=True,
+    with_stack=True
+) as prof:
+    for step, (inputs, targets) in enumerate(dataloader):
+        if step >= 5:
+            break
+            
+        # 标准训练步骤
+        optimizer.zero_grad()
+        loss = model(inputs)
+        loss.backward()
+        optimizer.step()
+        
+        # 告诉分析器我们完成了一个步骤
+        prof.step()
+```
+
+:::tip[性能分析开销]
+性能分析会显著减慢您的训练循环。只运行几个步骤（例如 5-10 个批次）的分析器，而不是一个完整的 epoch。
+:::
+
+## 分析输出
+
+分析数据可以导出为可以使用 PyTorch Profiler 插件在 TensorBoard 中查看的格式。
+
+### 要检查的关键指标
+
+1. **GPU 利用率**：如果您的 GPU 利用率很低（例如 < 80%），您可能遇到了 CPU 数据加载瓶颈。您应该重新检查您的 `num_workers`、`pin_memory` 和数据增强流水线。
+2. **内核时间 (Kernel Time)**：如果 GPU 利用率很高，请查看哪些操作（内核）花费的时间最多。例如，如果卷积很慢，您可能会从 AMP（混合精度）或 TF32 中受益。
+3. **内存时间线**：分析器可以绘制随时间变化的内存分配情况。内存的峰值通常与存储激活的正向传播相关。如果峰值太接近您的 VRAM 限制，请考虑梯度检查点。
+
+## 识别数据加载瓶颈
+
+一种快速且无需代码即可检查您是否受限于数据加载的方法是使用 `nvidia-smi` 或 `nvtop` 监控您的 GPU 使用情况。
+
+如果 GPU 利用率持续降至 0%，然后又飙升回 100%，则说明 GPU 在等待下一个批次时处于停滞状态。在健康的训练运行期间，利用率应始终保持在较高水平（95%+）。

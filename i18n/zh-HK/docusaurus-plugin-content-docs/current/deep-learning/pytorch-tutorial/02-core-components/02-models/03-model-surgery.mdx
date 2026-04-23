@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: 模型修改
+description: 針對預訓練 PyTorch 模型進行結構探查、子模組替換與中間特徵擷取的實戰指南。
+---
+
+# 模型修改
+
+對於深度學習工程師而言，最日常的工作往往不是從零開始從頭訓練一個模型，而是將現有的、在海量資料上預訓練好的模型遷移到全新的任務中。這個對模型進行探查、修改、截取的過程，在業界常被稱為**模型手術 (Model Surgery)**。
+
+面對像 ResNet 或是 Vision Transformer (ViT) 這樣龐大且深層的網路，初級開發者可能會感到無從下手。本指南將提供一套標準的操作流程，讓你能夠自信地對任何 PyTorch 模型進行「開刀」。
+
+## 第一步：探查模型架構
+
+在進行任何修改之前，你必須先徹底了解模型的精確層級結構。PyTorch 的模組是一棵深度嵌套的樹。
+
+### 最直接的方法：`print(model)`
+直接列印模型會輸出其完整的嵌套結構。雖然輸出可能非常冗長，但它精確地顯示了每個子模組的內部變數名——這正是你在程式碼中存取它們所需的名稱。
+
+```python
+import torchvision.models as models
+
+model = models.resnet18()
+print(model)
+# 輸出節錄：
+# ResNet(
+#   (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+#   (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+#   (relu): ReLU(inplace=True)
+#   ...
+#   (fc): Linear(in_features=512, out_features=1000, bias=True)
+# )
+```
+
+從上面的輸出中我們可以清晰地看到，第一層卷積被存放在 `model.conv1`，而最後的分類頭則被存放在 `model.fc`。
+
+:::tip[使用 `torchinfo` 函式庫]
+如果你需要更專業、更易讀的彙總資訊（包括每一層的輸出張量形狀以及參數數量），強烈建議使用第三方庫 `torchinfo`。
+```python
+from torchinfo import summary
+summary(model, input_size=(1, 3, 224, 224))
+```
+:::
+
+## 第二步：替換子模組
+
+遷移學習中最經典的場景，是將一個在 ImageNet（包含 1000 個類別）上訓練好的模型，適配到一個自訂資料集（例如貓狗分類，只有 2 個類別）。
+
+要實現這一點，我們只需要用一個全新的層覆蓋掉模型原有的最後一層即可。
+
+```python
+import torch.nn as nn
+
+# 1. 找到最後一層分類器的輸入維度 (例如 ResNet 的叫 'fc'，MobileNet 的叫 'classifier')
+in_features = model.fc.in_features
+
+# 2. 用一個全新的、未訓練的層替換它
+model.fc = nn.Linear(in_features, out_features=2)
+```
+
+透過直接將新的 `nn.Linear` 賦值給 `model.fc`，PyTorch 會自動註銷掉舊層的參數，並註冊新層的參數。新層在建立時預設會進行隨機初始化。
+
+:::warning[命名習慣的差異]
+不同經典架構對最後一層的命名各不相同。ResNet 習慣叫 `.fc`，VGG 和 DenseNet 習慣叫 `.classifier`，而 Vision Transformers (ViT) 則叫 `.heads`。**動手前請務必先 print() 列印模型！**
+:::
+
+## 第三步：凍結參數 (Freezing)
+
+如果你只想訓練剛剛新加的那一層（這種技術被稱為線性探測 Linear Probing），你必須「凍結」模型其餘部分。所謂「凍結」，就是告訴 PyTorch 的 Autograd 自動求導引擎，不要去計算這些參數的梯度。這能節省極其可觀的顯示記憶體和計算時間。
+
+```python
+# 1. 凍結整個模型的所有參數
+for param in model.parameters():
+    param.requires_grad = False
+
+# 2. 僅僅解凍剛剛新加的那一層的參數
+# (注意：新建層預設是 requires_grad=True 的，但如果你是在替換層之後才執行了全域凍結，就必須手動解凍它)
+for param in model.fc.parameters():
+    param.requires_grad = True
+```
+
+在將參數傳遞給最佳化器（optimizer）時，最佳實踐是**只傳入那些未被凍結的參數**：
+```python
+optimizer = torch.optim.Adam(
+    filter(lambda p: p.requires_grad, model.parameters()), 
+    lr=1e-3
+)
+```
+
+## 第四步：擷取中間層特徵
+
+有時候你根本不關心模型的最終輸出，而是需要擷取模型中間某些層生成的特徵圖（這在物件偵測、語意分割或神經風格轉換中非常常見）。
+
+### 「暴力重寫」法（極不推薦）
+新手最容易犯的錯誤，就是去框架原始碼裡把整個 `forward` 函式複製貼上出來，然後修改其中的程式碼讓它返回多個張量。**請絕對不要這麼做。** 一旦官方修復了底層實作或是版本更新，你的程式碼立刻就會崩潰，維護成本極高。
+
+### 鉤子函式法 Hook（專業作法）
+PyTorch 提供了 `register_forward_hook`，允許你在任何模組上掛載一個「監聽器」。每次該模組完成前向傳播時，鉤子函式都會被觸發，讓你能夠直接拿到它的輸入和輸出。
+
+```python
+intermediate_features = {}
+
+def get_features(name):
+    # 這個 hook 會在模型前向傳播時被自動呼叫
+    def hook(module, input, output):
+        intermediate_features[name] = output.detach()
+    return hook
+
+# 將鉤子掛載到我們關心的特徵層上
+model.layer1.register_forward_hook(get_features('feat1'))
+model.layer3.register_forward_hook(get_features('feat3'))
+
+# 正常執行前向計算
+x = torch.randn(1, 3, 224, 224)
+_ = model(x)
+
+# 字典中現在已經悄悄存好了我們需要的中間張量！
+print(intermediate_features['feat1'].shape)
+```
+
+### 現代圖追蹤法：Feature Extractor
+從 PyTorch 1.11 開始，官方提供了一個極其優雅的工具 `torchvision.models.feature_extraction`。它利用底層計算圖追蹤 (`torch.fx`)，自動在後台幫你把模型「重寫」了一遍。
+
+```python
+from torchvision.models.feature_extraction import create_feature_extractor
+
+# 定義一個字典，將內部節點的路徑映射為你想要的自訂鍵名
+return_nodes = {
+    'layer1.2.relu': 'feat1',
+    'layer3.5.relu': 'feat3'
+}
+
+# 建立一個專門用於輸出你所指定特徵的全新模型
+feature_extractor = create_feature_extractor(model, return_nodes=return_nodes)
+
+# 它的輸出直接就是一個字典！
+out = feature_extractor(x)
+print(out['feat1'].shape)
+```
+
+## 總結
+
+對現成的預訓練模型進行修改，是一項必備的工程基本功。請牢記這個標準工作流程：
+1. **探查**：透過 `print` 或 `torchinfo` 確認具體的層名和架構。
+2. **替換**：使用標準的 Python 賦值 (`model.layer_name = new_layer`) 覆蓋子模組。
+3. **凍結**：透過設定 `requires_grad = False` 鎖定底層特徵，防止災難性遺忘並加速訓練。
+4. **擷取**：優雅地使用 Hook 或 `create_feature_extractor` 獲取中間特徵，堅決避免去複製和重寫臃腫的 `forward` 函式。

@@ -1,0 +1,160 @@
+---
+sidebar_position: 4
+title: Dataset Modification
+description: A practical guide to wrapping, modifying, splitting, and customizing existing PyTorch datasets and dataloaders without rewriting them.
+---
+
+# Dataset Modification
+
+In real-world engineering, you rarely need to write a PyTorch `Dataset` entirely from scratch. You will often download a standard dataset (like from `torchvision` or Hugging Face) that is *almost* what you need, but requires a few custom tweaks.
+
+Instead of copying the source code and rewriting the dataset class, the best practice is to **modify, wrap, or compose** the existing dataset. This guide shows you how to perform "Dataset Surgery".
+
+## The Wrapper Pattern: Modifying Outputs
+
+Suppose you are using `torchvision.datasets.CIFAR10`. By default, it returns `(image, label)`. But what if you are doing contrastive learning and need it to return `(image, label, image_index)`?
+
+Instead of rewriting the CIFAR10 class, you can create a **Wrapper Dataset** that takes the original dataset as an attribute and modifies its `__getitem__` output.
+
+```python
+import torch
+from torch.utils.data import Dataset
+from torchvision import datasets, transforms
+
+class IndexWrapperDataset(Dataset):
+    """Wraps an existing dataset to also return the sample index."""
+    
+    def __init__(self, original_dataset):
+        self.original_dataset = original_dataset
+        
+    def __len__(self):
+        # Delegate the length to the original dataset
+        return len(self.original_dataset)
+        
+    def __getitem__(self, index):
+        # 1. Get the original data
+        data, label = self.original_dataset[index]
+        
+        # 2. Modify it or append custom information
+        return data, label, index
+
+# Usage
+base_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transforms.ToTensor())
+custom_dataset = IndexWrapperDataset(base_dataset)
+
+img, label, idx = custom_dataset[0]
+print(f"Loaded image at index {idx} with label {label}")
+```
+
+:::tip[Overriding Transforms]
+You can also use this wrapper pattern to dynamically change or add data augmentations to a dataset that doesn't natively support complex transform pipelines.
+:::
+
+## Slicing and Dicing: Subsets and Splits
+
+Often, you want to extract a small portion of a dataset for rapid debugging, or split a single dataset into training and validation sets.
+
+### `random_split` (Train / Val split)
+If a dataset doesn't have a built-in validation split, PyTorch provides `torch.utils.data.random_split`.
+
+```python
+from torch.utils.data import random_split
+
+# Assume dataset has 10,000 images
+full_dataset = datasets.FakeData(size=10000, image_size=(3, 224, 224), num_classes=10)
+
+# Define lengths (must sum to total length)
+train_size = int(0.8 * len(full_dataset))
+val_size = len(full_dataset) - train_size
+
+# Split randomly (returns two Subset objects)
+train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+```
+
+:::danger[Transform Leaks in `random_split`]
+A common beginner mistake is applying training augmentations (like RandomCrop) to the `full_dataset` *before* splitting. This means your validation set will also have random crops applied! 
+
+**Solution**: Use the Wrapper Pattern (from Section 1) to apply different transforms to the resulting `train_dataset` and `val_dataset` subsets.
+:::
+
+### `Subset` (Filtering)
+If you want to manually select specific indices (e.g., only keeping samples from specific classes), use `Subset`.
+
+```python
+from torch.utils.data import Subset
+
+# Filter: keep only the first 500 samples (great for quick debugging)
+debug_dataset = Subset(full_dataset, indices=range(500))
+
+# Filter by condition (e.g., only keep samples where label == 0)
+# Note: This requires iterating through the labels once
+indices_class_0 = [i for i in range(len(full_dataset)) if full_dataset[i][1] == 0]
+class_0_dataset = Subset(full_dataset, indices_class_0)
+```
+
+## Combining Datasets: `ConcatDataset`
+
+If you have multiple datasets (e.g., data collected from 2022 and 2023 separately) and want to train on them together, use `ConcatDataset`. It treats multiple datasets as a single continuous dataset.
+
+```python
+from torch.utils.data import ConcatDataset
+
+dataset_2022 = datasets.FakeData(size=5000)
+dataset_2023 = datasets.FakeData(size=3000)
+
+# Merge them (total length will be 8000)
+merged_dataset = ConcatDataset([dataset_2022, dataset_2023])
+```
+
+## Modifying DataLoader Behavior
+
+Sometimes the `Dataset` is fine, but you need to modify how the `DataLoader` assembles the data.
+
+### Injecting a Custom `collate_fn`
+The default `DataLoader` assumes all tensors in a batch have the exact same shape, and it simply stacks them (`torch.stack`). If your dataset returns variable-length data (like sentences of different lengths, or images of different sizes), the default `DataLoader` will crash.
+
+You must modify the loader by injecting a custom `collate_fn` to pad the sequences dynamically.
+
+```python
+from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
+
+def custom_padding_collate(batch):
+    # batch is a list of tuples: [(tensor1, label1), (tensor2, label2), ...]
+    sequences = [item[0] for item in batch]
+    labels = [item[1] for item in batch]
+    
+    # Dynamically pad all sequences in this batch to the length of the longest one
+    padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=0)
+    labels = torch.tensor(labels)
+    
+    return padded_sequences, labels
+
+# Inject the custom logic into the DataLoader
+loader = DataLoader(custom_dataset, batch_size=32, collate_fn=custom_padding_collate)
+```
+
+### Handling Class Imbalance with Samplers
+If your dataset is highly imbalanced (e.g., 90% normal, 10% anomaly), don't duplicate data on disk. Instead, modify the `DataLoader` by replacing its default random sampler with a `WeightedRandomSampler`.
+
+```python
+from torch.utils.data import WeightedRandomSampler
+
+# 1. Calculate weights for every sample based on its class
+# (Assume class 0 is majority, class 1 is minority)
+weights = [0.1 if label == 0 else 0.9 for _, label in custom_dataset]
+
+# 2. Create the sampler
+sampler = WeightedRandomSampler(weights, num_samples=len(weights), replacement=True)
+
+# 3. Inject into DataLoader (Note: shuffle must be False when using a custom sampler)
+balanced_loader = DataLoader(custom_dataset, batch_size=32, sampler=sampler)
+```
+
+## Summary
+
+Before you reinvent the wheel and write a massive, custom `Dataset` class, consider these "surgery" techniques:
+- Use **Wrappers** to add or modify returns (`__getitem__`).
+- Use **`Subset` / `random_split` / `ConcatDataset`** to slice, filter, and merge data.
+- Use **`collate_fn`** to change how samples are batched.
+- Use **`WeightedRandomSampler`** to handle class imbalances on the fly.
