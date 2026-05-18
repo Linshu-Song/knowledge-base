@@ -2,6 +2,7 @@
   "name": "website",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start --host 0.0.0.0",
@@ -50,6 +51,7 @@
     ]
   },
   "engines": {
-    "node": ">=20.0"
+    "node": ">=22.13",
+    "pnpm": ">=11.0"
   }
 }
