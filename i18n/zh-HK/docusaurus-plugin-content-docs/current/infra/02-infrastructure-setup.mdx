@@ -176,7 +176,7 @@ services:
       context: ../api-gateway
       dockerfile: Dockerfile
       target: dev                         # 多階段：使用 dev 目標
-    command: pnpm run dev # 或 npm/yarn
+    command: npm run dev
     ports:
       - "3000:3000"
     volumes:

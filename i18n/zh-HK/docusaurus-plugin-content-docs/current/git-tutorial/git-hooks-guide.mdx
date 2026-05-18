@@ -62,16 +62,16 @@ Husky 簡化了 Git hooks 的管理和在團隊內的共享。
 
 ```bash
 # 安裝 Husky
-pnpm add -D husky # 或 npm/yarn
+npm install husky --save-dev
 
 # 初始化 Husky (創建 .husky 目錄)
-pnpm exec husky init # 或 npx/yarn dlx
+npx husky init
 ```
 
 在每次 commit 時對 *整個* 代碼庫運行 linter 會非常緩慢。`lint-staged` 確保你只檢查當前正在提交的文件。
 
 ```bash
-pnpm add -D lint-staged # 或 npm/yarn
+npm install lint-staged --save-dev
 ```
 
 **配置 (`package.json`):**
@@ -89,7 +89,7 @@ pnpm add -D lint-staged # 或 npm/yarn
 **.husky/pre-commit:**
 
 ```bash
-pnpm exec lint-staged # 或 npx/yarn dlx
+npx lint-staged
 ```
 
 ### Lefthook (語言無關)
@@ -103,7 +103,7 @@ pnpm exec lint-staged # 或 npx/yarn dlx
 go install github.com/evilmartians/lefthook@latest
 
 # npm
-pnpm add -D @evilmartians/lefthook # 或 npm/yarn
+npm install @evilmartians/lefthook --save-dev
 
 # Homebrew (macOS/Linux)
 brew install lefthook
@@ -180,13 +180,13 @@ pre-commit run --all-files
 在提交信息寫入後強制執行 Conventional Commit 規範：
 
 ```bash
-pnpm add -D @commitlint/cli @commitlint/config-conventional # 或 npm/yarn
+npm install @commitlint/cli @commitlint/config-conventional --save-dev
 
 # 創建配置
 echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
 
 # 添加 hook
-echo "pnpm exec commitlint --edit \$1" > .husky/commit-msg # 或 npx/yarn dlx
+echo "npx commitlint --edit \$1" > .husky/commit-msg
 ```
 
 ### Commitizen (交互式)
@@ -194,7 +194,7 @@ echo "pnpm exec commitlint --edit \$1" > .husky/commit-msg # 或 npx/yarn dlx
 **[Commitizen](https://commitizen-tools.github.io/commitizen/)** 通過交互式引導幫助開發者編寫合規的提交信息 — 在驗證之前就消除猜測。
 
 ```bash
-pnpm add -D cz-conventional-changelog # 或 npm/yarn
+npm install cz-conventional-changelog --save-dev
 ```
 
 **`package.json`:**
@@ -212,7 +212,7 @@ pnpm add -D cz-conventional-changelog # 或 npm/yarn
 }
 ```
 
-使用 `pnpm run commit`（或 `pnpm exec cz`）替代 `git commit`，系統將交互式地引導你填寫 type、scope 和 description。
+使用 `npm run commit`（或 `npx cz`）替代 `git commit`，系統將交互式地引導你填寫 type、scope 和 description。
 
 > 兩者配合實現縱深防禦：Commitizen 幫助編寫規範的提交信息，Commitlint 捕獲任何遺漏。
 
@@ -236,5 +236,5 @@ pnpm add -D cz-conventional-changelog # 或 npm/yarn
 | :--- | :--- |
 | **Hooks 未觸發** | 確保腳本具有執行權限：`chmod +x .husky/pre-commit` |
 | **Husky 初始化失敗** | 確保你位於 Git 倉庫的根目錄下。 |
-| **環境不匹配** | 在 hook 腳本中使用絕對路徑或標準命令（如 `pnpm run`）。 |
+| **環境不匹配** | 在 hook 腳本中使用絕對路徑或標準命令（如 `npm run`）。 |
 | **"command not found" 錯誤** | Hook 在虛擬環境之外運行。請使用 `uv run`、`pipx run` 前綴或工具的絕對路徑。 |
