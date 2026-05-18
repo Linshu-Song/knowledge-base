@@ -153,7 +153,7 @@ services:
       context: ../api-gateway
       dockerfile: Dockerfile
       target: dev                         # Utilize multi-stage 'dev' target
-    command: npm run dev
+    command: pnpm run dev # or npm/yarn
     ports:
       - "3000:3000"
     volumes:
@@ -186,4 +186,3 @@ flowchart LR
 | **Dependencies** | Full (Dev + Runtime) | Runtime Dependencies Only |
 | **Artifacts** | Dynamic Bind Mounts | Static Code Copy & Compilation |
 | **Security** | Non-root with mapped UID | Minimalist non-root runner |
-

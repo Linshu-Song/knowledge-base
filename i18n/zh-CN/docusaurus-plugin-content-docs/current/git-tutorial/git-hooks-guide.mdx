@@ -62,16 +62,16 @@ Husky 简化了 Git hooks 的管理和在团队内的共享。
 
 ```bash
 # 安装 Husky
-npm install husky --save-dev
+pnpm add -D husky # 或 npm/yarn
 
 # 初始化 Husky (创建 .husky 目录)
-npx husky init
+pnpm exec husky init # 或 npx/yarn dlx
 ```
 
 在每次 commit 时对 *整个* 代码库运行 linter 会非常缓慢。`lint-staged` 确保你只检查当前正在提交的文件。
 
 ```bash
-npm install lint-staged --save-dev
+pnpm add -D lint-staged # 或 npm/yarn
 ```
 
 **配置 (`package.json`):**
@@ -89,7 +89,7 @@ npm install lint-staged --save-dev
 **.husky/pre-commit:**
 
 ```bash
-npx lint-staged
+pnpm exec lint-staged # 或 npx/yarn dlx
 ```
 
 ### Lefthook (语言无关)
@@ -103,7 +103,7 @@ npx lint-staged
 go install github.com/evilmartians/lefthook@latest
 
 # npm
-npm install @evilmartians/lefthook --save-dev
+pnpm add -D @evilmartians/lefthook # 或 npm/yarn
 
 # Homebrew (macOS/Linux)
 brew install lefthook
@@ -180,13 +180,13 @@ pre-commit run --all-files
 在提交信息写入后强制执行 Conventional Commit 规范：
 
 ```bash
-npm install @commitlint/cli @commitlint/config-conventional --save-dev
+pnpm add -D @commitlint/cli @commitlint/config-conventional # 或 npm/yarn
 
 # 创建配置
 echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
 
 # 添加 hook
-echo "npx commitlint --edit \$1" > .husky/commit-msg
+echo "pnpm exec commitlint --edit \$1" > .husky/commit-msg # 或 npx/yarn dlx
 ```
 
 ### Commitizen (交互式)
@@ -194,7 +194,7 @@ echo "npx commitlint --edit \$1" > .husky/commit-msg
 **[Commitizen](https://commitizen-tools.github.io/commitizen/)** 通过交互式引导帮助开发者编写合规的提交信息 — 在验证之前就消除猜测。
 
 ```bash
-npm install cz-conventional-changelog --save-dev
+pnpm add -D cz-conventional-changelog # 或 npm/yarn
 ```
 
 **`package.json`:**
@@ -212,7 +212,7 @@ npm install cz-conventional-changelog --save-dev
 }
 ```
 
-使用 `npm run commit`（或 `npx cz`）替代 `git commit`，系统将交互式地引导你填写 type、scope 和 description。
+使用 `pnpm run commit`（或 `pnpm exec cz`）替代 `git commit`，系统将交互式地引导你填写 type、scope 和 description。
 
 > 两者配合实现纵深防御：Commitizen 帮助编写规范的提交信息，Commitlint 捕获任何遗漏。
 
@@ -236,5 +236,5 @@ npm install cz-conventional-changelog --save-dev
 | :--- | :--- |
 | **Hooks 未触发** | 确保脚本具有执行权限：`chmod +x .husky/pre-commit` |
 | **Husky 初始化失败** | 确保你位于 Git 仓库的根目录下。 |
-| **环境不匹配** | 在 hook 脚本中使用绝对路径或标准命令（如 `npm run`）。 |
+| **环境不匹配** | 在 hook 脚本中使用绝对路径或标准命令（如 `pnpm run`）。 |
 | **"command not found" 错误** | Hook 在虚拟环境之外运行。请使用 `uv run`、`pipx run` 前缀或工具的绝对路径。 |

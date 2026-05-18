@@ -62,16 +62,16 @@ Husky makes Git hooks easy to manage and share across the team.
 
 ```bash
 # Install Husky
-npm install husky --save-dev
+pnpm add -D husky # or npm/yarn
 
 # Initialize Husky (creates .husky directory)
-npx husky init
+pnpm exec husky init # or npx/yarn dlx
 ```
 
 Running linters on the *entire* codebase for every commit is slow. `lint-staged` ensures you only check files that are currently being committed.
 
 ```bash
-npm install lint-staged --save-dev
+pnpm add -D lint-staged # or npm/yarn
 ```
 
 **Configuration (`package.json`):**
@@ -89,7 +89,7 @@ npm install lint-staged --save-dev
 **.husky/pre-commit:**
 
 ```bash
-npx lint-staged
+pnpm exec lint-staged # or npx/yarn dlx
 ```
 
 ### Lefthook (Language-Agnostic)
@@ -103,7 +103,7 @@ A fast, zero-dependency alternative written in Go. Unlike Husky (npm-only) or pr
 go install github.com/evilmartians/lefthook@latest
 
 # npm
-npm install @evilmartians/lefthook --save-dev
+pnpm add -D @evilmartians/lefthook # or npm/yarn
 
 # Homebrew (macOS/Linux)
 brew install lefthook
@@ -180,13 +180,13 @@ Standardized commit messages enable automated changelog generation and better pr
 Enforce the Conventional Commit specification after the message is written:
 
 ```bash
-npm install @commitlint/cli @commitlint/config-conventional --save-dev
+pnpm add -D @commitlint/cli @commitlint/config-conventional # or npm/yarn
 
 # Create config
 echo "export default { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
 
 # Add hook
-echo "npx commitlint --edit \$1" > .husky/commit-msg
+echo "pnpm exec commitlint --edit \$1" > .husky/commit-msg # or npx/yarn dlx
 ```
 
 ### Commitizen (Interactive)
@@ -194,7 +194,7 @@ echo "npx commitlint --edit \$1" > .husky/commit-msg
 **[Commitizen](https://commitizen-tools.github.io/commitizen/)** guides developers through writing compliant messages interactively — eliminating the guesswork before validation is even needed.
 
 ```bash
-npm install cz-conventional-changelog --save-dev
+pnpm add -D cz-conventional-changelog # or npm/yarn
 ```
 
 **`package.json`:**
@@ -212,7 +212,7 @@ npm install cz-conventional-changelog --save-dev
 }
 ```
 
-Use `npm run commit` (or `npx cz`) instead of `git commit` to be prompted for type, scope, and description.
+Use `pnpm run commit` (or `pnpm exec cz`) instead of `git commit` to be prompted for type, scope, and description.
 
 > Combine both for defense-in-depth: Commitizen helps write good messages, Commitlint catches any that slip through.
 
@@ -236,5 +236,5 @@ Use `npm run commit` (or `npx cz`) instead of `git commit` to be prompted for ty
 | :--- | :--- |
 | **Hooks not firing** | Ensure the script is executable: `chmod +x .husky/pre-commit` |
 | **Husky init fails** | Ensure you are in the root of a Git repository. |
-| **Environment mismatch** | Use absolute paths or standard commands (e.g., `npm run`) in hook scripts. |
+| **Environment mismatch** | Use absolute paths or standard commands (e.g., `pnpm run`) in hook scripts. |
 | **"command not found" in hook** | The hook runs outside your virtual environment. Prefix with `uv run`, `pipx run`, or use the absolute path to the binary. |
