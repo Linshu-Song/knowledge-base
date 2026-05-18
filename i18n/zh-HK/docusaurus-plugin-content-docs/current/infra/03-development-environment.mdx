@@ -85,7 +85,7 @@ graph TD
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "postCreateCommand": "pnpm install && pnpm run db:migrate"
+  "postCreateCommand": "npm install && npm run db:migrate"
 }
 ```
 
@@ -156,10 +156,10 @@ graph TD
 
 ```bash
 # 全局安裝
-pnpm add -g @devcontainers/cli # 或 npm/yarn global add
+npm install -g @devcontainers/cli
 
-# 或直接透過 dlx 使用
-pnpm dlx @devcontainers/cli --help # 或 npx/yarn dlx
+# 或直接透過 npx 使用
+npx @devcontainers/cli --help
 ```
 
 ### 常用命令
@@ -177,7 +177,7 @@ pnpm dlx @devcontainers/cli --help # 或 npx/yarn dlx
 
 ```bash
 devcontainer up --workspace-folder .
-devcontainer exec --workspace-folder . pnpm test # 或 npm/yarn
+devcontainer exec --workspace-folder . npm test
 ```
 
 **在 CI/CD 中預構建並發布開發容器映像檔：**

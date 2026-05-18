@@ -79,7 +79,7 @@ A standard service configuration integrates infrastructure layers and developer 
       "settings": { "editor.formatOnSave": true }
     }
   },
-  "postCreateCommand": "pnpm install && pnpm run db:migrate"
+  "postCreateCommand": "npm install && npm run db:migrate"
 }
 ```
 
@@ -150,10 +150,10 @@ The **Dev Container CLI** (`@devcontainers/cli`) is the reference implementation
 
 ```bash
 # Install globally
-pnpm add -g @devcontainers/cli # or npm/yarn global add
+npm install -g @devcontainers/cli
 
-# Or use directly via dlx
-pnpm dlx @devcontainers/cli --help # or npx/yarn dlx
+# Or use directly via npx
+npx @devcontainers/cli --help
 ```
 
 ### Common Commands
@@ -171,7 +171,7 @@ pnpm dlx @devcontainers/cli --help # or npx/yarn dlx
 
 ```bash
 devcontainer up --workspace-folder .
-devcontainer exec --workspace-folder . pnpm test # or npm/yarn
+devcontainer exec --workspace-folder . npm test
 ```
 
 **Pre-build and publish a dev container image in CI/CD:**
@@ -309,3 +309,4 @@ ssh-add -l          # Lists keys available from host agent
 | **"fatal: detected dubious ownership"** | Host/Container UID mismatch | Set `updateRemoteUserUID: true` in `devcontainer.json`. |
 | **SSH Auth Failure** | Key not registered on host | Execute `ssh-add -l` on host to verify key availability. |
 | **Startup Latency** | Heavy `postCreateCommand` | Move stable tool installation to the base `Dockerfile`. |
+

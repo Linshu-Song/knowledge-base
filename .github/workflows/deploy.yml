@@ -10,7 +10,7 @@ on:
       - 'static/**'
       - 'docusaurus.config.js'
       - 'package.json'
-      - 'pnpm-lock.yaml'
+      - 'package-lock.json'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -29,20 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.1.2
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Build website
-        run: pnpm build
+        run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
         with:
