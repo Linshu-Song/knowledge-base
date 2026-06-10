@@ -1,8 +1,0 @@
-{
-  "label": "Git 教程",
-  "position": 3,
-  "link": {
-    "type": "doc",
-    "id": "git-tutorial/index"
-  }
-}
