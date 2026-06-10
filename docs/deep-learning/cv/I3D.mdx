@@ -9,7 +9,7 @@ sidebar_position: 1
 	提出了一个新的模型I3D
 如何把一个2D模型扩张到3D模型呢？
 我们希望可以直接使用2D视频理解直接做好的模型，不仅设计简单还避免了预训练的麻烦。
-### 设计了数据集Kinetics Dataset 
+## 设计了数据集Kinetics Dataset 
 Kinetics Dataset 类别比较均衡，难度适中。视频领域缺少一个比较好的数据集让大家可以很好的去研究这个视频理解的框架，本文作者提出视频的模型最好还是在视频上预训练本文就是先提出了一个视觉模型，然后再现有的视频数据集上训练新的模型。
  🧩🧩🧩
 ![I3D结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image2.png)
@@ -34,7 +34,7 @@ EfficientNet
 🧩🧩🧩
 ![I3D结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image4.png)
 其中 α、β、γ 是对小模型进行 small grid search 而決定的常数，用来把模型精简成一个base，缩小模型。
-### 	Optical flow光流
+## Optical flow光流
 **计算 frame 的位移，用于检测物体移动，因为实际上两个 frame 之间的差距不会差太多，可以减少震动的状况。**
 	**理想条件：** 亮度恒定不变，时间连续以及背景不会剧烈变化。
  🧩🧩🧩
