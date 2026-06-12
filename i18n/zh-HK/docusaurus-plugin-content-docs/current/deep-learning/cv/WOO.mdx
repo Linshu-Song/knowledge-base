@@ -18,7 +18,9 @@ sidebar_position: 1
 ### 	視頻檢測本質包括兩個子任務：人在哪裏，人在做什麼
 核心矛盾：單幀有利於檢測，多幀有利於動作識別
 ### 	傳統方法（論文中主要和WOO進行比較）：🧩🧩🧩
+
 ![WOO圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image2.png)
+
 YOWO屬於一個stage+兩個backbone，仍需要完成 2D CNN 檢測和 3D CNN 動作。這一篇 WOO 可以與 YOWO 做對比，WOO 認為 ：
 - YOWO 架構（a）實際上是一個 two-stage 架構，將檢測和分類模型在單一訓練階段中聯合訓練。儘管流程某種程度上被簡化，依然需要獨立從原始圖像中提取特徵。
 - 而WOO文章的目的就是隻使用一個backbone完成真正的 end-to-end 架構（b）。現有方法複雜且獨立的流程阻礙了視頻動作在現實世界中的可擴展性和實用性。
@@ -32,7 +34,9 @@ YOWO屬於一個stage+兩個backbone，仍需要完成 2D CNN 檢測和 3D CNN �
 
 ### **統一的骨幹網絡**：
 由一個 backbone 同時處理時間和空間信息，關鍵設計在於提取 Key Frame 用於檢測而同時保留了 temporal feature 用於動作。 🧩🧩🧩
+
 ![WOO圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image3.png)
+
 - 圖 a 表示傳統的 Separate Backbone，圖中右側的 3D video backbone 是分層提取特徵的，經過Res3，Res4（ResNet第4階段。每經過一個Stage 特徵圖的尺寸會變小，感受野變大，語義信息增強）。
 - 列表項DC5 這裏的DC5表示的是最後一個stage使用了dilated convolution（空洞卷積，表示再卷積核中插入空洞，參數量不變但是可以讓感受野變大。不是主流用的）目的是保持更高的空間分辨率，因為常見增大感受野的方法一般是pooling stride=2 但是這樣會導致特徵圖變小，分辨率下降。
 > 傳統動作識別經常使用DC5的原因在於，很多目標很小，為了保留更多的細節使用空洞卷積。<u>但是注意 WOO 沒有用 DC5，</u>因為除了分類，WOO還要同時完成檢測的任務，而作者發現隨着網絡加深，關鍵幀就會不斷地和臨近的幀進行混合，這樣就會導致乾淨的空間信息被時間信息污染。
@@ -79,7 +83,9 @@ Bitpartite matching 就是預測框和GT框一一匹配，不會出現多個預�
 ```
 ### 	Action Classification Head（對動作識別的分類頭）
 🧩🧩🧩
+
 ![WOO圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image7.png)
+
 ```
 對每個前面人體檢測器檢測到的人 → 使用RoI Align（特徵圖裁剪器）分別提取空間信息 + 時間信息 →
 用attention讓不同人交互 → 融合 → 分類
@@ -97,7 +103,9 @@ Bitpartite matching 就是預測框和GT框一一匹配，不會出現多個預�
 得到Attention權重再與v相乘得到交互後的embedding輸出，然後作用在右側的spatial feture增強每個人的spatial feature。
 ---
  🧩🧩🧩
+
 ![WOO圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image9.png)
+
 為了捕獲不同人之間的關係，作者設計了這個Interaction module，我們前面已經有了這個人的時間和空間特徵，但是作者認為 ：
 
  **只用當前人的特徵是不夠的，因為視頻裏往往還有多個人，同時看到多個人的動作也許更容易判斷視頻分類。** 
@@ -121,6 +129,7 @@ Self-Attention 是讓每一個元素（Token）去看看其他所有元素，從
 與CBAM不同的是它知道不同的人Actor A，ActorB….而計算的是人與人之間是由多少關係。WOO Figure4中的Attention更接近LLM的 Self Attention。
 **這一篇是LLM的self-attention 上一篇YOWO用的是CNN attention。**
 🧩🧩🧩
+
 ![WOO圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image10.png)
  
 
