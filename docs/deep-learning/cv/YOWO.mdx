@@ -13,6 +13,7 @@ You Only Watch Once (YOWO): A One-Stage Network for Real-Time Spatio-Temporal Ac
 🧩🧩🧩
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image1.jpeg)
 
+
 **Paper link:** https://arxiv.org/pdf/1911.06644.pdf
 
 
@@ -150,6 +151,7 @@ Spatial localization (Object Detection) + behavior classification (Action Classi
 ## Key Difficulty
 
 *Behavior is not equal to single-frame information*🧩🧩🧩
+
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image3.jpeg)
 
 
@@ -175,6 +177,7 @@ not from a static image in a single frame.
 # Overall Architecture
 To solve the above problems, YOWO is built on an existing 3D CNN (used to implement temporal modeling ability), while reducing the input size. It then chooses a relatively simple spatial modeling method (the paper mentions directly using the structurally simple YOLOv2), and finally designs a CFAM module based on a self-attention mechanism to fuse the two types of features. A bounding-box regression part is added at the end. The network architecture is shown below.
 🧩🧩🧩
+
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image4.jpeg)
 
 
@@ -220,7 +223,9 @@ To solve the above problems, YOWO is built on an existing 3D CNN (used to implem
 
 YOWO adopts a channel fusion + attention mechanism scheme. It first obtains the 3D features and 2D features and concatenates them, then processes them with 1*1 convolution and 3*3 convolution, outputting the fused feature F. However, simple fusion is insufficient, so YOWO adds a CFAM sub-attention module.
 🧩🧩🧩
+
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image5.jpeg)
+
 Because the features learned by 2D CNN and 3D CNN are different, they cannot simply be added together. Instead, a feature fusion module needs to be designed.
 
 ## Input Features
@@ -230,7 +235,9 @@ Two sources: A single frame (YOLO) and B multiple frames (3D CNN).
 > Rule for Concat and Add: Add is for the same information source (residual connection), while Concat is for different information sources (information fusion).
 
 ## 🧩🧩🧩
+
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image6.png)
+
 **A first flattens the input feature C×H'×W' to obtain a vector C×N (where N=HW).**
 - Because the original input B ∈ C × H × W, each channel is a feature map. After flattening:
 - F ∈ C × N (N = H×W). Each row is a channel, and each column represents a spatial position. The image is turned into vectors to make matrix operations convenient.
@@ -282,7 +289,9 @@ F = F + αF''
 - NumCls is the number of classes, meaning the number of action categories, and depends on the dataset. The first <u> 5 </u> represents 5 anchors, and the second <u> 5 </u> represents bbox coordinates plus confidence.
 #  Heatmap Interpretation of Attention Points
  🧩🧩🧩
+
 ![YOWO framework diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image10.jpeg)
+
 - Part (a) of the figure shows that the 3D CNN focuses on moving regions rather than all people. The current heatmap focuses on the specific action, not on people who are standing. It focuses on motion changes of the action rather than the complete human body.
 - Part (b) shows that the 2D CNN focuses on all people in the key frame. It does not care who is moving, but mainly focuses on who looks like a person.
 
