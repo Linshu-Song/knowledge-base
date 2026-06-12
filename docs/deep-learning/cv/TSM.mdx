@@ -25,6 +25,7 @@ Therefore, a key question is:
 ###  TSM proposes a lightweight mixing method.
 As shown below, the feature has four dimensions, where C is the channel dimension and T is the temporal dimension.
 🧩🧩🧩
+
 ![TSM architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image4.png)
 
 - The core operation of TSM is to shift part of the channels along the temporal dimension (including forward and backward shifts). This lets the machine use standard 2D convolution for batch-parallel processing, improving computational efficiency.
@@ -39,12 +40,14 @@ Taking diagram b as an example, orange indicates t=0. After shift, the features 
 - Shift first, then convolve. Therefore, after convolution on the t row in c, part of the obtained channels are shifted to t-1 (and also t+1 in offline mode).
 - As for which channel is more important, let the machine learn it by itself, because we do not know which channel is more important temporally.
 🧩🧩🧩
+
 ![TSM architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image5.png)
 
 - Now batch-parallel processing can be performed along the temporal dimension. Because it has become 2D convolution, we use shift to splice the temporal dimension, and the following convolution performs fusion.
 
 ##  Temporal Shift Module Method
  🧩🧩🧩
+
 ![TSM architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image6.png)
 
 ### 
@@ -53,6 +56,7 @@ Taking diagram b as an example, orange indicates t=0. After shift, the features 
 - Figure b compares accuracy. The green line indicates direct shift, and the blue line indicates residual-structure shift. The blue line performs best because the residual preserves the original information and does not destroy spatial features. The figure also shows that more shift is not always better and may instead cause accuracy to drop.
 ###  Model design: Residual TSM and In-Place TSM 
 🧩🧩🧩
+
 ![TSM architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image7.png)
 
 **(a) The residual connection is applied only after shift**
