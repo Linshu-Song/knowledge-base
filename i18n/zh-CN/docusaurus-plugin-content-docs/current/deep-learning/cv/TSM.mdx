@@ -4,12 +4,19 @@ sidebar_position: 1
 ---
 
  🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image1.png)
+
 相比2D CNN只能对单帧进行空间特征提取，在视频理解任务中3D CNN能够同时建模空间和时间信息，因此可以提取更复杂的时空特征。 
+
 **3D卷积图**🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image2.png)
+
 **2D卷积图**🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image3.png)
+
 然而，3D卷积需要在时间维度上进行额外计算，导致计算量和参数量显著增加，难以应用于实时或资源受限的场景。
 因此，一个关键问题是：
 > 能否在保持2D CNN高效计算的基础上，引入时间建模能力？
@@ -18,8 +25,11 @@ sidebar_position: 1
 	
 ### 1. TSM提出的是一种轻量的混合方式。
 如下图所示 可以看到特征的4个维度其中C为通道，T是时间维度。
+
 🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image4.png)
+
 - TSM的核心操作在于：将一部分通道沿着时间维度进行shift（包括前后移动）这样机器可以使用标准2D卷积进行batch并行处理，提高运算效率。
  
 ### 2. Shift的作用：
@@ -37,14 +47,18 @@ sidebar_position: 1
 
 ## 二、Temporal Shift Module方法
  🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image6.png)
+
 ### 1.
  - a图表示延迟开销，如图我们可以看到从原点上不做 TSM（2D CNN）到1所有 channel 都 shift（极端情况），shift 的 channel 越多，tsm会增加 latency overhead，所以论文采用了1/4的 shift。
 *（好像默认设置的 tsm 是 offline 的）*
 - b图为精度对比，绿线表示直接 shift，蓝线表示残差结构 shift，蓝线效果最好因为 residual 会保留原始的信息不破坏空间特征。图片也表明 shift 不是越多越好 反而有可能会导致 accuracy 下降。
 ### 2. 模型设计：Residual TSM 与 In-Place TSM 
 🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image7.png)
+
 **(a)在shift之后才进行的残差连接**
 虽然 shift 的内容不会增加任何参数和 Flop，但是如果直接把 Shift 放 Residual Connection 之前（a），会导致当前帧的一部分特征被移动到了相邻帧，导致当前帧无法再访问这些已经被移走信息，这样就会削弱2D CNN原本擅长的对当前画面的理解能力，从而影响检测的精度。
 尤其是当位移大量通道的时候，当前帧中存储的被移动通道中的信息会丢失。因此虽然模型获得了时间信息，但对当前画面的理解能力会下降，从而影响最终的识别效果。
@@ -53,7 +67,9 @@ sidebar_position: 1
 
  
 ### 3.	Offline TSM video models 
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image8.png)
+
 **Offline TSM** 和 **Online TSM** 的最大区别在于：
 因为离线推理时整个视频已经录制完成，所以模型能够提前看到未来的信息；而在线推理时未来帧还没有产生，因此不能使用未来信息。
 - 论文正是利用这一点，在 Offline TSM 中将部分通道向前移动、部分通道向后移动，从而实现双向时间信息交换。
@@ -64,7 +80,9 @@ sidebar_position: 1
 
 Online temporal 无法得到视频的未来帧，所以是Uni-directional 的。
   🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image9.png)
+
 上图中展示了用于Online中的单向TSM 重复该流程。首先对每一帧每一个残差块的前1/8个特征图保存并缓存道内存中。然后对于下一帧将当前特征图的前1/8替换为缓存的特征图，最后将7/8个当前特征图 和1/8个旧特征图组合起来生成下一层。使用单向TSM进行在线视频识别可以获得以下几个优势： 
 - 低延迟推理：对于每一帧，我们只需要替换并缓存 1/8 的特征，无需任何额外的计算。因此，每帧预测的延迟几乎与 2D CNN 基线模型相同。
 - 内存占用低：由于ResNet-50仅将一小部分特征缓存到内存中，因此内存占用很低。例如，ResNet-50仅添加0.9MB缓存来存储中间特征。
@@ -80,6 +98,7 @@ Online（单向）TSM：只 shift = 1/8
 = 只用过去帧
 ```
 🧩🧩🧩
+
 ![TSM结构图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/TSMimg/image11.png)
 
 
