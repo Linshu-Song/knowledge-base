@@ -5,6 +5,7 @@ sidebar_position: 1
 
 🧩🧩🧩
 ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image1.png) 
+
 ## 背景：有兩個貢獻：
 ### 	提出了一個新的模型I3D
 如何把一個2D模型擴張到3D模型呢？
@@ -12,7 +13,9 @@ sidebar_position: 1
 ### 	設計了數據集Kinetics Dataset 
 Kinetics Dataset 類別比較均衡，難度適中。視頻領域缺少一個比較好的數據集讓大家可以很好的去研究這個視頻理解的框架，本文作者提出視頻的模型最好還是在視頻上預訓練本文就是先提出了一個視覺模型，然後再現有的視頻數據集上訓練新的模型。
  🧩🧩🧩
+
 ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image2.png)
+
 如果只通過一張圖來看是不能區分準確的動作的
 
 ## 	前置相關工作
@@ -24,7 +27,9 @@ Kinetics Dataset 類別比較均衡，難度適中。視頻領域缺少一個比
   - **Width** 寬度也是一樣，理論上可以捕捉到更多的channel，也可以理解為觀察的角度更多。但是如果深度很淺的話沒有辦法得到高層的特徵，只能停留在低級特徵學不到高級語義，因為不同channel的特徵還沒有混合到很好，寬度也會飽和。
   - **Resolution**  理論上解釋度越高也可以看到更多的資訊，但是如果分辨率太高會導致爆炸增長計算量，而且很多細節也許對分類沒有太大幫助，也會有一個飽和。
  🧩🧩🧩
+
 ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image3.png)
+
 觀察得到網絡的深度，寬度和分辨率是互相影響的，因此平衡這三個參數是追求更高準確率的重要關鍵因素之一。我們能不能把他們同時進行調節呢？
 - 使用一組固定的複合係數ϕ
 
@@ -32,7 +37,9 @@ Kinetics Dataset 類別比較均衡，難度適中。視頻領域缺少一個比
 
 **α<sup>N</sup> 、β<sup>N</sup> 和 γ<sup>N</sup> 倍**
 🧩🧩🧩
+
 ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image4.png)
+
 其中 α、β、γ 是對小模型進行 small grid search 而決定的常數，用來把模型精簡成一個base，縮小模型。
 ### 	Optical flow光流
 **計算 frame 的位移，用於檢測物體移動，因為實際上兩個 frame 之間的差距不會差太多，可以減少震動的狀況。**
@@ -44,8 +51,10 @@ Kinetics Dataset 類別比較均衡，難度適中。視頻領域缺少一個比
 ## 	I3D
 ### 	
  🧩🧩🧩
+
 ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image6.png)
  ![I3D結構圖](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image7.png)
+
 ### 	a）架構
  這是一個 CNN+LSTM 的視頻理解架構，CNN只能看但張圖加上LSTM建模時間關係。更多還是把一個視頻看成了圖像問題，抽特徵的過程是完全分開的，然後把所有的內容扔給LSTM。取最後一個時間戳放到全連接層，全連接層把特徵映射到類別概率最後輸出分類的概率。但是真正的視頻動作時間和空間的信息應該是互相影響的，所以這個方法在視頻數據集中表現並不好。
 ### 	b）架構
