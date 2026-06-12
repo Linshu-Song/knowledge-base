@@ -5,6 +5,7 @@ sidebar_position: 1
 
 🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image1.png) 
+
 ##  Background: two contributions
 ###  A new model, I3D, was proposed
 How can a 2D model be expanded into a 3D model?
@@ -13,6 +14,7 @@ We hope to directly use a well-developed 2D video understanding model. This not 
 The Kinetics Dataset has relatively balanced categories and moderate difficulty. The video field lacked a good dataset that would let researchers study video understanding frameworks well. The authors of this paper proposed that video models are still best pretrained on video. This paper first proposes a visual model, and then trains the new model on existing video datasets.
  🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image2.png)
+
 If we only look at a single image, we cannot accurately distinguish the action.
 
 ##  Preliminary Related Work
@@ -25,6 +27,7 @@ This is also a network scaling method proposed by Google. It uses a compound coe
   - **Resolution** In theory, higher resolution can also show more information, but if the resolution is too high, the computation will grow explosively. Many details may not help classification much, and there will also be saturation.
  🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image3.png)
+
 We can observe that network depth, width, and resolution influence each other. Therefore, balancing these three parameters is one of the key factors for pursuing higher accuracy. Can we adjust them at the same time?
 - Use a fixed set of compound coefficients ϕ
 
@@ -33,19 +36,23 @@ For example: if the computing resources are 2^N times larger, increase the netwo
 **α<sup>N</sup>, β<sup>N</sup>, and γ<sup>N</sup> times**
 🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image4.png)
+
 Here α, β, and γ are constants determined by small grid search on a small model. They are used to simplify the model into a base and scale down the model.
 ###  Optical flow
 **Calculates the displacement of frames and is used to detect object movement. Because the difference between two frames is usually not too large, it can reduce the effect of jitter.**
 1)	**Ideal conditions:** brightness remains constant, time is continuous, and the background does not change drastically.
  🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image5.jpeg)
+
 The role of optical flow is useful when the focus of our task is to observe the displacement of moving objects over time. If there is no moving target in the image, then the optical-flow vectors across the entire image are simply points with no motion. When motion appears in the image, the target and the background have relative motion. The velocity vector formed by the moving object must differ from the velocity vector of the background, allowing the position of the moving object to be calculated. For every pixel in every frame, the movement vector to the second frame is calculated, so the computation is actually very large.
 **2)	Disadvantages:** The optical-flow field does not necessarily reflect the actual motion of the target. Its assumption is constant brightness, so optical-flow methods are sensitive to lighting. When the light source and the object have relative motion, optical flow will be generated, so changes in lighting can easily affect recognition performance.
 ##  I3D
 ### 	
  🧩🧩🧩
 ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image6.png)
- ![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image7.png)
+
+![I3D architecture diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/I3Dimg/image7.png)
+
 ###  Architecture a)
  This is a CNN+LSTM video understanding architecture. The CNN can only look at a single image, and the LSTM is added to model temporal relationships. It still mostly treats a video as an image problem. The feature extraction process is completely separate, and then all the content is thrown into the LSTM. The final timestamp is sent to a fully connected layer, which maps the features to class probabilities and finally outputs the classification probability. However, in real video actions, temporal and spatial information should influence each other, so this method does not perform well on video datasets.
 ###  Architecture b)
