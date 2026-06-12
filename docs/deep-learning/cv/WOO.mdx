@@ -19,6 +19,7 @@ Use one unified network to watch the video once and complete object detection an
 Core conflict: a single frame is good for detection, while multiple frames are good for action recognition.
 ###  Traditional methods (mainly compared with WOO in the paper): 🧩🧩🧩
 ![WOO diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image2.png)
+
 YOWO belongs to a one-stage + two-backbone approach, and it still needs to complete 2D CNN detection and 3D CNN action processing. This WOO paper can be compared with YOWO. WOO believes that:
 - The YOWO architecture (a) is actually a two-stage architecture, jointly training the detection and classification models in a single training stage. Although the pipeline is simplified to some extent, it still needs to independently extract features from the original images.
 - The goal of the WOO paper is to use only one backbone to complete a true end-to-end architecture (b). Existing complex and independent pipelines hinder the scalability and practicality of video action methods in the real world.
@@ -32,7 +33,9 @@ YOWO belongs to a one-stage + two-backbone approach, and it still needs to compl
 
 ###  **Unified backbone network**
 A single backbone processes temporal and spatial information at the same time. The key design is to extract the Key Frame for detection while preserving temporal features for action recognition. 🧩🧩🧩
+
 ![WOO diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image3.png)
+
 - Figure a represents the traditional Separate Backbone. The 3D video backbone on the right extracts features hierarchically through Res3 and Res4 (the 4th stage of ResNet. After each Stage, the feature map size becomes smaller, the receptive field becomes larger, and semantic information becomes stronger).
 - The list item DC5 here means that the last stage uses dilated convolution (atrous convolution, meaning holes are inserted into the convolution kernel. The number of parameters does not change, but the receptive field can become larger. This is not the mainstream approach). Its purpose is to maintain higher spatial resolution, because common methods for increasing the receptive field usually use pooling stride=2, but that makes the feature map smaller and reduces resolution.
 > Traditional action recognition often uses DC5 because many targets are small, and dilated convolution preserves more details. <u>But note that WOO does not use DC5,</u> because in addition to classification, WOO also needs to complete detection. The authors found that as the network deepens, the key frame continuously mixes with nearby frames, which causes clean spatial information to be contaminated by temporal information.
@@ -80,6 +83,7 @@ Bipartite matching means prediction boxes and GT boxes are matched one-to-one, s
 ###  Action Classification Head
 🧩🧩🧩
 ![WOO diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image7.png)
+
 ```
 For each person detected by the previous human detector -> use RoI Align (feature map cropper) to separately extract spatial information + temporal information ->
 use attention to let different people interact -> fuse -> classify
@@ -98,6 +102,7 @@ The Attention weights are then multiplied by v to obtain the interacted embeddin
 ---
  🧩🧩🧩
 ![WOO diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image9.png)
+
 To capture relationships between different people, the authors designed this Interaction module. We already have the temporal and spatial features of this person, but the authors believe:
 
  **Using only the current person's feature is not enough, because there are often multiple people in a video. Seeing the actions of multiple people at the same time may make video classification easier to judge.** 
@@ -121,6 +126,7 @@ Self-Attention lets every element (Token) look at all other elements, thereby de
 Unlike CBAM, it knows different people such as Actor A, Actor B... and calculates how much relationship exists between people. The Attention in WOO Figure 4 is closer to LLM Self Attention.
 **This paper uses LLM-style self-attention. The previous YOWO paper uses CNN attention.**
 🧩🧩🧩
+
 ![WOO diagram](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/WOOimg/image10.png)
  
 
