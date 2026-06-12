@@ -11,6 +11,7 @@ sidebar_position: 1
 
 You Only Watch Once (YOWO): A One-Stage Network for Real-Time Spatio-Temporal Action Detection
 🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image1.jpeg)
 
 **论文链接：** https://arxiv.org/pdf/1911.06644.pdf
@@ -18,6 +19,7 @@ You Only Watch Once (YOWO): A One-Stage Network for Real-Time Spatio-Temporal Ac
 
 # 1. 问题背景❔
 🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image2.jpeg)
 
 
@@ -150,6 +152,7 @@ T × H × W
 ## 2.2 关键难点
 
 *行为并不等于单帧信息*🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image3.jpeg)
 
 
@@ -175,6 +178,7 @@ T × H × W
 # 3. 整体架构
 为了解决以上问题，YOWO在已有的3D CNN（用来实现时序建模能力）基础上，同时把输入的尺寸变小。然后选择了结构比较简单的空间建模方式（论文中提到直接使用了结构简单的YOLOv2来处理），最后设计了一个基于自注意力机制的模块CFAM来融合以上两种特征，最后加一个边界框回归部分，网络架构如下图所示。
 🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image4.jpeg)
 
 
@@ -220,7 +224,9 @@ T × H × W
 
 YOWO采用了通道融合+注意力机制的方案，先获得的3D特征与2D特征Concat，然后使用1*1卷积和3*3卷积进行处理，输出融合后的特征F。但是只是简单的融合是不充分的，于是YOWO又增加了一个CFAM子注意力模块。
 🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image5.jpeg)
+
 由于2D CNN和3D CNN学习到的特征不同，因此不能简单相加，而是需要设计一个特征融合模块。
 
 ## 6.1 输入特征
@@ -230,7 +236,9 @@ YOWO采用了通道融合+注意力机制的方案，先获得的3D特征与2D�
 > Concat 和 Add 的规则：Add	同一信息源（残差连接）,Concat不同信息源（信息融合）
 
 ## 6.2 🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image6.png)
+
 **A 首先对于输入的特征C×H‘×W‘做flatten操作 获得向量C×N（这里N=HW）**
 - 因为原始的输入B ∈ C × H × W，每一个channel都是一个特征图，flatten拉平之后
 - F ∈ C × N  （N = H×W）每一行是一个channel，每一列表示的是一个空间位置，把图像变成向量方便做矩阵运算。
@@ -282,7 +290,9 @@ F = F + αF''
 - NumCls 类别数量也就是动作类别数，取决于数据集。第一个<u> 5 </u>代表有5个anchors，第二个<u> 5 </u>代表 bbox 的坐标加上confidence。
 # 8. 热力图解释关注点
  🧩🧩🧩
+
 ![YOWO框架图](https://raw.githubusercontent.com/SAILTECHTEAM/knowledge-base/main/static/img/cv_img/YOWOimg/image10.jpeg)
+
 - 图中（a）部分表示3D CNN关注运动区域而不是所有的人，当前热力图关注具体的动作，而不是站着的人。关注的是动作运动变化而不是完整得人体。
 - （b）	部分表示2DCNN关注的是关键帧中所有的人，不关注谁在动而是主要关注谁长得像一个人。
 
