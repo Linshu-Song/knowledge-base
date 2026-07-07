@@ -2,19 +2,25 @@
 ## Agent 整体链路
 ### 什么是Agent
 “Agent”可以有多种定义。一些客户将Agent定义为完全自主的系统，能够在较长时间内独立运行，使用各种工具完成复杂任务。也有人用该术语来描述遵循预定义工作流程的更具规范性的实现。
+
 **Agent的组成部分** 
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig1.png)
+
 图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQ?spm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 工程上实现可以拆分出四个核心模块：推理、记忆、工具、行动
 
 ### Agent完整工作流程
 我们认为，只是简单的LLM（Prompt）不能被称为Agent，Agent系统的基本构建模块是一个通过检索、工具和内存等增强功能的LLM。现有的模型可以主动利用这些能力，生成自己的搜索查询，选择合适的工具并确定要保留哪些信息。
+
 🧩🧩🧩
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig2.png)
 Agent的重点不在于模型，而是让模型真正具备完成任务的能力。
 🧩🧩🧩🧩
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig3.png)
+
 Agent 决策流程图
+
 图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQ?spm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
 **感知：** 需要从外部环境接收到输入，需要知道问的问题是什么，有了感知之后会把内容交给LLM。
@@ -63,7 +69,9 @@ Runtime 本质是AI Agent 的执行基础设施。它管理Agent的生命周期�
 与外部环境交互。
 
 🧩🧩🧩
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png)
+
 典型runtime
 当 LLM 判断需要使用工具时，它会把 Tool Call 的意图交给 Runtime，再由 Runtime 通过 MCP Client 调用对应的 MCP Server。
 
@@ -77,8 +85,11 @@ LLM 每轮并不是只看当前一句话，而是会同时接收 system prompt�
 Context表示大模型每次处理任务时所接收到的信息总和。Context中有很多内容包括对话历史、用户问题、当前输出、工具列表以及system prompt等，可以理解为大模型的临时记忆体。
 主流模型的context window 大小（上下文）表示大模型每次接收任务时能容纳的最大token数量。
 而Context能有多大，里面有多少tokens由context window来表示。
+
 🧩🧩🧩
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig5.png)
+
 注意Context window并不等于Memory。
 
 
@@ -86,18 +97,27 @@ Context表示大模型每次处理任务时所接收到的信息总和。Context
 **AI Agent的记忆类型**
 
 记忆Memory：分为短期记忆以及长时间记忆。
+
 **形成记忆：** 大模型在大量包含世界知识的数据集上进行预训练，在预训练中，大模型通过调整神经元的权重来学习和理解生成人类语言，被视为“记忆”的形成过程，通过使用深度学习和梯度下降等技术，不断提高预测或者生成文本的能力进而形成长期记忆。存在硬件中不会遗忘。
+
 **短期记忆/工作记忆**
+
 短期记忆（Short-term Memory, STM）是智能体维护当前对话和任务的即时上下文系统，主要包括：
+
 会话缓冲（Context）记忆：保留最近对话历史的滚动窗口，确保回答上下文相关性；
+
 工作记忆：存储当前任务的临时信息，如中间结果、变量值等。
+
 短期记忆受限于上下文窗口大小，适用于简单对话和单一任务场景。
+
 **长期记忆**
+
 长期记忆（Long-term Memory, LTM）是智能体用于跨会话、跨任务长期保存知识的记忆形式。它对应于人类的大脑中持久保存的记忆，例如事实知识、过去经历等。长期记忆的实现通常依赖于外部存储或知识库，包括但不限于：
 - 摘要记忆：将长对话内容提炼为关键摘要存储；
 - 列表项结构化知识库：使用数据库或知识图谱存储结构化信息；
 - 列表项向量化存储：通过向量数据库实现基于语义的记忆检索。
 长期记忆使智能体能够随着时间累积经验和知识，它特别适用于知识密集型应用和需要长期个性化的场景。
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig6.png)
 ---
 
@@ -129,8 +149,11 @@ https://medium.com/@sitaramireddy1994/summarized-memory-in-ai-agents-compressing
 ## **Agent 能力来源（Tool）**
 ### Tool
 工具Tools：LLM是不具备任何与外部环境交互的能力的，没有环境交互他不能做任何事情，而工具是环境的一部分。但是它可以通过外接API的形式来获得模型权重所缺少的额外信息。 这对于预训练之后难以修改的模型权重来说是非常重要的。Tool 的存在和权限由开发者定义，而是否调用某个 Tool，则由 LLM 在 Runtime 环境下根据当前任务动态决定。可以通过提示工程激发或者引导模型已有的能力，但是实际上这些能力是固化的，能力上限依然由模型的权重决定，有些模型天生能力就强但是有些模型加入提示词也不会有很好的结果。
+
 🧩🧩🧩
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig7.png)
+
 ### MCP
 即使拥有最前沿的模型，如果无法连接外部世界获得必要数据和上下文，效果就会大打折扣。
 - 列表项模型上下文协议（MCP）这是一个开源协议，它标准化了大语言模型的连接与工作方式。可以理解为一套统一的工具接入标准（比如所有的手机都是type-C接口）。也是一个runtime使用的工具，与其他工具不同的地方就在于他是一个打包好的黑盒。MCP协议可以为LLMAgent提供数百种工具来解决现实任务。MCP服务器的优势在于跨应用(不同的runtime)的高度可复用性。
@@ -148,10 +171,14 @@ skill只需要确定当我们需要做什么的时候再加载我们需要的东
 ## RAG
 检索增强生成（RAG）是指对大语言模型输出进行优化，使其能够在生成响应之前引用训练数据来源之外的权威知识库。大语言模型（LLM）用海量数据进行训练，使用数十亿个参数为回答问题、翻译语言和完成句子等任务生成原始输出。在 LLM 本就强大的功能基础上，RAG 将其扩展为能访问特定领域或组织的内部知识库，所有这些都无需重新训练模型。这是一种经济高效地改进 LLM 输出的方法，让它在各种情境下都能保持相关性、准确性和实用性。
 ### RAG流程
+
 🧩🧩🧩🧩
+
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig8.png)
+
 一个完整 RAG 链路通常包括：文档清洗与切分（chunking）、embedding 建库、query 改写或扩展、retrieval 召回、rerank 重排、上下文压缩、引用来源保留、LLM 生成和答案校验。
 在加入RAG之前，LLM的知识来源就只有训练数据，加入RAG之后就会先去找相关的资料，然后把资料交给LLM，LLM的内容不变但是prompt变长了
+
 ### Chunking
 把长文档切成小段再存入向量库。
 - 列表项切太小，例如每段 100 tokens，可能会丢失上下文。比如一段只写“该方法适用于上述情况”，但“上述情况”在上一段，检索出来后 LLM 也看不懂。
