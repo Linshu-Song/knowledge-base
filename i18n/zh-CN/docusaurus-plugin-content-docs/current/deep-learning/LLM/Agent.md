@@ -190,7 +190,7 @@ model_with_tools = model.bind_tools(tools)
 
 - Skill与MCP会同时出现，但它们彼此没有依赖关系。 一个 Agent 可以同时使用 Skill 和 MCP，也可以只使用其中一个。
 > Skill 是"指导者"，没有它，LLM 仍然可以完成任务，只是可能缺少规范和最佳实践。
-MCP 是"连接器"，没有它，Runtime 仍然可以调用本地 Tool，只是无法方便地复用和共享外部 Tool。
+没有 MCP，Runtime 仍然可以直接调用本地函数、SDK 或 API 来使用 Tool，但这些 Tool 通常需要针对不同 Runtime 或 Agent 框架分别进行适配。当需要在多个 Runtime（如 LangGraph、Claude Desktop、Cursor、OpenAI Agents SDK 等）之间共享同一套 Tool 时，就可能需要重复开发和维护不同的接口。而 MCP 通过统一协议，将 Tool 封装为标准化的 MCP Server，使不同 Runtime 能够复用同一套 Tool，而无需为每个平台重新开发接入逻辑。
 
 
 
