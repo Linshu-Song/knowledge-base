@@ -5,7 +5,11 @@
 
 **Agent的组成部分** 
 
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig1.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig1.png" width="70%">
+
+</div>
 
 图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
