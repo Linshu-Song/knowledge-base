@@ -26,7 +26,7 @@ Agent的重点不在于模型，而是让模型真正具备完成任务的能力
 🧩🧩🧩🧩
 
 <div align="center">
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig3.png)
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig3.png" width="70%">
 </div>
 
 Agent 决策流程图
