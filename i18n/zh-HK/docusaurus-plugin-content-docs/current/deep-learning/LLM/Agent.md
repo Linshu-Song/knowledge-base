@@ -1,358 +1,373 @@
 # Agent
+## Agent 整體鏈路
+### 什麼是Agent
+「Agent」可以有多種定義。一些客戶將Agent定義為完全自主的系統，能夠在較長時間內獨立運行，使用各種工具完成複雜任務。也有人用該術語來描述遵循預定義工作流程的更具規範性的實現。
 
-## Agent 整体链路
+**Agent的組成部分** 
 
-### 什么是Agent
+<div align="center">
 
-"Agent"可以有多种定义。一些客户将Agent定义为完全自主的系统，能够在较长时间内独立运行，使用各种工具完成复杂任务。也有人用该术语来描述遵循预定义工作流程的更具规范性的实现。
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig1.png" width="70%">
 
-**Agent的组成部分**
+</div>
 
-::: {align="center"}
-`<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig1.png" width="70%">`{=html}
-:::
+圖片來源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
-图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
-工程上实现可以拆分出四个核心模块：推理、记忆、工具、行动
+工程上實現可以拆分出四個核心模組：推理、記憶、工具、行動
 
 ### Agent完整工作流程
-
-Agent
-是一个能够感知环境、进行推理决策、调用工具并根据反馈持续完成任务的软件系统。LLM通常作为Agent的推理核心，但Agent并不等同于LLM。我们认为，只是简单的LLM（Prompt）不能被称为Agent，Agent系统的基本构建模块是一个通过检索、工具和内存等增强功能的LLM。现有的模型可以主动利用这些能力，生成自己的搜索查询，选择合适的工具并确定要保留哪些信息。
+Agent 是一個能夠感知環境、進行推理決策、調用工具並根據反饋持續完成任務的軟件系統。LLM通常作為Agent的推理核心，但Agent並不等同於LLM。我們認為，僅僅簡單的LLM（Prompt）不能被稱為Agent，Agent系統的基本構建模組是一個通過檢索、工具和記憶等增強功能的LLM。現有的模型可以主動利用這些能力，生成自己的搜索查詢，選擇合適的工具並確定要保留哪些信息。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig2.png)
+<div align="center">
 
-Agent的重点不在于模型，而是让模型真正具备完成任务的能力。
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig2.png" width="70%">
+
+</div>
+
+Agent的重點不在於模型，而是讓模型真正具備完成任務的能力。
 
 🧩🧩🧩🧩
 
-::: {align="center"}
-`<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig3.png" width="70%">`{=html}
-:::
+<div align="center">
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig3.png" width="70%">
+</div>
 
-Agent 决策流程图
+Agent 決策流程圖
 
-图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
+圖片來源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
-**感知：**
-需要从外部环境接收到输入，需要知道问的问题是什么，有了感知之后会把内容交给LLM。
+**感知：** 需要從外部環境接收到輸入，需要知道提問的內容是什麼，完成感知後會將內容交給LLM。
 
-**规划：** 通过LLM的规划能力对任务进行拆解，更好的解决这个问题。
+**規劃：** 通過LLM的規劃能力對任務進行拆解，更好地解決這個問題。
 
-关于子任务拆分原则：要遵循子任务之间尽量独立，每一个任务对应一个Tool这样有利于工程化、每一步都要有明确的输出。Agent
-的拆分粒度过粗会降低可靠性，过细则会增加推理成本和上下文复杂度，因此工程上通常希望每个步骤都对应一个明确的目标和可验证的输出。
+關於子任務拆分原則：需要遵循子任務之間盡量獨立，每一個任務對應一個Tool，這樣有利於工程化，每一步都需要有明確的輸出。Agent 的拆分粒度過粗會降低可靠性，過細則會增加推理成本和上下文複雜度，因此工程上通常希望每個步驟都對應一個明確的目標和可驗證的輸出。
 
-**行动：** 对当前的子任务进行解决得到一个反馈。
+**行動：** 對當前的子任務進行解決並得到一個反饋。
 
-**观察：**
-但是我们不知道这个反馈是好的还是坏的，进行反思，如果是好的就会接着继续规划下一个任务，如果不是好的就会思考看下一步规划是否需要重新制定。
+**觀察：** 但是我們不知道這個反饋是好還是壞，因此需要進行反思。如果結果良好，就會繼續規劃下一個任務；如果結果不理想，則需要重新思考下一步規劃是否需要重新制定。
 
-### LLM在agent框架中的作用
-
-LLM
-在整个框架中更像是负责推理和决策的大脑，但它本身并不能直接与外界交互，也不能直接面向用户。没有
-Runtime
-的话，即使模型知道应该怎么做，也没有执行环境，就像一个人被放在虚无之中，无法真正完成任何任务。
+### LLM在Agent框架中的作用
+LLM 在整個框架中更像是負責推理和決策的大腦，但它本身並不能直接與外界交互，也不能直接面向使用者。沒有 Runtime 的話，即使模型知道應該怎麼做，也沒有執行環境，就像一個人被放置在虛無之中，無法真正完成任何任務。
 
 **LLM回答的方式：**
-LLM本身只负责根据输入生成输出，在Agent框架中会通过Runtime构建循环，一种常见的执行模式是ReAct（Reasoning-Acting）循环。：
-\> 思考（Reason） 如果需要则调用工具（Act） 得到结果（Observation）
-生成最终答案（Final Answer）
+LLM本身只負責根據輸入生成輸出，在Agent框架中會通過Runtime構建循環，一種常見的執行模式是ReAct（Reasoning-Acting）循環：
+> 思考（Reason）  
+> 如果需要則調用工具（Act）  
+> 得到結果（Observation）  
+> 生成最終答案（Final Answer）
 
-区别仅在于： 有些问题不需要访问外部环境，例如： \> Hi, how are you?
+區別僅在於：
 
-LLM 可以直接根据已有知识生成答案； 更多时候，LLM
-会发现自己缺少必要的信息或者需要执行某些操作，于是会要求 Runtime
-调用对应的 Tool。工具并不只是 API，也可能是MCP、数据库、RAG
-检索、搜索引擎、本地代码执行器甚至其他 Agent。
-因此，不应该简单地理解为存在"两种回答方式"，而应该理解为：
-最终一定是先完成任务，再生成答案。只是有些任务恰好不需要调用工具而已。
-需要注意的是，大模型本身通常很难主动承认：
+有些問題不需要訪問外部環境，例如：
 
-    这个问题无法解决
-    我没有找到答案
-    我不确定
+> Hi, how are you?
 
-在真正无法解决的时候，如果没有额外限制，模型往往不会自动停止，而是继续搜索、规划甚至开始产生幻觉（Hallucination），编造出看似合理但实际上错误的答案。因此，在实际工程中，Agent
-的循环次数、Tool Call 次数或者 Planning 次数通常都会由 Runtime
-人为设置上限。
-没有Runtime的LLM（Prompt）不能被称为Agent，真正让Agent具备工程能力的核心在于Runtime。
+LLM 可以直接根據已有知識生成答案；
+
+更多時候，LLM 會發現自己缺少必要的信息或者需要執行某些操作，於是會要求 Runtime 調用對應的 Tool。工具並不只是 API，也可能是MCP、數據庫、RAG 檢索、搜索引擎、本地代碼執行器甚至其他 Agent。
+
+因此，不應該簡單地理解為存在「兩種回答方式」，而應該理解為：
+
+最終一定是先完成任務，再生成答案。只是有些任務恰好不需要調用工具而已。
+
+需要注意的是，大模型本身通常很難主動承認：
+''''
+這個問題無法解決
+我沒有找到答案
+我不確定
+''''
+
+在真正無法解決的時候，如果沒有額外限制，模型往往不會自動停止，而是繼續搜索、規劃甚至開始產生幻覺（Hallucination），編造出看似合理但實際上錯誤的答案。因此，在實際工程中，Agent 的循環次數、Tool Call 次數或者 Planning 次數通常都會由 Runtime 人為設置上限。
+
+沒有Runtime的LLM（Prompt）不能被稱為Agent，真正讓Agent具備工程能力的核心在於Runtime。
 
 ## Agent Runtime
+### Runtime 是什麼
+Runtime 本質是AI Agent 的執行基礎設施。它管理Agent的生命周期、狀態、計算資源以及與外部系統的交互，從而確保Agent能夠可靠、安全且大規模地運行。它是使Agent能夠運行、處理輸入、執行任務並實時或近實時地交付輸出的基礎設施或平台。
 
-### Runtime 是什么
-
-Runtime 本质是AI Agent
-的执行基础设施。它管理Agent的生命周期、状态、计算资源以及与外部系统的交互，从而确保Agent能够可靠、安全且大规模地运行。它是使Agent能够运行、处理输入、执行任务并实时或近实时地交付输出的基础设施或平台。
-\> 负责： \> 维护 State 和 Session； 管理 Memory； 调用 Tool；
-控制工作流； 处理权限和异常； 决定那些信息进入 Context；
-与外部环境交互。
+> 負責：
+> 維護 State 和 Session；  
+管理 Memory；  
+調用 Tool；  
+控制工作流；  
+處理權限和異常；  
+決定哪些信息進入 Context；  
+與外部環境交互。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png" width="70%">
+
+</div>
+
 
 **典型runtime**
 
-当 LLM 判断需要使用工具时，它会把 Tool Call 的意图交给 Runtime，再由
-Runtime 通过 MCP Client 调用对应的 MCP Server。
+當 LLM 判斷需要使用工具時，它會將 Tool Call 的意圖交給 Runtime，再由 Runtime 通過 MCP Client 調用對應的 MCP Server。
 
-但是这一条链漏了一个东西： \>
-"我要搜索图书馆是否有哈利波特""哪里有这本书"这本书指的是哪一本？"
+但是這一條鏈漏了一個東西：
 
-**State：** 这里隐藏了一个东西叫做state ，State 用来保存 Agent
-在执行任务过程中需要持续维护的信息，例如用户是否已经登录、身份权限、历史对话、当前任务进展、已经调用过哪些工具、工具返回的结果，以及一些业务数据（如是否已借书、是否存在欠款等）。这些信息不会因为一次模型调用而丢失，而是由
-Runtime 统一维护。当用户发起新的请求时，Runtime 会根据当前
-State，选择其中与本次任务相关的信息提供给
-LLM，帮助模型理解上下文，并决定下一步应该调用哪个 Tool 或
-API。例如，当用户说"帮我续借这本书"时，LLM
-本身并不知道"这本书"是哪一本，而是 Runtime 根据 State
-中保存的借阅记录和当前对话信息，将相关内容提供给
-LLM，模型才能正确调用对应的续借 API。
-关于上述陈述中*Runtime的选择*：Runtime本身是不会自主思考的，Runtime选择任务相关信息是按照开发者预先定义好的规则（Rule）或流程（Workflow）来组织
-State。真正理解这些信息的是 LLM，而不是 Runtime。
+> 「我要搜索圖書館是否有哈利波特」「哪裡有這本書」這本書指的是哪一本？
+
+**State：** 這裡隱藏了一個東西叫做state，State 用來保存 Agent 在執行任務過程中需要持續維護的信息，例如使用者是否已經登入、身份權限、歷史對話、當前任務進展、已經調用過哪些工具、工具返回的結果，以及一些業務數據（如是否已借書、是否存在欠款等）。這些信息不會因為一次模型調用而丟失，而是由 Runtime 統一維護。當使用者發起新的請求時，Runtime 會根據當前 State，選擇其中與本次任務相關的信息提供給 LLM，幫助模型理解上下文，並決定下一步應該調用哪個 Tool 或 API。例如，當使用者說「幫我續借這本書」時，LLM 本身並不知道「這本書」是哪一本，而是 Runtime 根據 State 中保存的借閱記錄和當前對話信息，將相關內容提供給 LLM，模型才能正確調用對應的續借 API。
+
+關於上述陳述中*Runtime的選擇*：Runtime本身是不會自主思考的，Runtime選擇任務相關信息是按照開發者預先定義好的規則（Rule）或流程（Workflow）來組織 State。真正理解這些信息的是 LLM，而不是 Runtime。
 
 ### Context
+LLM 每輪並不是只看當前一句話，而是會同時接收 system prompt、工具列表、對話歷史、session/user state、權限狀態、檢索結果和當前使用者輸入。Runtime 負責將這些信息組織成可控的執行流程。
 
-LLM 每轮并不是只看当前一句话，而是会同时接收 system
-prompt、工具列表、对话历史、session/user
-state、权限状态、检索结果和当前用户输入。Runtime
-负责把这些信息组织成可控的执行流程。
-Context表示大模型每次处理任务时所接收到的信息总和。Context中有很多内容包括对话历史、用户问题、当前输出、工具列表以及system
-prompt等，Context是模型当前一次推理所接收到的信息，而Memory是系统长期保存信息的机制。Context是一次性的输入，Memory是用于生成Context的数据来源。
-主流模型的context window
-大小（上下文）表示大模型每次接收任务时能容纳的最大token数量。
-而Context能有多大，里面有多少tokens由context window来表示。
+Context表示大模型每次處理任務時所接收到的信息總和。Context中包含很多內容，包括對話歷史、使用者問題、當前輸出、工具列表以及system prompt等。Context是模型當前一次推理所接收到的信息，而Memory是系統長期保存信息的機制。Context是一次性的輸入，Memory是用於生成Context的數據來源。
+
+主流模型的context window 大小（上下文）表示大模型每次接收任務時能夠容納的最大token數量。
+
+而Context能有多大，其中包含多少tokens，則由context window來表示。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig5.png)
+<div align="center">
 
-注意Context window并不等于Memory。
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig5.png" width="70%">
 
-**AI Agent的记忆类型**
+</div>
 
-记忆Memory：分为短期记忆以及长时间记忆。
 
-**短期记忆/工作记忆**
+注意Context window並不等於Memory。
 
-短期记忆（Short-term Memory,
-STM）是智能体维护当前对话和任务的即时上下文系统，主要包括：
-会话缓冲（Context）记忆：保留最近对话历史的滚动窗口，确保回答上下文相关性；
-工作记忆：存储当前任务的临时信息，如中间结果、变量值等。
-短期记忆受限于上下文窗口大小，适用于简单对话和单一任务场景。
 
-**长期记忆**
 
-长期记忆（Long-term Memory,
-LTM）是智能体用于跨会话、跨任务长期保存知识的记忆形式。它对应于人类的大脑中持久保存的记忆，例如事实知识、过去经历等。长期记忆的实现通常依赖于外部存储或知识库，包括但不限于： -
-摘要记忆：将长对话内容提炼为关键摘要存储； -
-列表项结构化知识库：使用数据库或知识图谱存储结构化信息； -
-列表项向量化存储：通过向量数据库实现基于语义的记忆检索。
-长期记忆使智能体能够随着时间累积经验和知识，它特别适用于知识密集型应用和需要长期个性化的场景。
+**AI Agent的記憶類型**
 
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig6.png)
+記憶Memory：分為短期記憶以及長期記憶。
 
-------------------------------------------------------------------------
 
-### 会话语境（Conversation Memory）中的Session State 和Memory
+**短期記憶/工作記憶**
 
-当前常用的解决上下文记忆方法： Session：表示当前的对话线程。表示用户与
-Agent
-系统之间一次正在进行的交互过程。它包含在这次特定交互过程中，用户消息以及
-Agent 所执行的操作（称为 Events）的时间顺序记录。一个 Session
-还可以保存仅在当前会话期间有效的临时数据（SessionState）。
+短期記憶（Short-term Memory, STM）是智能體維護當前對話和任務的即時上下文系統，主要包括：
 
-State（session.state）：表示当前对话中的数据。存储在某一个特定 Session
-内部的数据。用于管理仅与当前活跃会话相关的信息，例如当前聊天中的购物车内容，或者用户在本次会话中提到的偏好设置。
-Memory：表示一个可能跨越多个历史
-Session，或者包含外部数据源的信息存储系统。它充当一个知识库，Agent
-可以通过搜索它来回忆信息，或者获取当前会话之外的上下文内容。
+會話緩衝（Context）記憶：保留最近對話歷史的滾動窗口，確保回答的上下文相關性；
 
-除chat API自己管理memory之外，也存在另一种基于 Session 的 API
-模式。比如Completion API是不会传的context的，只会传当前的状态以及session
-id，在服务端记住session。包括gemini和claude都是支持两种。客户端只需要发送当前输入以及
-session_id，历史记录由服务端维护，开发者无需自己管理 Conversation
-History。需要注意的是，无论是 Chat API 还是传统 Completion
-API，本身都是无状态的，两者都可以携带历史信息，也都可以只发送当前输入，区别主要在于输入格式和上下文管理方式，而不是模型是否具有记忆能力。
-本质上都属于Conversation
-Memory的实现方式，两者解决的都是短期上下文的记忆问题。 Conversational
-Context: Session, State, and Memory - Agent Development Kit (ADK)
+工作記憶：存儲當前任務的臨時信息，例如中間結果、變量值等。
 
-**Summarized memory（摘要记忆）：**
-短期记忆能够保证对话的连续性，但它无法扩展。随着对话时间的延长，盲目地重放每条信息会变得既费时费力又不可靠。summarized记忆可以解决这个问题。
-它捕捉到了： \> 用户意图 重要事实 决策与约束
+短期記憶受限於上下文窗口大小，適用於簡單對話和單一任務場景。
 
-它明确表示不存储：
+**長期記憶**
 
-> 每一句话 闲谈 冗余确认
+長期記憶（Long-term Memory, LTM）是智能體用於跨會話、跨任務長期保存知識的記憶形式。它對應於人類大腦中持久保存的記憶，例如事實知識、過去經歷等。長期記憶的實現通常依賴於外部存儲或知識庫，包括但不限於：
+
+- 摘要記憶：將長對話內容提煉為關鍵摘要進行存儲；
+- 列表項結構化知識庫：使用數據庫或知識圖譜存儲結構化信息；
+- 列表項向量化存儲：通過向量數據庫實現基於語義的記憶檢索。
+
+長期記憶使智能體能夠隨著時間累積經驗和知識，它特別適用於知識密集型應用和需要長期個性化的場景。
+
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig6.png" width="70%">
+
+</div>
+
+---
+
+### 會話語境（Conversation Memory）中的Session State 和Memory
+
+當前常用的解決上下文記憶方法：
+
+Session：表示當前的對話線程。表示使用者與 Agent 系統之間一次正在進行的交互過程。它包含在這次特定交互過程中，使用者消息以及 Agent 所執行的操作（稱為 Events）的時間順序記錄。一個 Session 還可以保存僅在當前會話期間有效的臨時數據（SessionState）。
+
+State（session.state）：表示當前對話中的數據。存儲在某一個特定 Session 內部的數據。用於管理僅與當前活躍會話相關的信息，例如當前聊天中的購物車內容，或者使用者在本次會話中提到的偏好設置。
+
+Memory：表示一個可能跨越多個歷史 Session，或者包含外部數據源的信息存儲系統。它充當一個知識庫，Agent 可以通過搜索它來回憶信息，或者獲取當前會話之外的上下文內容。
+
+除了 Chat API 自己管理 Memory 之外，也存在另一種基於 Session 的 API 模式。例如 Completion API 不會傳遞 context，只會傳遞當前的狀態以及 session id，在服務端記住 session。包括 Gemini 和 Claude 都支持這兩種方式。客戶端只需要發送當前輸入以及 session_id，歷史記錄由服務端維護，開發者無需自己管理 Conversation History。
+
+需要注意的是，無論是 Chat API 還是傳統 Completion API，本身都是無狀態的，兩者都可以攜帶歷史信息，也都可以只發送當前輸入，區別主要在於輸入格式和上下文管理方式，而不是模型是否具有記憶能力。
+
+本質上都屬於 Conversation Memory 的實現方式，兩者解決的都是短期上下文的記憶問題。
+
+Conversational Context: Session, State, and Memory - Agent Development Kit (ADK)
+
+**Summarized memory（摘要記憶）：** 短期記憶能夠保證對話的連續性，但它無法擴展。隨著對話時間的延長，盲目地重放每條信息會變得既費時費力又不可靠。Summarized Memory 可以解決這個問題。
+
+它捕捉到了：
+
+> 使用者意圖  
+重要事實  
+決策與約束
+
+它明確表示不存儲：
+
+> 每一句話  
+閒談  
+冗餘確認
 
 https://medium.com/@sitaramireddy1994/summarized-memory-in-ai-agents-compressing-conversation-without-losing-intent-c0cf7678071c
 
-## **Agent 能力来源（Tool）**
+## **Agent 能力來源（Tool）**
 
 ### Tool
 
-工具Tools：LLM是不具备任何与外部环境交互的能力的，没有环境交互他不能做任何事情，而工具是访问环境的方法。但是它可以通过外接API的形式来获得模型权重所缺少的额外信息。
-这对于预训练之后难以修改的模型权重来说是非常重要的。Tool
-的存在和权限由开发者定义，而是否调用某个 Tool，则由 LLM 在 Runtime
-环境下根据当前任务动态决定。可以通过提示工程激发或者引导模型已有的能力，但是实际上这些能力是固化的，能力上限依然由模型的权重决定，有些模型天生能力就强但是有些模型加入提示词也不会有很好的结果。
+工具（Tools）：LLM 不具備任何與外部環境交互的能力，沒有環境交互它不能做任何事情，而工具是訪問環境的方法。但是它可以通過外接 API 的形式來獲得模型權重所缺少的額外信息。這對於預訓練之後難以修改的模型權重來說是非常重要的。
 
+Tool 的存在和權限由開發者定義，而是否調用某個 Tool，則由 LLM 在 Runtime 環境下根據當前任務動態決定。可以通過提示工程激發或者引導模型已有的能力，但是實際上這些能力是固化的，能力上限依然由模型的權重決定。有些模型天生能力就強，但是有些模型即使加入提示詞也不一定能取得很好的結果。
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig7.png)
 
-Tool 是 Agent 能力的边界。Runtime 负责管理和调度 Tool，但 Tool
-本身通常作为独立组件存在于 Runtime 外部（例如本地函数、API 或 MCP
-Server）。LLM 无法凭空创造新的 Tool，也不会自动联网发现新的
-Tool。只有开发者预先接入并注册到 Runtime 的 Tool，Agent
-才具备相应的能力。因此，一个银行 Agent 即使知道如何点外卖，如果 Runtime
-中没有接入点餐相关的 Tool，它也无法完成该任务。
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig7.png" width="70%">
+
+</div>
+
+Tool 是 Agent 能力的邊界。Runtime 負責管理和調度 Tool，但 Tool 本身通常作為獨立組件存在於 Runtime 外部（例如本地函數、API 或 MCP Server）。LLM 無法憑空創造新的 Tool，也不會自動聯網發現新的 Tool。只有開發者預先接入並註冊到 Runtime 的 Tool，Agent 才具備相應的能力。因此，一個銀行 Agent 即使知道如何點外賣，如果 Runtime 中沒有接入點餐相關的 Tool，它也無法完成該任務。
 
 ### MCP
 
-即使拥有最前沿的模型，如果无法连接外部世界获得必要数据和上下文，效果就会大打折扣。
-**LLM 负责"根据任务和工具描述进行决策，例如决定是否调用工具"，Runtime
-负责执行"调用工具"，MCP 负责"统一工具通信协议"。** -
-模型上下文协议（MCP）这是一个开源协议，标准化了Agent应用与外部工具、数据源之间的连接方式。可以理解为一套统一的工具接入标准（比如所有的手机都是type-C接口）。也是一个runtime使用的工具，与其他工具不同的地方就在于他是一个打包好的黑盒。MCP
-Server可以为Agent
-Runtime暴露多个工具来解决现实任务。MCP服务器的优势在于跨应用(不同的runtime)的高度可复用性。
+即使擁有最前沿的模型，如果無法連接外部世界獲得必要數據和上下文，效果就會大打折扣。
 
--   MCP 的意义在于统一 AI 应用与外部工具、数据源之间的连接方式。只要某个
-    Agent 应用实现了 MCP
-    Client，并且所使用的模型支持或能够被框架适配为工具调用模式，就可以复用同一批
-    MCP Server，而不需要为每个模型重新开发工具接入代码。 \>
-    **把工具绑定到LangGraph模型后是否可以不用MCP进行切换模型？**
+**LLM 負責「根據任務和工具描述進行決策，例如決定是否調用工具」，Runtime 負責執行「調用工具」，MCP 負責「統一工具通信協議」。**
 
-可以但是不能无修改的切换，比如我们在Langgraph中定义了一组普通工具：
+- 模型上下文協議（MCP）是一個開源協議，標準化了 Agent 應用與外部工具、數據源之間的連接方式。可以理解為一套統一的工具接入標準（例如所有手機都是 Type-C 接口）。也是一個 Runtime 使用的工具，與其他工具不同的地方在於它是一個打包好的黑盒。MCP Server 可以為 Agent Runtime 暴露多個工具來解決現實任務。MCP Server 的優勢在於跨應用（不同 Runtime）的高度可復用性。
 
-    tools = [search_tool, database_tool, calculator_tool]
+- MCP 的意義在於統一 AI 應用與外部工具、數據源之間的連接方式。只要某個 Agent 應用實現了 MCP Client，並且所使用的模型支持或能夠被框架適配為工具調用模式，就可以復用同一批 MCP Server，而不需要為每個模型重新開發工具接入代碼。
 
-然后绑定给模型
+> **把工具綁定到 LangGraph 模型後是否可以不用 MCP 進行模型切換？**
 
-    model_with_tools = model.bind_tools(tools)
+可以，但是不能無修改地切換。例如我們在 LangGraph 中定義了一組普通工具：
+''''
+tools = [search_tool, database_tool, calculator_tool]
+''''
 
-理论上可以把模型从OpenAi换成其他支持工具调用的模型如Qwen。Langchain的工具本质上有明确的输入输出结构可调用函数然后传递给聊天模型决定何时调用。
-\> 但需要注意的是： 新模型必须支持工具调用
-不同模型的工具调用能力并不完全一致 普通 LangGraph Tool 不等于 MCP Tool
-**直接把工具绑定到LangGraph的优点在于简单，适合单个的项目，切换模型时Langgraph流程和工具通常可以服用但是需要更换模型适配器，并检查新的模型是否支持工具调用。**
-**使用 MCP
-则会让工具层与模型层的解耦更彻底，但不代表切换任何模型都一定零修改。**
+然後綁定給模型：
 
--   从工程角度看，MCP Server 本质上可以理解为一个 Wrapper，它把真实的
-    API、数据库、RAG、搜索引擎等能力统一封装成标准接口供 Runtime 调用。
--   不过，MCP 也是一种比较"重"的方案。因为所有能力都需要按照 MCP
-    规范进行包装，就像随身携带一个完整工具箱。对于大型系统、复杂 Agent
-    和多模型场景，这种标准化带来了巨大的扩展性；但如果只是简单调用一个工具，那么直接调用
-    API 往往更加轻量，不一定需要引入整个 MCP 体系。 \### Tool Calling
--   有的tool会被打包成一个MCP server 接口给MCP
-    client，但是注意Tool本身不一定需要MCP化。传统Agent可以直接绑定Tool，而MCP提供了一种标准的方式，将Tool封装为为什么要先打包成MCPserver而不是直接连接呢？
-    为什么不能直接把api接过来呢？这里是工程学的东西，不同的Agent之间共享工具，有了MCP就可以一次开发多处使用，MCP解决了Tool层服用的问题，MCP降低了模型切换时工具层修改的成本，但它的核心目标不是模型迁移，而是工具能力的标准化和复用。使用MCP的前提是Agent
-    Runtime 实现了MCP Client，同时Runtime
-    能够将工具调用的能力暴露给LLM。
+''''
+model_with_tools = model.bind_tools(tools)
+''''
 
-```{=html}
-<!-- -->
+理論上可以把模型從 OpenAI 換成其他支持工具調用的模型，例如 Qwen。LangChain 的工具本質上具有明確的輸入輸出結構，可以作為可調用函數傳遞給聊天模型，由模型決定何時調用。
+
+> 但需要注意的是：
+> 
+> 新模型必須支持工具調用  
+> 不同模型的工具調用能力並不完全一致  
+> 普通 LangGraph Tool 不等於 MCP Tool  
+
+**直接把工具綁定到 LangGraph 的優點在於簡單，適合單個項目。切換模型時，LangGraph 流程和工具通常可以復用，但是需要更換模型適配器，並檢查新的模型是否支持工具調用。**
+
+**使用 MCP 則會讓工具層與模型層的解耦更加徹底，但不代表切換任何模型都一定零修改。**
+
+- 從工程角度看，MCP Server 本質上可以理解為一個 Wrapper，它把真實的 API、數據庫、RAG、搜索引擎等能力統一封裝成標準接口供 Runtime 調用。
+
+- 不過，MCP 也是一種比較「重」的方案。因為所有能力都需要按照 MCP 規範進行封裝，就像隨身攜帶一個完整工具箱。對於大型系統、複雜 Agent 和多模型場景，這種標準化帶來了巨大的擴展性；但如果只是簡單調用一個工具，那麼直接調用 API 往往更加輕量，不一定需要引入完整的 MCP 體系。
+
+### Tool Calling
+
+- 有些 Tool 會被打包成一個 MCP Server 接口提供給 MCP Client，但是需要注意 Tool 本身不一定需要 MCP 化。傳統 Agent 可以直接綁定 Tool，而 MCP 提供了一種標準方式，將 Tool 封裝為統一接口。
+
+為什麼要先打包成 MCP Server，而不是直接連接呢？為什麼不能直接接入 API 呢？
+
+這更多是一個工程設計問題。不同 Agent 之間需要共享工具，有了 MCP 就可以一次開發，多處使用。MCP 解決了 Tool 層復用的問題，MCP 降低了模型切換時工具層修改的成本，但它的核心目標不是模型遷移，而是工具能力的標準化和復用。
+
+使用 MCP 的前提是 Agent Runtime 實現了 MCP Client，同時 Runtime 能夠將工具調用能力暴露給 LLM。
+
+- 例如
 ```
-    例如
-    Claude Desktop -> MCP Client -> MCP Server
-    LangGraph -> MCP Client -> MCP Server
-    两个Runtime都可以调用同一个工具
+Claude Desktop -> MCP Client -> MCP Server
+LangGraph -> MCP Client -> MCP Server
+两个Runtime都可以调用同一个工具
+```
 
--   MCP client
-    负责连接Server，获取工具描述，发起调用，返回结果给Runtime。在 Agent
-    Runtime
-    中负责发现工具、读取工具描述、发起调用并接收结果。这样模型或上层框架变化时，底层工具接入方式不需要全部重写。
+- MCP Client 負責連接 Server、獲取工具描述、發起調用以及將結果返回給 Runtime。在 Agent Runtime 中，它負責發現工具、讀取工具描述、發起調用並接收結果。這樣當模型或上層框架發生變化時，底層工具接入方式不需要全部重新編寫。
 
--   MCP Server 可以理解为把外部工具、数据库、文件系统、搜索服务或业务
-    API 包装成统一协议的服务端。 真正的业务逻辑仍然在 MCP Server 背后的
-    API、数据库或服务中，Agent Runtime 只通过协议化接口调用它们。
-    实际场景中LangGraph绑Tools的情况会比使用MCP的情况多。 \### Skill
+- MCP Server 可以理解為將外部工具、數據庫、文件系統、搜索服務或業務 API 封裝成統一協議的服務端。
 
--   Skill（技能包）属于Agent能力层，用于告诉Agent如何完成某一类任务，包括执行流程，使用哪些工具以及遵守哪些约束。可以理解为一种按需加载（On-demand
-    Loading）的任务说明书，它并不是新的
-    Tool，而是对完成某类任务所需知识、流程和工具的封装。
+真正的業務邏輯仍然存在於 MCP Server 背後的 API、數據庫或服務中，Agent Runtime 只通過協議化接口調用它們。
 
--   在传统的 Tool Calling 中，Runtime 往往需要提前将所有 Tool
-    的名称、功能描述和调用方式提供给 LLM，使模型能够判断应该调用哪个
-    Tool。当 Tool 数量很多时，这些描述会占用大量上下文（Context），增加
-    Prompt 长度，也会影响模型的推理效率。
+實際場景中，LangGraph 綁定 Tools 的情況通常會比使用 MCP 的情況更多。
 
--   Skill 的设计思想就是按需加载。Runtime
-    在开始时并不会把所有任务知识和工具说明都提供给模型，而是先根据当前用户的任务类型，加载对应的
-    Skill。例如，当用户希望分析 Excel 文件时，Runtime 才会加载 Excel
-    Analysis Skill，而不会同时加载 GitHub、数据库或浏览器相关的 Skill。
+### Skill
 
--   可以将 Skill 理解为一份压缩后的说明书（Instruction Manual）。LLM
-    虽然可能已经具备完成任务的基础能力，但不同企业系统往往有自己的工作流程、规范以及工具使用方式。如果没有这份说明书，模型并不知道当前系统推荐采用什么流程、应该优先调用哪些
-    Tool、每一步应该如何组织任务。而 Skill
-    的作用，就是在任务开始时为模型提供这些额外的指导信息，使模型能够按照当前
-    Runtime 的规范完成任务。
+- Skill（技能包）屬於 Agent 能力層，用於告訴 Agent 如何完成某一類任務，包括執行流程、使用哪些工具以及遵守哪些約束。可以理解為一種按需加載（On-demand Loading）的任務說明書，它並不是新的 Tool，而是對完成某類任務所需知識、流程和工具的封裝。
 
-> 一个 Skill 通常会包含以下内容： 当前任务的目标和适用场景；
-> 推荐的执行流程（Workflow）； 最佳实践和约束条件； 当前任务需要使用哪些
-> Tool 或脚本，以及这些 Tool 的使用方法。
+- 在傳統的 Tool Calling 中，Runtime 往往需要提前將所有 Tool 的名稱、功能描述和調用方式提供給 LLM，使模型能夠判斷應該調用哪個 Tool。當 Tool 數量很多時，這些描述會占用大量上下文（Context），增加 Prompt 長度，也會影響模型的推理效率。
 
-需要注意的是，Skill 本身并不负责执行任务，也不会真正提供 Tool。 Skill
-更像是一份"使用指南"，它只是告诉模型："完成这项任务建议按照哪些步骤进行，并需要调用哪些
-Tool。" 真正执行操作的仍然是 Runtime 提供的 Tool（例如本地 Tool 或通过
-MCP Server 提供的 Tool）。
+- Skill 的設計思想就是按需加載。Runtime 在開始時並不會把所有任務知識和工具說明都提供給模型，而是先根據當前使用者的任務類型，加載對應的 Skill。例如，當使用者希望分析 Excel 文件時，Runtime 才會加載 Excel Analysis Skill，而不會同時加載 GitHub、數據庫或瀏覽器相關的 Skill。
 
-**Skill、MCP、LLM之间的关系** - Skill、LLM 和 MCP 分别位于 Agent
-的不同层次。LLM 负责理解任务和推理决策；Skill 是按需加载的任务说明书，为
-LLM 提供完成某类任务的流程、最佳实践以及建议使用的 Tool；MCP
-则是一种统一的工具通信协议，负责让 Runtime
-能够以一致的方式连接和调用各种外部 Tool。Skill 不负责执行任务，MCP
-不负责指导任务，它们共同辅助 LLM 更高效、更规范地完成复杂任务。
+- 可以將 Skill 理解為一份壓縮後的說明書（Instruction Manual）。LLM 雖然可能已經具備完成任務的基礎能力，但不同企業系統往往有自己的工作流程、規範以及工具使用方式。如果沒有這份說明書，模型並不知道當前系統推薦採用什麼流程、應該優先調用哪些 Tool、每一步應該如何組織任務。而 Skill 的作用，就是在任務開始時為模型提供這些額外的指導信息，使模型能夠按照當前 Runtime 的規範完成任務。
 
--   Skill与MCP会同时出现，但它们彼此没有依赖关系。 一个 Agent
-    可以同时使用 Skill 和 MCP，也可以只使用其中一个。 \> Skill
-    是"指导者"，没有它，LLM
-    仍然可以完成任务，只是可能缺少规范和最佳实践。 没有 MCP，Runtime
-    仍然可以直接调用本地函数、SDK 或 API 来使用 Tool，但这些 Tool
-    通常需要针对不同 Runtime 或 Agent 框架分别进行适配。当需要在多个
-    Runtime（如 LangGraph、Claude Desktop、Cursor、OpenAI Agents SDK
-    等）之间共享同一套 Tool 时，就可能需要重复开发和维护不同的接口。而
-    MCP 通过统一协议，将 Tool 封装为标准化的 MCP Server，使不同 Runtime
-    能够复用同一套 Tool，而无需为每个平台重新开发接入逻辑。
+
+> 一個 Skill 通常會包含以下內容：
+> 
+> 當前任務的目標和適用場景；
+> 推薦的執行流程（Workflow）；
+> 最佳實踐和約束條件；
+> 當前任務需要使用哪些 Tool 或腳本，以及這些 Tool 的使用方法。
+
+需要注意的是，Skill 本身並不負責執行任務，也不會真正提供 Tool。Skill 更像是一份「使用指南」，它只是告訴模型：「完成這項任務建議按照哪些步驟進行，並需要調用哪些 Tool。」真正執行操作的仍然是 Runtime 提供的 Tool（例如本地 Tool 或通過 MCP Server 提供的 Tool）。
+
+**Skill、MCP、LLM之間的關係**
+
+- Skill、LLM 和 MCP 分別位於 Agent 的不同層次。LLM 負責理解任務和推理決策；Skill 是按需加載的任務說明書，為 LLM 提供完成某類任務的流程、最佳實踐以及建議使用的 Tool；MCP 則是一種統一的工具通信協議，負責讓 Runtime 能夠以一致的方式連接和調用各種外部 Tool。Skill 不負責執行任務，MCP 不負責指導任務，它們共同輔助 LLM 更高效、更規範地完成複雜任務。
+
+- Skill 與 MCP 會同時出現，但它們彼此沒有依賴關係。一個 Agent 可以同時使用 Skill 和 MCP，也可以只使用其中一個。
+
+> Skill 是「指導者」，沒有它，LLM 仍然可以完成任務，只是可能缺少規範和最佳實踐。
+
+沒有 MCP，Runtime 仍然可以直接調用本地函數、SDK 或 API 來使用 Tool，但這些 Tool 通常需要針對不同 Runtime 或 Agent 框架分別進行適配。當需要在多個 Runtime（如 LangGraph、Claude Desktop、Cursor、OpenAI Agents SDK 等）之間共享同一套 Tool 時，就可能需要重複開發和維護不同的接口。而 MCP 通過統一協議，將 Tool 封裝為標準化的 MCP Server，使不同 Runtime 能夠復用同一套 Tool，而無需為每個平台重新開發接入邏輯。
+
 
 ## RAG
 
-检索增强生成（RAG）是指对大语言模型输出进行优化，使其能够在生成响应之前引用训练数据来源之外的权威知识库。大语言模型（LLM）用海量数据进行训练，使用数十亿个参数为回答问题、翻译语言和完成句子等任务生成原始输出。在
-LLM 本就强大的功能基础上，RAG
-将其扩展为能访问特定领域或组织的内部知识库，所有这些都无需重新训练模型。这是一种经济高效地改进
-LLM 输出的方法，让它在各种情境下都能保持相关性、准确性和实用性。 \###
-RAG流程
+檢索增強生成（RAG）是指對大語言模型輸出進行優化，使其能夠在生成響應之前引用訓練數據來源之外的權威知識庫。大語言模型（LLM）使用海量數據進行訓練，利用數十億個參數為回答問題、翻譯語言和完成句子等任務生成原始輸出。在 LLM 本身強大的功能基礎上，RAG 將其擴展為能夠訪問特定領域或組織的內部知識庫，而無需重新訓練模型。這是一種經濟高效地改進 LLM 輸出的方法，使其在各種情境下都能保持相關性、準確性和實用性。
+
+### RAG流程
 
 🧩🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig8.png)
 
-一个完整 RAG 链路通常包括：文档清洗与切分（chunking）、embedding
-建库、query 改写或扩展、retrieval 召回、rerank
-重排、上下文压缩、引用来源保留、LLM 生成和答案校验。
-在加入RAG之前，LLM的知识来源就只有训练数据，加入RAG之后就会先去找相关的资料，然后把资料交给LLM，LLM的内容不变但是prompt变长了
-\### Chunking 把长文档切成小段再存入向量库。 - 切太小，例如每段 100
-tokens，可能会丢失上下文。比如一段只写"该方法适用于上述情况"，但"上述情况"在上一段，检索出来后
-LLM 也看不懂。 - 切太大，例如每段 2000
-tokens，虽然上下文完整，但语义太杂，embedding
-会被很多无关信息稀释，导致召回不准。 Chunk
-size通常并不是固定的答案，一般要根据文档的类型以及任务进行调整。一般的文档大概为300-800
-tokens；代码或表格通常需要按照结构切；注意要保留标题章节以及metadata。
-有时会使用overlap来避免答案刚好被切断，常用overlap 10%-20%。 \###
-Embedding
-RAG中的Embedding：这通常是一个单独的模型，可以理解为一个语义索引的工具，会把文档转化为一个向量，然后存进向量数据库。
-\> 举例：比如你有一篇文档：哈利波特是一本魔法小说。 Embedding
-模型会把它变成一个向量，然后存进向量数据库。
-当用户问：哪里能找到哈利波特？也会被转成向量。
-统会比较两个向量是否接近：用户问题向量vs文档片段向量
-如果距离很近，说明语义相关，就把这段文档找出来，再交给 LLM 回答
+<div align="center">
 
-选择 embedding 要看语言、领域和评测结果。中文场景可以考虑
-bge、m3e、e5、text-embedding
-系列。维度高不一定更好，会增加存储和检索成本。领域差异大时，可以考虑微调
-embedding 或引入混合检索 \### Retrieval
-系统在收到Query之后不会先去问LLM而是先去相关知识库中搜索。将相关的检索结果进行增强上下文。
-\### Reranking
-返回会有很多，我们要的是最好的前几个，怎样才能保证拿到，要怎么设计，怎么让LLM不要在没有这个东西的时候不要乱回。
-Retrieval 负责尽量召回相关内容，Rerank 负责从候选结果中挑出最适合放入
-context 的片段。两者目标不同：召回阶段宁可多拿一些，重排阶段再控制质量和
-token 成本。
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig8.png" width="70%">
+
+</div>
+
+一個完整的 RAG 鏈路通常包括：文檔清洗與切分（chunking）、embedding 建庫、query 改寫或擴展、retrieval 召回、rerank 重排、上下文壓縮、引用來源保留、LLM 生成以及答案校驗。
+
+在加入 RAG 之前，LLM 的知識來源主要來自訓練數據；加入 RAG 之後，系統會先檢索相關資料，然後將資料提供給 LLM。LLM 本身的參數內容不會改變，但是輸入的 Prompt Context 會變長。
+
+### Chunking
+
+將長文檔切分成小段後，再存入向量庫。
+
+- 切分太小，例如每段 100 tokens，可能會丟失上下文。例如一段只寫「該方法適用於上述情況」，但是「上述情況」位於上一段，檢索出來後 LLM 也無法理解。
+- 切分太大，例如每段 2000 tokens，雖然上下文更加完整，但是語義過於混雜，Embedding 會被大量無關信息稀釋，導致召回結果不準確。
+
+Chunk size 通常並不是固定答案，一般需要根據文檔類型以及任務需求進行調整。普通文檔通常約為 300-800 tokens；代碼或表格通常需要按照結構進行切分；同時需要注意保留標題、章節以及 metadata。
+
+有時會使用 overlap 來避免答案剛好被切斷，常用 overlap 比例約為 10%-20%。
+
+### Embedding
+
+RAG 中的 Embedding 通常是一個獨立模型，可以理解為一個語義索引工具，它會將文檔轉化為向量，然後存入向量數據庫。
+
+> 舉例：比如你有一篇文檔：「哈利波特是一本魔法小說。」
+>
+> Embedding 模型會將它轉換成一個向量，然後存入向量數據庫。
+>
+> 當使用者詢問：「哪裡能找到哈利波特？」時，該問題也會被轉換為向量。
+>
+> 系統會比較兩個向量是否接近：使用者問題向量 vs 文檔片段向量。
+>
+> 如果距離較近，說明兩者語義相關，就會取出這段文檔，再交給 LLM 生成答案。
+
+選擇 Embedding 模型需要考慮語言、領域以及評測結果。中文場景可以考慮 bge、m3e、e5、text-embedding 系列。維度越高不一定越好，因為會增加存儲和檢索成本。當領域差異較大時，可以考慮微調 Embedding 模型或者引入混合檢索。
+
+### Retrieval
+
+系統收到 Query 後，不會先詢問 LLM，而是先在相關知識庫中進行搜索，將相關檢索結果加入上下文中進行增強。
+
+### Reranking
+
+檢索結果通常會返回多個候選內容，而我們希望選擇其中最相關的前幾個結果。如何保證獲取最佳內容，需要通過合理設計檢索和排序策略，同時避免 LLM 在不存在相關信息時產生錯誤回答。
+
+Retrieval 負責盡可能召回相關內容，Rerank 負責從候選結果中挑選最適合放入 Context 的片段。兩者目標不同：召回階段通常希望儘可能多獲取候選內容，而重排階段則負責控制質量以及 Token 成本。
+
