@@ -85,7 +85,7 @@ Runtime 本质是AI Agent 的执行基础设施。它管理Agent的生命周期�
 🧩🧩🧩
 ![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png)
 
-典型runtime
+**典型runtime**
 
 当 LLM 判断需要使用工具时，它会把 Tool Call 的意图交给 Runtime，再由 Runtime 通过 MCP Client 调用对应的 MCP Server。
 
