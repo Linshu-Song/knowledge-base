@@ -20,7 +20,11 @@
 Agent 是一个能够感知环境、进行推理决策、调用工具并根据反馈持续完成任务的软件系统。LLM通常作为Agent的推理核心，但Agent并不等同于LLM。我们认为，只是简单的LLM（Prompt）不能被称为Agent，Agent系统的基本构建模块是一个通过检索、工具和内存等增强功能的LLM。现有的模型可以主动利用这些能力，生成自己的搜索查询，选择合适的工具并确定要保留哪些信息。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig2.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig2.png" width="70%">
+
+</div>
 
 Agent的重点不在于模型，而是让模型真正具备完成任务的能力。
 
@@ -84,7 +88,12 @@ Runtime 本质是AI Agent 的执行基础设施。它管理Agent的生命周期�
 与外部环境交互。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig4.png" width="70%">
+
+</div>
+
 
 **典型runtime**
 
@@ -103,7 +112,12 @@ Context表示大模型每次处理任务时所接收到的信息总和。Context
 而Context能有多大，里面有多少tokens由context window来表示。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig5.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig5.png" width="70%">
+
+</div>
+
 
 注意Context window并不等于Memory。
 
@@ -129,7 +143,11 @@ Context表示大模型每次处理任务时所接收到的信息总和。Context
 - 列表项向量化存储：通过向量数据库实现基于语义的记忆检索。
 长期记忆使智能体能够随着时间累积经验和知识，它特别适用于知识密集型应用和需要长期个性化的场景。
 
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig6.png)
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig6.png" width="70%">
+
+</div>
 
 ---
 
@@ -163,7 +181,12 @@ https://medium.com/@sitaramireddy1994/summarized-memory-in-ai-agents-compressing
 工具Tools：LLM是不具备任何与外部环境交互的能力的，没有环境交互他不能做任何事情，而工具是访问环境的方法。但是它可以通过外接API的形式来获得模型权重所缺少的额外信息。 这对于预训练之后难以修改的模型权重来说是非常重要的。Tool 的存在和权限由开发者定义，而是否调用某个 Tool，则由 LLM 在 Runtime 环境下根据当前任务动态决定。可以通过提示工程激发或者引导模型已有的能力，但是实际上这些能力是固化的，能力上限依然由模型的权重决定，有些模型天生能力就强但是有些模型加入提示词也不会有很好的结果。
 
 🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig7.png)
+
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig7.png" width="70%">
+
+</div>
 
 Tool 是 Agent 能力的边界。Runtime 负责管理和调度 Tool，但 Tool 本身通常作为独立组件存在于 Runtime 外部（例如本地函数、API 或 MCP Server）。LLM 无法凭空创造新的 Tool，也不会自动联网发现新的 Tool。只有开发者预先接入并注册到 Runtime 的 Tool，Agent 才具备相应的能力。因此，一个银行 Agent 即使知道如何点外卖，如果 Runtime 中没有接入点餐相关的 Tool，它也无法完成该任务。
 
@@ -239,7 +262,12 @@ LangGraph -> MCP Client -> MCP Server
 ### RAG流程
 
 🧩🧩🧩🧩
-![fig1](https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig8.png)
+
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Linshu-Song/SAIL_image_hosting/main/Agentimg/fig8.png" width="70%">
+
+</div>
 
 一个完整 RAG 链路通常包括：文档清洗与切分（chunking）、embedding 建库、query 改写或扩展、retrieval 召回、rerank 重排、上下文压缩、引用来源保留、LLM 生成和答案校验。
 在加入RAG之前，LLM的知识来源就只有训练数据，加入RAG之后就会先去找相关的资料，然后把资料交给LLM，LLM的内容不变但是prompt变长了
