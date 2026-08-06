@@ -13,6 +13,12 @@
 
 图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
+Agent的架构层级上，
+LLM = 大脑
+Agent = 使用大脑完成任务的系统
+Runtime = Agent运行环境和控制逻辑
+Tool = Agent可以调用的外部能力
+MCP = Tool连接标准
 工程上实现可以拆分出四个核心模块：推理、记忆、工具、行动
 
 ### Agent完整工作流程
