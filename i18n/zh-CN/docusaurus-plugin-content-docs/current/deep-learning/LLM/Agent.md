@@ -14,11 +14,7 @@
 图片来源：https://www.bilibili.com/video/BV1uNk1YxEJQspm_id_from=333.788.videopod.episodes&vd_source=cdbd526603d180d53ccd6caa6a2ec439&p=8
 
 Agent的架构层级上，
-LLM = 大脑
-Agent = 使用大脑完成任务的系统
-Runtime = Agent运行环境和控制逻辑
-Tool = Agent可以调用的外部能力
-MCP = Tool连接标准
+LLM = 大脑 ; Agent = 使用大脑完成任务的系统 ; Runtime = Agent运行环境和控制逻辑 ; Tool = Agent可以调用的外部能力 ; MCP = Tool连接标准
 工程上实现可以拆分出四个核心模块：推理、记忆、工具、行动
 
 ### Agent完整工作流程
@@ -177,7 +173,7 @@ Tool 是 Agent 能力的边界。Runtime 负责管理和调度 Tool，但 Tool �
 
 ### MCP
 即使拥有最前沿的模型，如果无法连接外部世界获得必要数据和上下文，效果就会大打折扣。
-**LLM 负责"决定是否调用工具"，Runtime 负责"调用工具"，MCP 负责"统一工具通信协议"。**
+**LLM 负责"根据任务和工具描述进行决策，例如决定是否调用工具"，Runtime 负责执行"调用工具"，MCP 负责"统一工具通信协议"。**
 - 模型上下文协议（MCP）这是一个开源协议，它标准化了大语言模型的连接与工作方式。可以理解为一套统一的工具接入标准（比如所有的手机都是type-C接口）。也是一个runtime使用的工具，与其他工具不同的地方就在于他是一个打包好的黑盒。MCP协议可以为LLMAgent提供数百种工具来解决现实任务。MCP服务器的优势在于跨应用(不同的runtime)的高度可复用性。
 
 - MCP 的意义在于统一 AI 应用与外部工具、数据源之间的连接方式。只要某个 Agent 应用实现了 MCP Client，并且所使用的模型支持或能够被框架适配为工具调用模式，就可以复用同一批 MCP Server，而不需要为每个模型重新开发工具接入代码。
@@ -202,13 +198,21 @@ model_with_tools = model.bind_tools(tools)
 - 从工程角度看，MCP Server 本质上可以理解为一个 Wrapper，它把真实的 API、数据库、RAG、搜索引擎等能力统一封装成标准接口供 Runtime 调用。
 - 不过，MCP 也是一种比较“重”的方案。因为所有能力都需要按照 MCP 规范进行包装，就像随身携带一个完整工具箱。对于大型系统、复杂 Agent 和多模型场景，这种标准化带来了巨大的扩展性；但如果只是简单调用一个工具，那么直接调用 API 往往更加轻量，不一定需要引入整个 MCP 体系。
 ### Tool Calling
-- 有的tool都会被打包成一个MCP server 接口给MCP client。为什么要先打包成MCPserver而不是直接连接呢？ 为什么不能直接把api接过来呢？这里是工程学的东西，因为模型是一直换的，比如今天使用GPT，明天换成Qwen，他们的接口是不一样的，换了要重写。但所有模型都支持MCP接口，也许有自己的格式但是都会支持MCP接口，这样换模型就不需要进行修改了。
-- MCP client 只是知道需要这个tool，不会知道具体怎么做，但是会帮忙call mcpserver这就是LangGraph的用处，不能让：LLM做权限控制，因为会有幻觉。我们可以在call tool之前先插入一个权限验证，过了之后agent runtime 过了之后再call MCP client。
-- MCP Server 可以理解为把外部工具、数据库、文件系统、搜索服务或业务 API 包装成统一协议的服务端；MCP Client 则在 Agent Runtime 中负责发现工具、读取工具描述、发起调用并接收结果。这样模型或上层框架变化时，底层工具接入方式不需要全部重写。
+- 有的tool会被打包成一个MCP server 接口给MCP client，但是注意Tool本身不一定需要MCP化。传统Agent可以直接绑定Tool，而MCP提供了一种标准的方式，将Tool封装为为什么要先打包成MCPserver而不是直接连接呢？ 为什么不能直接把api接过来呢？这里是工程学的东西，不同的Agent之间共享工具，有了MCP就可以一次开发多处使用，MCP解决了Tool层服用的问题，MCP降低了模型切换时工具层修改的成本，但它的核心目标不是模型迁移，而是工具能力的标准化和复用。使用MCP的前提是Agent Runtime 实现了MCP Client，同时Runtime 能够将工具调用的能力暴露给LLM。
+
+```
+例如
+Claude Desktop -> MCP Client -> MCP Server
+LangGraph -> MCP Client -> MCP Server
+两个Runtime都可以调用同一个工具
+```
+
+- MCP client 负责连接Server，获取工具描述，发起调用，返回结果给Runtime。在 Agent Runtime 中负责发现工具、读取工具描述、发起调用并接收结果。这样模型或上层框架变化时，底层工具接入方式不需要全部重写。
+- MCP Server 可以理解为把外部工具、数据库、文件系统、搜索服务或业务 API 包装成统一协议的服务端。
 真正的业务逻辑仍然在 MCP Server 背后的 API、数据库或服务中，Agent Runtime 只通过协议化接口调用它们。
 实际场景中LangGraph绑Tools的情况会比使用MCP的情况多。
 ### Skill
-- Skill（技能包）可以理解为一种按需加载（On-demand Loading）的任务说明书，它并不是新的 Tool，而是对完成某类任务所需知识、流程和工具的封装。
+- Skill（技能包）属于Agent能力层，用于告诉Agent如何完成某一类任务，包括执行流程，使用哪些工具以及遵守哪些约束。可以理解为一种按需加载（On-demand Loading）的任务说明书，它并不是新的 Tool，而是对完成某类任务所需知识、流程和工具的封装。
 
 - 在传统的 Tool Calling 中，Runtime 往往需要提前将所有 Tool 的名称、功能描述和调用方式提供给 LLM，使模型能够判断应该调用哪个 Tool。当 Tool 数量很多时，这些描述会占用大量上下文（Context），增加 Prompt 长度，也会影响模型的推理效率。
 
